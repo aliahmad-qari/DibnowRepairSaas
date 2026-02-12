@@ -71,10 +71,17 @@ const generateSecureToken = () => {
 };
 
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 // Email transporter configuration
 const createTransporter = async () => {
-  // Create a test account if no SMTP credentials are provided
+  // Check for Resend API first (Production)
+  if (process.env.RESEND_API_KEY) {
+    console.log('[EMAIL] Using Resend API for emails');
+    return { type: 'resend' };
+  }
+
+  // Check for SMTP credentials
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
     console.log('[EMAIL] No SMTP credentials found, using ethereal test account');
     const testAccount = await nodemailer.createTestAccount();
@@ -103,15 +110,38 @@ const createTransporter = async () => {
 // Email sending function
 const sendEmail = async (to, subject, html) => {
   try {
-    const transporter = await createTransporter();
     const fromName = process.env.FROM_NAME || 'DibNow';
+    const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@resend.dev';
+
+    // Use Resend API if configured
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const { data, error } = await resend.emails.send({
+        from: `${fromName} <${fromEmail}>`,
+        to: [to],
+        subject: subject,
+        html: html
+      });
+
+      if (error) {
+        console.error('[EMAIL] Resend error:', error);
+        return false;
+      }
+
+      console.log(`[EMAIL] Message sent to: ${to}`);
+      console.log(`[EMAIL] Resend ID: ${data?.id}`);
+      return true;
+    }
+
+    // Use Nodemailer for SMTP
+    const transporter = await createTransporter();
     const info = await transporter.sendMail({
-      from: `"${fromName}" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from: `"${fromName}" <${fromEmail}>`,
       to: to,
       subject: subject,
       html: html
     });
-    
+
     console.log(`[EMAIL] Message sent to: ${to}`);
     console.log(`[EMAIL] Message ID: ${info.messageId}`);
     return true;
@@ -260,8 +290,8 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     // Check if email is verified (unless it's admin)
     if (!user.emailVerified && user.role === 'user') {
       return res.status(403).json({
-        message: 'Please verify your email before logging in',
-        requiresVerification: true
+        message: 'Please verify your email before logging in. Check your email for the verification link.',
+        requiresEmailVerification: true
       });
     }
 

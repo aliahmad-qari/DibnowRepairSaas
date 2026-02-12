@@ -228,7 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.requiresEmailVerification) {
         // Store temp user for verification
         localStorage.setItem('dibnow_pending_email', email);
-        return { success: false, message: data.message };
+        return { success: false, message: 'Please verify your email before logging in. Check your inbox for the verification link.' };
       }
 
       // Store user data and tokens
