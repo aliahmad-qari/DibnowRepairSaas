@@ -24,34 +24,42 @@ const { apiLimiter, securityHeaders } = require('./middleware/security');
 
 const app = express();
 
-// ==================== SECURITY MIDDLEWARE ====================
+// ==================== CORS CONFIGURATION ====================
 
-// CORS Configuration
-const corsOptions = {
+// Dynamic CORS origins from environment
+const allowedOrigins = [
+  'http://localhost:5173',  // Vite dev server
+  'http://localhost:3000',   // Alternative React dev server
+  'http://localhost:5174',
+  'https://dibnow-repair-saas.vercel.app',  // Production frontend
+  'https://dibnowrepairsaas.onrender.com',  // This backend
+  process.env.FRONTEND_URL,  // Dynamic frontend URL
+  process.env.CORS_ORIGINS    // Custom CORS origins
+].filter(Boolean);  // Remove undefined values
+
+// CORS middleware
+app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://localhost:5174'
-    ];
+    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
+    if (!origin) return callback(null, true);
     
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error('Not allowed by CORS policy'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['X-Total-Count', 'Link'],
-  maxAge: 86400, // 24 hours
+  maxAge: 86400,
   preflightContinue: false,
   optionsSuccessStatus: 204
-};
+}));
 
-app.use(cors(corsOptions));
+// Handle preflight requests for all routes
+app.options('*', cors());
 
 // Helmet for security headers
 app.use(helmet({
