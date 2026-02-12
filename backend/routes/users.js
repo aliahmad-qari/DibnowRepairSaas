@@ -258,7 +258,7 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     // All users are auto-verified - skip check
     
     // Clear failed login attempts
-    clearFailedLogin(email);
+    clearFailedLogins(email);
 
     // Update login info
     user.lastLogin = new Date();
