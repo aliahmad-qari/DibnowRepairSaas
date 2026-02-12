@@ -115,6 +115,7 @@ const sendEmail = async (to, subject, html) => {
 
     // Use Resend API if configured
     if (process.env.RESEND_API_KEY) {
+      console.log('[EMAIL] Sending email via Resend to:', to);
       const resend = new Resend(process.env.RESEND_API_KEY);
       const { data, error } = await resend.emails.send({
         from: `${fromName} <${fromEmail}>`,
@@ -128,8 +129,7 @@ const sendEmail = async (to, subject, html) => {
         return false;
       }
 
-      console.log(`[EMAIL] Message sent to: ${to}`);
-      console.log(`[EMAIL] Resend ID: ${data?.id}`);
+      console.log('[EMAIL] Resend success:', data);
       return true;
     }
 
@@ -151,7 +151,7 @@ const sendEmail = async (to, subject, html) => {
   }
 };
 
-// ==================== PUBLIC ROUTES ====================
+// ==================== PUBLIC ROUTES ==================== 
 
 // Get all users (admin only)
 router.get('/', authenticateToken, authorizeRoles('superadmin'), async (req, res) => {
@@ -164,41 +164,22 @@ router.get('/', authenticateToken, authorizeRoles('superadmin'), async (req, res
   }
 });
 
-// Get a single user
-router.get('/:id', authenticateToken, async (req, res) => {
-  try {
-    // Users can only view their own data unless they're admin
-    if (req.user.role !== 'superadmin' && req.user.userId !== req.params.id) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    const user = await User.findById(req.params.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(user);
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ message: 'Error fetching user' });
-  }
-});
-
-// Register new user
+// Register new user - NO EMAIL VERIFICATION NEEDED
 router.post('/register', registerLimiter, registerValidation, async (req, res) => {
   try {
     const { name, email, password, phone, company, address, postcode } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
+    
     if (existingUser) {
-      return res.status(400).json({ message: 'User with this email already exists' });
+      return res.status(400).json({ 
+        message: 'User with this email already exists. Please login instead.',
+        alreadyExists: true
+      });
     }
 
-    // Create verification token
-    const verificationToken = generateSecureToken();
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    // Create user
+    // Create user - Auto-verified, no email needed
     const user = new User({
       name,
       email,
@@ -207,9 +188,8 @@ router.post('/register', registerLimiter, registerValidation, async (req, res) =
       company,
       address,
       postcode,
-      emailVerificationToken: verificationToken,
-      emailVerificationExpires: verificationExpires,
-      status: 'pending'
+      emailVerified: true,
+      status: 'active'
     });
 
     await user.save();
@@ -218,22 +198,11 @@ router.post('/register', registerLimiter, registerValidation, async (req, res) =
     const token = generateToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    // Send verification email
-    const verificationUrl = `${process.env.APP_BASE_URL}/auth/verify-email?token=${verificationToken}&email=${email}`;
-    await sendEmail(
-      email,
-      'Verify Your DibNow Account',
-      `<h1>Welcome to DibNow!</h1>
-       <p>Please click the link below to verify your email:</p>
-       <a href="${verificationUrl}">Verify Email</a>
-       <p>This link expires in 24 hours.</p>`
-    );
-
-    // Remove password from response
+    // Remove sensitive data
     user.password = undefined;
 
     res.status(201).json({
-      message: 'Registration successful. Please verify your email.',
+      message: 'Registration successful!',
       user: {
         id: user._id,
         name: user.name,
@@ -241,8 +210,7 @@ router.post('/register', registerLimiter, registerValidation, async (req, res) =
         role: user.role
       },
       token,
-      refreshToken,
-      requiresEmailVerification: true
+      refreshToken
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -287,14 +255,8 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if email is verified (unless it's admin)
-    if (!user.emailVerified && user.role === 'user') {
-      return res.status(403).json({
-        message: 'Please verify your email before logging in. Check your email for the verification link.',
-        requiresEmailVerification: true
-      });
-    }
-
+    // All users are auto-verified - skip check
+    
     // Clear failed login attempts
     clearFailedLogin(email);
 
@@ -383,39 +345,33 @@ router.post('/verify-email', otpValidation, async (req, res) => {
   }
 });
 
-// Request password reset
+// Forgot password
 router.post('/forgot-password', passwordResetLimiter, passwordResetRequestValidation, async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Generate reset token
-    const resetToken = generateSecureToken();
-    const resetExpires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
-
-    // Update user
-    const user = await User.findOneAndUpdate(
-      { email: email.toLowerCase() },
-      {
-        passwordResetToken: resetToken,
-        passwordResetExpires: resetExpires
-      },
-      { new: true }
-    ).select('+passwordResetToken +passwordResetExpires');
+    const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      // Don't reveal if email exists
+      // Don't reveal if user exists
       return res.json({
         message: 'If an account with that email exists, a password reset link has been sent.'
       });
     }
 
-    // Send reset email
+    // Generate reset token
+    const resetToken = generateSecureToken();
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    // Send reset email (optional - comment out if no email configured)
     const resetUrl = `${process.env.APP_BASE_URL}/auth/reset-password?token=${resetToken}&email=${email}`;
     await sendEmail(
       email,
       'Password Reset Request',
       `<h1>Password Reset Request</h1>
-       <p>You requested a password reset. Click the link below to reset your password:</p>
+       <p>Click the link below to reset your password:</p>
        <a href="${resetUrl}">Reset Password</a>
        <p>This link expires in 1 hour.</p>
        <p>If you didn't request this, please ignore this email.</p>`
@@ -455,7 +411,7 @@ router.post('/reset-password', passwordResetConfirmValidation, async (req, res) 
     user.passwordChangedAt = Date.now();
     await user.save();
 
-    // Send confirmation email
+    // Send confirmation email (optional)
     await sendEmail(
       user.email,
       'Password Changed Successfully',
@@ -506,7 +462,7 @@ router.post('/refresh-token', async (req, res) => {
   }
 });
 
-// ==================== PROTECTED ROUTES ====================
+// ==================== PROTECTED ROUTES ==================== 
 
 // Update user
 router.put('/:id', authenticateToken, async (req, res) => {
@@ -555,7 +511,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Current password is incorrect' });
+      return res.status(400).json({ message: 'Current password is incorrect' });
     }
 
     // Update password
@@ -566,7 +522,9 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     await sendEmail(
       user.email,
       'Password Changed',
-      '<h1>Password Changed</h1><p>Your password has been changed successfully.</p>'
+      `<h1>Password Changed</h1>
+       <p>Your password has been changed successfully.</p>
+       <p>If you didn't make this change, please contact support immediately.</p>`
     );
 
     res.json({ message: 'Password changed successfully' });
@@ -576,35 +534,44 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete user
-router.delete('/:id', authenticateToken, authorizeRoles('superadmin'), async (req, res) => {
+// Get user profile
+router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.user.userId).select('-password');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ message: 'User deleted successfully' });
+    res.json(user);
   } catch (error) {
-    console.error('Delete user error:', error);
-    res.status(500).json({ message: 'Error deleting user' });
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Error fetching user' });
+  }
+});
+
+// Get single user by ID
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Error fetching user' });
   }
 });
 
 // ==================== ADMIN ROUTES ====================
 
-// Admin login (with proper password verification)
+// Admin login
 router.post('/admin/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Check for brute force
-    if (checkBruteForce(email)) {
-      return res.status(429).json({
-        message: 'Account temporarily locked due to too many failed attempts.'
-      });
-    }
 
     // Find admin user
     const user = await User.findOne({ 
@@ -613,45 +580,28 @@ router.post('/admin/login', loginLimiter, async (req, res) => {
     }).select('+password');
 
     if (!user) {
-      trackFailedLogin(email);
       return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Check if account is locked
-    if (user.isLocked) {
-      return res.status(423).json({
-        message: 'Account is temporarily locked.',
-        lockedUntil: user.lockUntil
-      });
     }
 
     // Verify password
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
-      await user.incLoginAttempts();
-      trackFailedLogin(email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if admin is disabled
+    // Check if account is active
     if (user.is_disabled) {
-      return res.status(403).json({ message: 'Your account has been disabled' });
+      return res.status(403).json({ message: 'Account is disabled' });
     }
 
-    // Clear failed attempts
-    clearFailedLogin(email);
-
-    // Update login info
+    // Update last login
     user.lastLogin = new Date();
-    user.lastLoginIp = req.ip;
     await user.save();
 
     // Generate tokens
     const token = generateToken(user);
     const refreshToken = generateRefreshToken(user);
-
-    console.log(`[AUTH] Admin logged in: ${email}`);
 
     res.json({
       message: 'Login successful',
@@ -671,33 +621,20 @@ router.post('/admin/login', loginLimiter, async (req, res) => {
   }
 });
 
-// Disable/Enable user (admin only)
-router.post('/:id/toggle-status', authenticateToken, adminOnly, async (req, res) => {
+// Logout
+router.post('/logout', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const user = await User.findById(req.user.userId);
+    
+    if (user) {
+      user.lastLoginIp = undefined;
+      await user.save();
     }
 
-    user.is_disabled = !user.is_disabled;
-    await user.save();
-
-    // Send notification email
-    await sendEmail(
-      user.email,
-      user.is_disabled ? 'Account Disabled' : 'Account Enabled',
-      `<h1>Account ${user.is_disabled ? 'Disabled' : 'Enabled'}</h1>
-       <p>Your account has been ${user.is_disabled ? 'disabled' : 'enabled'} by an administrator.</p>`
-    );
-
-    res.json({
-      message: `User ${user.is_disabled ? 'disabled' : 'enabled'} successfully`,
-      is_disabled: user.is_disabled
-    });
+    res.json({ message: 'Logged out successfully' });
   } catch (error) {
-    console.error('Toggle user status error:', error);
-    res.status(500).json({ message: 'Error updating user status' });
+    console.error('Logout error:', error);
+    res.status(500).json({ message: 'Error during logout' });
   }
 });
 

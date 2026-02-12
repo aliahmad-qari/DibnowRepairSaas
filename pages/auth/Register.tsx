@@ -138,7 +138,19 @@ export const Register: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setGeneralError(data.message || 'Registration failed. Please try again.');
+        // Check if user already exists and is verified
+        if (data.alreadyExists && data.verified) {
+          setGeneralError(
+            <>
+              {data.message}{' '}
+              <Link to="/login" className="text-blue-600 hover:underline font-bold">
+                Login here
+              </Link>
+            </>
+          );
+        } else {
+          setGeneralError(data.message || 'Registration failed. Please try again.');
+        }
         setIsLoading(false);
         return;
       }
@@ -153,12 +165,8 @@ export const Register: React.FC = () => {
 
       setSuccess(true);
 
-      // Redirect to OTP verification or dashboard based on response
-      if (data.requiresEmailVerification) {
-        navigate('/auth/verify-otp', { state: { email: formData.email } });
-      } else {
-        navigate('/user/dashboard');
-      }
+      // Redirect to dashboard (no email verification needed)
+      navigate('/user/dashboard');
     } catch (error) {
       setGeneralError('Connection error. Please try again.');
       console.error('Registration error:', error);
