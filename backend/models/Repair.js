@@ -169,10 +169,10 @@ const repairSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes
-repairSchema.index({ trackingId: 1 });
+// Indexes (remove duplicates - trackingId and customerEmail already have index:true in schema)
 repairSchema.index({ ownerId: 1, status: 1 });
-repairSchema.index({ customerEmail: 1 });
+repairSchema.index({ createdAt: -1 });
+repairSchema.index({ 'statusHistory.timestamp': -1 });
 repairSchema.index({ createdAt: -1 });
 repairSchema.index({ 'statusHistory.timestamp': -1 });
 
