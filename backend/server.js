@@ -183,8 +183,12 @@ const connectDB = async () => {
     const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
     
     if (!mongoUri) {
+      console.error("❌ DB Connection Error: MONGODB_URI not found in environment");
+      console.log("Available env vars:", Object.keys(process.env).filter(k => k.includes('MONGO') || k.includes('DB')));
       throw new Error('MongoDB URI not found in environment variables');
     }
+    
+    console.log("Attempting MongoDB connection...");
     
     await mongoose.connect(mongoUri, {
       maxPoolSize: 10,
