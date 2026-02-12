@@ -1,0 +1,7 @@
+{
+  "name": "continue working",
+  "description": "A comprehensive SaaS platform for repair shops featuring inventory management, customer tracking, AI-powered diagnostics, and administrative control panels.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
