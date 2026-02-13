@@ -4,16 +4,16 @@
  */
 
 // Use the environment variable that matches Vercel config
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://dibnowrepairsaas.onrender.com';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://dibnowrepairsaas.onrender.com';
 
 /**
  * Make an HTTP request to the backend API
  * @param endpoint - API endpoint path (e.g., '/api/stripe/create-checkout-session')
  * @param data - Request payload (optional for GET requests)
- * @param method - HTTP method (default: 'POST', can be 'GET')
+ * @param method - HTTP method (default: 'POST')
  * @returns Response data from the API
  */
-export async function callBackendAPI(endpoint: string, data?: any, method: 'GET' | 'POST' = 'POST') {
+export async function callBackendAPI(endpoint: string, data?: any, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'POST') {
     // 🔍 Log request details
     console.log('🚀 [API Client] Request:', {
         method: method,
@@ -35,8 +35,8 @@ export async function callBackendAPI(endpoint: string, data?: any, method: 'GET'
             }
         };
 
-        // Only add body for POST requests
-        if (method === 'POST' && data) {
+        // Add body for non-GET requests if data exists
+        if (method !== 'GET' && data) {
             fetchOptions.body = JSON.stringify(data);
         }
 

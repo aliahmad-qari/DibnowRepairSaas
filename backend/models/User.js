@@ -129,6 +129,10 @@ const userSchema = new mongoose.Schema({
       default: 'USD'
     }
   },
+  adminAccessToken: {
+    type: String,
+    select: false
+  },
   metadata: {
     type: mongoose.Schema.Types.Mixed
   }

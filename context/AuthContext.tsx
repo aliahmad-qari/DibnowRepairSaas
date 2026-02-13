@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User, UserRole, Permission } from '../types';
 import { db } from '../api/db';
+import { API_BASE_URL } from '../api/apiClient';
 
 // Session timeout configuration (30 minutes)
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -25,7 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const [sessionExpiring, setSessionExpiring] = useState(false);
-  
+
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
@@ -33,10 +34,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Reset session timer on user activity
   const resetSessionTimer = useCallback(() => {
     lastActivityRef.current = Date.now();
-    
+
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
-    
+
     setShowSessionWarning(false);
     setSessionExpiring(false);
 
@@ -63,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Listen for user activity
   useEffect(() => {
     const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
-    
+
     const handleActivity = () => {
       if (user) {
         resetSessionTimer();
@@ -89,18 +90,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const storedUser = localStorage.getItem('fixit_user');
         const token = localStorage.getItem('dibnow_token');
-        
+
         if (storedUser && token) {
           const parsedUser = JSON.parse(storedUser);
-          
+
           // Verify token with backend
           try {
-            const response = await fetch('/api/users/profile', {
+            const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
             });
-            
+
             if (response.ok) {
               const userData = await response.json();
               setUser(userData);
@@ -162,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // For ADMIN role, use admin login endpoint
       if (role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN) {
-        const response = await fetch('/api/users/admin/login', {
+        const response = await fetch(`${API_BASE_URL}/api/users/admin/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -183,7 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: data.user.email,
           role: role,
           subRole: role === UserRole.SUPER_ADMIN ? 'Platform Root' : 'Administrator',
-          permissions: role === UserRole.SUPER_ADMIN 
+          permissions: role === UserRole.SUPER_ADMIN
             ? ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports', 'manage_system', 'manage_support']
             : ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports'],
           walletBalance: 0,
@@ -199,18 +200,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetSessionTimer();
 
         // Log activity
-        db.activity.log({ 
-          actionType: 'User Login', 
-          moduleName: 'Authentication', 
-          refId: email, 
-          status: 'Success' 
+        db.activity.log({
+          actionType: 'User Login',
+          moduleName: 'Authentication',
+          refId: email,
+          status: 'Success'
         });
 
         return { success: true };
       }
 
       // For regular USER login
-      const response = await fetch('/api/users/login', {
+      const response = await fetch(`${API_BASE_URL}/api/users/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -252,11 +253,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetSessionTimer();
 
       // Log activity
-      db.activity.log({ 
-        actionType: 'User Login', 
-        moduleName: 'Authentication', 
-        refId: email, 
-        status: 'Success' 
+      db.activity.log({
+        actionType: 'User Login',
+        moduleName: 'Authentication',
+        refId: email,
+        status: 'Success'
       });
 
       return { success: true };
@@ -269,10 +270,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = () => {
     const token = localStorage.getItem('dibnow_token');
-    
+
     // Notify backend of logout (optional)
     if (token && user) {
-      fetch('/api/users/logout', {
+      fetch(`${API_BASE_URL}/api/users/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -286,10 +287,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('dibnow_token');
     localStorage.removeItem('dibnow_refresh_token');
     localStorage.removeItem('dibnow_pending_email');
-    
+
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
-    
+
     window.dispatchEvent(new Event('storage'));
   };
 
@@ -299,7 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const refreshToken = localStorage.getItem('dibnow_refresh_token');
       if (!refreshToken) return false;
 
-      const response = await fetch('/api/users/refresh-token', {
+      const response = await fetch(`${API_BASE_URL}/api/users/refresh-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -330,12 +331,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
       isLoading,
-      login, 
-      logout, 
+      login,
+      logout,
       hasPermission,
       refreshToken,
       showSessionWarning,

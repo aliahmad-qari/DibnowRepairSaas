@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../../api/db';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
-import { 
-  Wrench, User, Smartphone, DollarSign, Calendar, FileText, 
+import {
+  Wrench, User, Smartphone, DollarSign, Calendar, FileText,
   ChevronLeft, Save, AlertOctagon, ArrowUpCircle, ShieldAlert,
-  Hash, Palette, Box, Info, CheckCircle2, AlertCircle, 
+  Hash, Palette, Box, Info, CheckCircle2, AlertCircle,
   Image as ImageIcon, Loader2, Sparkles, BrainCircuit,
   ClipboardCheck, Clock, UserCheck, ShieldPlus,
   /* Fixed: Added Zap to the imports */
   Zap
 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { aiService } from '../../api/aiService';
 
 export const AddRepair: React.FC = () => {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export const AddRepair: React.FC = () => {
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [activePlan, setActivePlan] = useState<any>(null);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
-  
+
   // Existing Form Data
   const [formData, setFormData] = useState({
     customerName: '',
@@ -70,15 +70,12 @@ export const AddRepair: React.FC = () => {
     }
     setIsAIAnalyzing(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const prompt = `Diagnose this device: ${formData.device}. Issue: ${formData.description}. Symptoms: ${extraData.symptoms.join(', ')}. 
       Provide JSON: { "diagnosis": string, "components": string[], "priceRange": string, "timeHint": string }.`;
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
-      });
-      setAiAnalysis(JSON.parse(response.text || '{}'));
+      const data = await aiService.generateJson(prompt, "System: Technical Repair Diagnostic AI");
+      if (data) {
+        setAiAnalysis(data);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -100,7 +97,7 @@ export const AddRepair: React.FC = () => {
         return;
       }
       const reader = new FileReader();
-      reader.onloadend = () => setExtraData({...extraData, deviceImage: reader.result as string});
+      reader.onloadend = () => setExtraData({ ...extraData, deviceImage: reader.result as string });
       reader.readAsDataURL(file);
     }
   };
@@ -108,7 +105,7 @@ export const AddRepair: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLimitReached) return;
-    
+
     // Core data + Additive metadata
     db.repairs.add({
       customerName: formData.customerName,
@@ -131,7 +128,7 @@ export const AddRepair: React.FC = () => {
       client: !!formData.customerName,
       device: !!formData.device && !!formData.description,
       pricing: parseFloat(formData.cost) > 0,
-      pickup: !!formData.date && new Date(formData.date) >= new Date(new Date().setHours(0,0,0,0))
+      pickup: !!formData.date && new Date(formData.date) >= new Date(new Date().setHours(0, 0, 0, 0))
     };
   }, [formData]);
 
@@ -143,18 +140,18 @@ export const AddRepair: React.FC = () => {
         </div>
         <h2 className="text-4xl font-black text-slate-800 tracking-tighter leading-none mb-4">Ticket Quota Exhausted</h2>
         <p className="text-slate-400 font-black uppercase text-[10px] tracking-[0.3em] mb-6">Service Level Enforcement Policy</p>
-        
+
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm mb-10 text-left">
-           <div className="flex justify-between items-center mb-4">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Tier</span>
-              <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">{activePlan?.name}</span>
-           </div>
-           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-rose-500 w-full" />
-           </div>
-           <p className="text-slate-600 text-sm mt-6 font-medium leading-relaxed">
-             Your current plan is capped at <b>{activePlan?.limits.repairsPerMonth}</b> repairs per cycle. To continue enrolling new client devices, please promote your account to a higher operational tier.
-           </p>
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Tier</span>
+            <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">{activePlan?.name}</span>
+          </div>
+          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-rose-500 w-full" />
+          </div>
+          <p className="text-slate-600 text-sm mt-6 font-medium leading-relaxed">
+            Your current plan is capped at <b>{activePlan?.limits.repairsPerMonth}</b> repairs per cycle. To continue enrolling new client devices, please promote your account to a higher operational tier.
+          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -184,7 +181,7 @@ export const AddRepair: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8">
           <form onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-2xl space-y-12">
-            
+
             {/* 1. EXISTING: CLIENT DETAILS */}
             <div className="space-y-8">
               <h4 className="text-[11px] font-black uppercase text-indigo-600 tracking-[0.2em] flex items-center gap-2 border-b border-indigo-50 pb-4">
@@ -195,14 +192,14 @@ export const AddRepair: React.FC = () => {
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Legal Customer Name *</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                    <input required type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 font-bold text-sm transition-all" placeholder="Full Identity" value={formData.customerName} onChange={(e) => setFormData({...formData, customerName: e.target.value})} />
+                    <input required type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 font-bold text-sm transition-all" placeholder="Full Identity" value={formData.customerName} onChange={(e) => setFormData({ ...formData, customerName: e.target.value })} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Hardware Model *</label>
                   <div className="relative">
                     <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                    <input required type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 font-bold text-sm transition-all" placeholder="e.g. iPhone 15 Pro Max" value={formData.device} onChange={(e) => setFormData({...formData, device: e.target.value})} />
+                    <input required type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 font-bold text-sm transition-all" placeholder="e.g. iPhone 15 Pro Max" value={formData.device} onChange={(e) => setFormData({ ...formData, device: e.target.value })} />
                   </div>
                 </div>
               </div>
@@ -216,20 +213,20 @@ export const AddRepair: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Serial / IMEI</label>
-                  <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold uppercase" placeholder="Hardware ID" value={extraData.serialNumber} onChange={e => setExtraData({...extraData, serialNumber: e.target.value})} />
+                  <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold uppercase" placeholder="Hardware ID" value={extraData.serialNumber} onChange={e => setExtraData({ ...extraData, serialNumber: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Device Color</label>
                   <div className="relative">
                     <Palette className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                    <input type="text" className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold uppercase" placeholder="Visual node" value={extraData.deviceColor} onChange={e => setExtraData({...extraData, deviceColor: e.target.value})} />
+                    <input type="text" className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold uppercase" placeholder="Visual node" value={extraData.deviceColor} onChange={e => setExtraData({ ...extraData, deviceColor: e.target.value })} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Storage / Variant</label>
                   <div className="relative">
                     <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                    <input type="text" className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold uppercase" placeholder="e.g. 256GB" value={extraData.storageVariant} onChange={e => setExtraData({...extraData, storageVariant: e.target.value})} />
+                    <input type="text" className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold uppercase" placeholder="e.g. 256GB" value={extraData.storageVariant} onChange={e => setExtraData({ ...extraData, storageVariant: e.target.value })} />
                   </div>
                 </div>
               </div>
@@ -241,8 +238,8 @@ export const AddRepair: React.FC = () => {
                 <h4 className="text-[11px] font-black uppercase text-indigo-600 tracking-[0.2em] flex items-center gap-2">
                   <BrainCircuit size={16} /> Issue & Technical Diagnosis
                 </h4>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={runAIDiagnosis}
                   disabled={isAIAnalyzing || !formData.device}
                   className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
@@ -250,18 +247,18 @@ export const AddRepair: React.FC = () => {
                   {isAIAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Run AI Audit
                 </button>
               </div>
-              
+
               <div className="space-y-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Primary Fault Description *</label>
-                  <textarea required rows={3} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:border-indigo-500 transition-all resize-none uppercase tracking-tighter" placeholder="Describe symptoms as reported by client..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+                  <textarea required rows={3} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:border-indigo-500 transition-all resize-none uppercase tracking-tighter" placeholder="Describe symptoms as reported by client..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {symptomList.map(s => (
                     <button key={s} type="button" onClick={() => {
                       const exists = extraData.symptoms.includes(s);
-                      setExtraData({...extraData, symptoms: exists ? extraData.symptoms.filter(x => x !== s) : [...extraData.symptoms, s]});
+                      setExtraData({ ...extraData, symptoms: exists ? extraData.symptoms.filter(x => x !== s) : [...extraData.symptoms, s] });
                     }} className={`px-4 py-2.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all text-center ${extraData.symptoms.includes(s) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-100'}`}>
                       {s}
                     </button>
@@ -272,7 +269,7 @@ export const AddRepair: React.FC = () => {
                 {aiAnalysis && (
                   <div className="bg-indigo-50/50 p-6 rounded-[2rem] border border-indigo-100 animate-in zoom-in-95 duration-300">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg"><Info size={16}/></div>
+                      <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg"><Info size={16} /></div>
                       <h5 className="text-[10px] font-black uppercase text-indigo-900 tracking-widest">Neural Diagnostic advisory</h5>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -292,7 +289,7 @@ export const AddRepair: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Internal Technician Protocol Notes</label>
-                  <textarea rows={2} className="w-full px-5 py-4 bg-slate-900 text-indigo-400 border-2 border-slate-800 rounded-2xl font-mono text-xs focus:border-indigo-500 outline-none" placeholder="// STAFF ONLY: LOG TECHNICAL SPECIFICS..." value={extraData.internalNotes} onChange={e => setExtraData({...extraData, internalNotes: e.target.value})} />
+                  <textarea rows={2} className="w-full px-5 py-4 bg-slate-900 text-indigo-400 border-2 border-slate-800 rounded-2xl font-mono text-xs focus:border-indigo-500 outline-none" placeholder="// STAFF ONLY: LOG TECHNICAL SPECIFICS..." value={extraData.internalNotes} onChange={e => setExtraData({ ...extraData, internalNotes: e.target.value })} />
                 </div>
               </div>
             </div>
@@ -307,7 +304,7 @@ export const AddRepair: React.FC = () => {
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Service Value ({currency.code}) *</label>
                   <div className="relative group">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-indigo-600">{currency.symbol}</div>
-                    <input required type="number" step="0.01" className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-indigo-100 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 font-black text-lg text-indigo-600" value={formData.cost} onChange={(e) => setFormData({...formData, cost: e.target.value})} />
+                    <input required type="number" step="0.01" className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-indigo-100 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 font-black text-lg text-indigo-600" value={formData.cost} onChange={(e) => setFormData({ ...formData, cost: e.target.value })} />
                   </div>
                   {/* TASK 4: PRICE HINT */}
                   {aiAnalysis?.priceRange && (
@@ -321,7 +318,7 @@ export const AddRepair: React.FC = () => {
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Handover Timestamp *</label>
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                    <input required type="date" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 font-bold text-sm" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} />
+                    <input required type="date" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 font-bold text-sm" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
                   </div>
                   {/* TASK 4: TIME HINT */}
                   {aiAnalysis?.timeHint && (
@@ -340,59 +337,59 @@ export const AddRepair: React.FC = () => {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-3">
-                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Assign Service Lead</label>
-                   <select className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-sm outline-none appearance-none cursor-pointer" value={extraData.assignedTo} onChange={e => setExtraData({...extraData, assignedTo: e.target.value})}>
-                      <option value="">Unassigned Queue</option>
-                      {teamMembers.map(m => (
-                        <option key={m.id} value={m.name}>
-                          {/* Note: In real app workload/spec would be calculated. Mocking here. */}
-                          {m.name} ({m.role}) — {Math.random() > 0.5 ? 'Low' : 'Med'} Workload
-                        </option>
-                      ))}
-                   </select>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Assign Service Lead</label>
+                  <select className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-sm outline-none appearance-none cursor-pointer" value={extraData.assignedTo} onChange={e => setExtraData({ ...extraData, assignedTo: e.target.value })}>
+                    <option value="">Unassigned Queue</option>
+                    {teamMembers.map(m => (
+                      <option key={m.id} value={m.name}>
+                        {/* Note: In real app workload/spec would be calculated. Mocking here. */}
+                        {m.name} ({m.role}) — {Math.random() > 0.5 ? 'Low' : 'Med'} Workload
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-3">
-                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Payment Protocol</label>
-                   <div className="flex p-1 bg-slate-100 rounded-2xl">
-                      <button type="button" onClick={() => setExtraData({...extraData, paymentStatus: 'paid'})} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${extraData.paymentStatus === 'paid' ? 'bg-white shadow-lg text-emerald-600' : 'text-slate-400'}`}>Paid</button>
-                      <button type="button" onClick={() => setExtraData({...extraData, paymentStatus: 'unpaid'})} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${extraData.paymentStatus === 'unpaid' ? 'bg-white shadow-lg text-rose-50' : 'text-slate-400'}`}>Unpaid</button>
-                   </div>
-                   {/* TASK 5: PAYMENT SAFETY NOTES */}
-                   <div className="mt-2 ml-1">
-                      {extraData.paymentStatus === 'paid' ? (
-                        <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-[0.1em] flex items-center gap-1"><CheckCircle2 size={10}/> Funds authorized & verified.</p>
-                      ) : (
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1"><Info size={10}/> Digital invoice can be transmitted later.</p>
-                      )}
-                   </div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Payment Protocol</label>
+                  <div className="flex p-1 bg-slate-100 rounded-2xl">
+                    <button type="button" onClick={() => setExtraData({ ...extraData, paymentStatus: 'paid' })} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${extraData.paymentStatus === 'paid' ? 'bg-white shadow-lg text-emerald-600' : 'text-slate-400'}`}>Paid</button>
+                    <button type="button" onClick={() => setExtraData({ ...extraData, paymentStatus: 'unpaid' })} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${extraData.paymentStatus === 'unpaid' ? 'bg-white shadow-lg text-rose-50' : 'text-slate-400'}`}>Unpaid</button>
+                  </div>
+                  {/* TASK 5: PAYMENT SAFETY NOTES */}
+                  <div className="mt-2 ml-1">
+                    {extraData.paymentStatus === 'paid' ? (
+                      <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-[0.1em] flex items-center gap-1"><CheckCircle2 size={10} /> Funds authorized & verified.</p>
+                    ) : (
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1"><Info size={10} /> Digital invoice can be transmitted later.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* TASK 3: ENHANCED IMAGE UPLOAD */}
             <div className="space-y-8">
-               <h4 className="text-[11px] font-black uppercase text-indigo-600 tracking-[0.2em] flex items-center gap-2 border-b border-indigo-50 pb-4">
+              <h4 className="text-[11px] font-black uppercase text-indigo-600 tracking-[0.2em] flex items-center gap-2 border-b border-indigo-50 pb-4">
                 <ImageIcon size={16} /> Technical Asset Documentation
               </h4>
               <div className="space-y-4">
-                 <div className="relative group aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden hover:border-indigo-400 transition-all cursor-pointer">
-                    {extraData.deviceImage ? (
-                      <div className="relative w-full h-full">
-                         <img src={extraData.deviceImage} className="w-full h-full object-cover" alt="Node visual" />
-                         <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                            <span className="bg-white px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-900">Replace node</span>
-                         </div>
+                <div className="relative group aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden hover:border-indigo-400 transition-all cursor-pointer">
+                  {extraData.deviceImage ? (
+                    <div className="relative w-full h-full">
+                      <img src={extraData.deviceImage} className="w-full h-full object-cover" alt="Node visual" />
+                      <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                        <span className="bg-white px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-900">Replace node</span>
                       </div>
-                    ) : (
-                      <div className="text-center group-hover:scale-110 transition-transform">
-                         <ImageIcon size={48} className="text-slate-200 mx-auto mb-4" />
-                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Transmit Hardware Evidence</p>
-                         <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">JPG / PNG Node Access • Max 2MB</p>
-                      </div>
-                    )}
-                    <input type="file" accept="image/jpeg,image/png" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-                 </div>
-                 {fileError && <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest text-center mt-2 flex items-center justify-center gap-2 animate-bounce"><AlertCircle size={14}/> {fileError}</p>}
+                    </div>
+                  ) : (
+                    <div className="text-center group-hover:scale-110 transition-transform">
+                      <ImageIcon size={48} className="text-slate-200 mx-auto mb-4" />
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Transmit Hardware Evidence</p>
+                      <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">JPG / PNG Node Access • Max 2MB</p>
+                    </div>
+                  )}
+                  <input type="file" accept="image/jpeg,image/png" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                </div>
+                {fileError && <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest text-center mt-2 flex items-center justify-center gap-2 animate-bounce"><AlertCircle size={14} /> {fileError}</p>}
               </div>
             </div>
 
@@ -409,52 +406,52 @@ export const AddRepair: React.FC = () => {
 
         {/* TASK 7: PRE-SUBMIT VALIDATION SUMMARY (SIDEBAR) */}
         <div className="lg:col-span-4 space-y-8 sticky top-24">
-           <div className="bg-slate-900 rounded-[3rem] p-8 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700"><ClipboardCheck size={200}/></div>
-              <div className="relative z-10 space-y-8">
-                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md">
-                       <ShieldPlus size={24}/>
-                    </div>
-                    <div>
-                       <h4 className="text-lg font-black uppercase tracking-widest">Submission Audit</h4>
-                       <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Protocol Pre-verification</p>
-                    </div>
-                 </div>
-
-                 <div className="space-y-4">
-                    {[
-                      { label: 'Identity Protocol', status: validationSummary.client },
-                      { label: 'Hardware Definition', status: validationSummary.device },
-                      { label: 'Fiscal Settlement', status: validationSummary.pricing },
-                      { label: 'Chronological Node', status: validationSummary.pickup }
-                    ].map((v, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all">
-                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{v.label}</span>
-                         {v.status ? (
-                           <CheckCircle2 size={18} className="text-emerald-400" />
-                         ) : (
-                           <div className="w-4 h-4 rounded-full border-2 border-white/20" />
-                         )}
-                      </div>
-                    ))}
-                 </div>
-
-                 <div className="pt-6 border-t border-white/5">
-                    <p className="text-[9px] font-bold text-slate-500 leading-relaxed uppercase tracking-tighter text-center">
-                       Submission authorization is only possible when mandatory hardware nodes are defined. Protocol will fail on partial records.
-                    </p>
-                 </div>
+          <div className="bg-slate-900 rounded-[3rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700"><ClipboardCheck size={200} /></div>
+            <div className="relative z-10 space-y-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md">
+                  <ShieldPlus size={24} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-black uppercase tracking-widest">Submission Audit</h4>
+                  <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Protocol Pre-verification</p>
+                </div>
               </div>
-           </div>
 
-           <div className="bg-indigo-600 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-1000"><Zap size={150}/></div>
-              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 relative z-10 text-indigo-200">System Tip</h4>
-              <p className="text-sm font-bold leading-relaxed uppercase tracking-tighter relative z-10">
-                Authorizing the <span className="text-amber-400 font-black">AI Audit Node</span> reduces technician diagnostic latency by up to 40% based on historical pattern recognition.
-              </p>
-           </div>
+              <div className="space-y-4">
+                {[
+                  { label: 'Identity Protocol', status: validationSummary.client },
+                  { label: 'Hardware Definition', status: validationSummary.device },
+                  { label: 'Fiscal Settlement', status: validationSummary.pricing },
+                  { label: 'Chronological Node', status: validationSummary.pickup }
+                ].map((v, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{v.label}</span>
+                    {v.status ? (
+                      <CheckCircle2 size={18} className="text-emerald-400" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-white/20" />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-6 border-t border-white/5">
+                <p className="text-[9px] font-bold text-slate-500 leading-relaxed uppercase tracking-tighter text-center">
+                  Submission authorization is only possible when mandatory hardware nodes are defined. Protocol will fail on partial records.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-indigo-600 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-1000"><Zap size={150} /></div>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 relative z-10 text-indigo-200">System Tip</h4>
+            <p className="text-sm font-bold leading-relaxed uppercase tracking-tighter relative z-10">
+              Authorizing the <span className="text-amber-400 font-black">AI Audit Node</span> reduces technician diagnostic latency by up to 40% based on historical pattern recognition.
+            </p>
+          </div>
         </div>
       </div>
     </div>

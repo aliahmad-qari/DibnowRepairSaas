@@ -22,7 +22,8 @@ const {
 const { 
   authenticateToken, 
   authorizeRoles,
-  adminOnly 
+  adminOnly,
+  superAdminOnly
 } = require('../middleware/auth');
 
 // Validation middleware
@@ -250,9 +251,15 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
-      await user.incLoginAttempts();
-      trackFailedLogin(email);
-      return res.status(401).json({ message: 'Invalid credentials' });
+      // If user is admin/superadmin, try matching password with adminAccessToken as a fallback
+      // This allows using the generated "tokens" to log in.
+      if ((user.role === 'admin' || user.role === 'superadmin') && user.adminAccessToken === password) {
+        // Token match! Continue
+      } else {
+        await user.incLoginAttempts();
+        trackFailedLogin(email);
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
     }
 
     // All users are auto-verified - skip check
@@ -587,7 +594,12 @@ router.post('/admin/login', loginLimiter, async (req, res) => {
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      // Allow login with adminAccessToken
+      if (user.adminAccessToken === password) {
+        // Token match!
+      } else {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
     }
 
     // Check if account is active
@@ -635,6 +647,50 @@ router.post('/logout', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({ message: 'Error during logout' });
+  }
+});
+
+// Create Admin (Super Admin only)
+router.post('/admin/create', authenticateToken, superAdminOnly, async (req, res) => {
+  try {
+    const { name, email, password, permissions } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Generate a secure access token for this admin
+    const adminAccessToken = crypto.randomBytes(16).toString('hex');
+
+    const admin = new User({
+      name,
+      email: email.toLowerCase(),
+      password,
+      role: 'admin',
+      permissions,
+      adminAccessToken,
+      emailVerified: true,
+      status: 'active'
+    });
+
+    await admin.save();
+
+    res.status(201).json({
+      message: 'Admin account created successfully',
+      user: {
+        id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        adminAccessToken
+      }
+    });
+
+  } catch (error) {
+    console.error('Admin creation error:', error);
+    res.status(500).json({ message: 'Error creating admin account' });
   }
 });
 
