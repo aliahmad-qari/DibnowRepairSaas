@@ -261,12 +261,10 @@ export const Wallet: React.FC = () => {
 
       // ========== PAYPAL TOP-UP (Real Integration) ==========
       if (formData.method === 'PayPal') {
-        const response = await callBackendAPI('/api/paypal/create-order', {
+        const response = await callBackendAPI('/api/paypal/wallet-topup', {
           userId: userId,
           amount: amount,
-          currency: currency.code,
-          type: 'wallet_topup',
-          enableAutoRenew: false
+          currency: currency.code
         });
 
         // Redirect to PayPal approval page

@@ -6,7 +6,40 @@ const Subscription = require('../models/Subscription');
 const Transaction = require('../models/Transaction');
 const Wallet = require('../models/Wallet');
 
-// ... (helper functions)
+// ==================== HELPER FUNCTIONS ====================
+
+const PAYPAL_API_BASE = process.env.PAYPAL_MODE === 'live' 
+  ? 'https://api-m.paypal.com' 
+  : 'https://api-m.sandbox.paypal.com';
+
+// Get PayPal Access Token
+async function getPayPalAccessToken() {
+  const auth = Buffer.from(
+    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+  ).toString('base64');
+
+  const response = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${auth}`
+    },
+    body: 'grant_type=client_credentials'
+  });
+
+  const data = await response.json();
+  if (!data.access_token) {
+    throw new Error('Failed to get PayPal access token');
+  }
+  return data.access_token;
+}
+
+// Check for duplicate transaction
+async function checkDuplicateTransaction(paymentId) {
+  const existing = await Transaction.findOne({ paymentId, status: { $in: ['completed', 'pending'] } });
+  return !!existing;
+}
+
 
 // ==================== SUBSCRIPTION ENDPOINTS ====================
 
