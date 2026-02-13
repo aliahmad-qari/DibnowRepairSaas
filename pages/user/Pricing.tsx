@@ -57,7 +57,45 @@ export const UserPricing: React.FC = () => {
   });
 
   useEffect(() => {
-    setPlans(db.plans.getAll());
+    // Fetch plans from backend MongoDB database instead of localStorage
+    const fetchPlans = async () => {
+      try {
+        console.log('📋 [Plans] Fetching plans from database...');
+        const response = await callBackendAPI('/api/plans/all', undefined, 'GET');
+
+        console.log('📋 [Plans] Response received:', response);
+
+        if (response.success && response.plans) {
+          // Map MongoDB plans to frontend format
+          const mappedPlans = response.plans.map((plan: any) => ({
+            id: plan._id, // Using real MongoDB ObjectId ✅
+            name: plan.name,
+            price: plan.price,
+            baseCurrency: plan.currency,
+            duration: 'monthly',
+            features: plan.features || [],
+            description: plan.description
+          }));
+
+          console.log('✅ [Plans] Successfully loaded plans:', {
+            count: mappedPlans.length,
+            plans: mappedPlans.map(p => ({ id: p.id, name: p.name, price: p.price }))
+          });
+
+          setPlans(mappedPlans);
+        } else {
+          console.warn('⚠️ [Plans] Unexpected response format:', response);
+        }
+      } catch (error) {
+        console.error('❌ [Plans] Failed to fetch plans from database:', error);
+        // Fallback to localStorage plans if API fails
+        const localPlans = db.plans.getAll();
+        console.log('📁 [Plans] Using localStorage fallback:', localPlans.length, 'plans');
+        setPlans(localPlans);
+      }
+    };
+
+    fetchPlans();
   }, []);
 
   const currentPlan = useMemo(() => {
@@ -135,22 +173,32 @@ export const UserPricing: React.FC = () => {
     if (!selectedPlanForUpgrade || !user || !paymentMethod) return;
     const localizedPrice = getLocalizedPrice(selectedPlanForUpgrade);
 
+    console.log('💳 [Payment] Starting payment process:', {
+      plan: selectedPlanForUpgrade.name,
+      planId: selectedPlanForUpgrade.id,
+      paymentMethod: paymentMethod,
+      amount: localizedPrice,
+      currency: currency.code,
+      autoRenew: autoRenew,
+      userId: getBackendUserId()
+    });
+
     setIsLoading(true);
     setShowConfirmModal(false);
 
     try {
       // ========== WALLET BALANCE PAYMENT (Keep existing logic) ==========
       if (paymentMethod === 'Wallet Balance') {
+        console.log('💰 [Payment] Processing wallet balance payment');
         const balance = user.walletBalance || 0;
         if (balance < localizedPrice) {
+          console.warn('⚠️ [Payment] Insufficient wallet balance:', { balance, required: localizedPrice });
           setFailureState("Insufficient Treasury Balance. Please top up your wallet or choose another method.");
           setIsLoading(false);
           return;
         }
 
-        // Simulate async processing
         await new Promise(resolve => setTimeout(resolve, 1500));
-
         db.user.updateBalance(localizedPrice, 'debit');
         db.users.update(user.id, { planId: selectedPlanForUpgrade.id });
         db.wallet.addTransaction({
@@ -161,6 +209,7 @@ export const UserPricing: React.FC = () => {
           description: `Subscription Upgrade: ${selectedPlanForUpgrade.name}`
         });
 
+        console.log('✅ [Payment] Wallet payment successful');
         setSuccessState(true);
         setIsLoading(false);
         return;
@@ -168,9 +217,8 @@ export const UserPricing: React.FC = () => {
 
       // ========== MANUAL PAYMENT (Keep existing logic) ==========
       if (paymentMethod === 'Manual Payment') {
-        // Simulate async processing
+        console.log('📝 [Payment] Processing manual payment request');
         await new Promise(resolve => setTimeout(resolve, 1500));
-
         db.planRequests.add({
           shopId: user.id,
           shopName: user.name,
@@ -185,6 +233,7 @@ export const UserPricing: React.FC = () => {
           notes: manualForm.notes
         });
 
+        console.log('✅ [Payment] Manual payment request submitted');
         setSuccessState(true);
         setIsLoading(false);
         return;
@@ -192,6 +241,7 @@ export const UserPricing: React.FC = () => {
 
       // ========== STRIPE PAYMENT (Real Integration) ==========
       if (paymentMethod === 'Stripe') {
+        console.log('🔵 [Stripe] Initiating Stripe checkout session');
         const response = await callBackendAPI('/api/stripe/create-checkout-session', {
           planId: selectedPlanForUpgrade.id,
           userId: getBackendUserId(),
@@ -200,17 +250,21 @@ export const UserPricing: React.FC = () => {
           amount: localizedPrice
         });
 
-        // Redirect to Stripe checkout
+        console.log('🔵 [Stripe] Checkout session created:', response);
+
         if (response.url) {
+          console.log('🔵 [Stripe] Redirecting to:', response.url);
           window.location.href = response.url;
         } else {
+          console.error('❌ [Stripe] No checkout URL in response:', response);
           throw new Error('No checkout URL received from Stripe');
         }
-        return; // Don't set loading to false - user is being redirected
+        return;
       }
 
       // ========== PAYFAST PAYMENT (Real Integration) ==========
       if (paymentMethod === 'PayFast') {
+        console.log('🟡 [PayFast] Initiating PayFast payment');
         const response = await callBackendAPI('/api/payfast/create-payment', {
           planId: selectedPlanForUpgrade.id,
           userId: getBackendUserId(),
@@ -219,17 +273,21 @@ export const UserPricing: React.FC = () => {
           amount: localizedPrice
         });
 
-        // Redirect to PayFast portal
+        console.log('🟡 [PayFast] Payment URL created:', response);
+
         if (response.paymentUrl) {
+          console.log('🟡 [PayFast] Redirecting to:', response.paymentUrl);
           window.location.href = response.paymentUrl;
         } else {
+          console.error('❌ [PayFast] No payment URL in response:', response);
           throw new Error('No payment URL received from PayFast');
         }
-        return; // Don't set loading to false - user is being redirected
+        return;
       }
 
       // ========== PAYPAL PAYMENT (Real Integration) ==========
       if (paymentMethod === 'PayPal') {
+        console.log('🔴 [PayPal] Initiating PayPal order');
         const response = await callBackendAPI('/api/paypal/create-order', {
           planId: selectedPlanForUpgrade.id,
           userId: getBackendUserId(),
@@ -238,17 +296,26 @@ export const UserPricing: React.FC = () => {
           amount: localizedPrice
         });
 
-        // Redirect to PayPal approval page
+        console.log('🔴 [PayPal] Order created:', response);
+
         if (response.approvalUrl) {
+          console.log('🔴 [PayPal] Redirecting to:', response.approvalUrl);
           window.location.href = response.approvalUrl;
         } else {
+          console.error('❌ [PayPal] No approval URL in response:', response);
           throw new Error('No approval URL received from PayPal');
         }
-        return; // Don't set loading to false - user is being redirected
+        return;
       }
 
     } catch (error: any) {
-      console.error('Payment initialization error:', error);
+      console.error('💥 [Payment] Payment failed:', {
+        paymentMethod: paymentMethod,
+        error: error,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        timestamp: new Date().toISOString()
+      });
       setFailureState(error.message || "Payment node refused the transaction. Please verify details.");
       setIsLoading(false);
     }
@@ -722,18 +789,12 @@ export const UserPricing: React.FC = () => {
                   )}
 
                   {paymentMethod === 'Stripe' && (
-                    <div className="space-y-5">
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Card Terminal Data</label>
-                        <div className="relative">
-                          <CardIcon size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                          <input type="text" className="w-full pl-12 pr-4 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all" placeholder="0000 0000 0000 0000" value={cardData.number} onChange={e => setCardData({ ...cardData, number: e.target.value })} />
-                        </div>
+                    <div className="p-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-center space-y-4">
+                      <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto shadow-xl border border-slate-100 text-indigo-600 animate-pulse">
+                        <ExternalLink size={28} />
                       </div>
-                      <div className="grid grid-cols-2 gap-5">
-                        <input type="text" placeholder="MM/YY" className="p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-black focus:border-indigo-500 outline-none" value={cardData.expiry} onChange={e => setCardData({ ...cardData, expiry: e.target.value })} />
-                        <input type="text" placeholder="CVC" className="p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-black focus:border-indigo-500 outline-none" value={cardData.cvc} onChange={e => setCardData({ ...cardData, cvc: e.target.value })} />
-                      </div>
+                      <h4 className="text-xs font-black uppercase text-slate-800 tracking-[0.2em]">Stripe Checkout Redirect</h4>
+                      <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-widest max-w-xs mx-auto">You will be securely redirected to Stripe's payment portal to complete your transaction.</p>
                     </div>
                   )}
 

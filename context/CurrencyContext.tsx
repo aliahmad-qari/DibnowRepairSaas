@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../api/db.ts';
+import { callBackendAPI } from '../api/apiClient';
 
 interface Currency {
   symbol: string;
@@ -45,36 +46,90 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const initCurrency = async () => {
       loadAvailable();
-      
+
       const saved = localStorage.getItem('fixit_active_currency');
+      const savedLocation = localStorage.getItem('dibnow_user_location');
+
       if (saved) {
         setCurrency(JSON.parse(saved));
         setIsDetecting(false);
         return;
       }
 
-      let detectedCountry = 'GB';
-      try {
-        const response = await fetch('https://ipapi.co/json/');
-        if (response.ok) {
-          const geo = await response.json();
-          if (geo && geo.country_code) {
-            detectedCountry = geo.country_code;
-          }
-        }
-      } catch (error) {
-        console.warn("Geo-detection failed, using fallback.");
-      }
+      console.log('🌍 [Location] Starting detection sequence...');
 
-      const mapping = db.currencies.getByCountry(detectedCountry);
-      if (mapping) {
-        setCurrency({
-          symbol: mapping.symbol,
-          code: mapping.currencyCode,
-          country: detectedCountry
-        });
+      // Function to map country code to currency
+      const applyMapping = (countryCode: string) => {
+        const mapping = db.currencies.getByCountry(countryCode);
+        if (mapping) {
+          const newCurrency = {
+            symbol: mapping.symbol,
+            code: mapping.currencyCode,
+            country: countryCode
+          };
+          setCurrency(newCurrency);
+          localStorage.setItem('fixit_active_currency', JSON.stringify(newCurrency));
+          console.log(`✅ [Location] Currency set to ${newCurrency.code} for ${countryCode}`);
+        }
+      };
+
+      // 1. Try Browser Geolocation API first
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            console.log(`📍 [Location] Browser detection success: ${latitude}, ${longitude}`);
+
+            // Call backend to get country from lat/long if possible, 
+            // or just use backend IP detect as it's more reliable for country mapping
+            try {
+              const response = await callBackendAPI('/api/location/detect', undefined, 'GET');
+              if (response.success) {
+                const locData = { ...response, latitude, longitude };
+                localStorage.setItem('dibnow_user_location', JSON.stringify(locData));
+                applyMapping(response.countryCode);
+              }
+            } catch (err) {
+              console.error('❌ [Location] Backend detection failed after browser success');
+            }
+            setIsDetecting(false);
+          },
+          async (error) => {
+            console.warn(`⚠️ [Location] Browser permission denied or error: ${error.message}`);
+
+            // 2. Fallback to Backend IP-based Geolocation
+            try {
+              console.log('🌐 [Location] Falling back to Backend IP detection...');
+              const response = await callBackendAPI('/api/location/detect', undefined, 'GET');
+              if (response.success) {
+                localStorage.setItem('dibnow_user_location', JSON.stringify(response));
+                applyMapping(response.countryCode);
+                console.log('✅ [Location] Backend detection successful');
+              } else {
+                throw new Error(response.message || 'Unknown error');
+              }
+            } catch (err) {
+              console.error('❌ [Location] All detection methods failed');
+              // Final fallback to default
+              applyMapping('GB');
+            }
+            setIsDetecting(false);
+          },
+          { timeout: 10000, enableHighAccuracy: false }
+        );
+      } else {
+        // Fallback directly if geolocation not supported
+        try {
+          const response = await callBackendAPI('/api/location/detect', undefined, 'GET');
+          if (response.success) {
+            localStorage.setItem('dibnow_user_location', JSON.stringify(response));
+            applyMapping(response.countryCode);
+          }
+        } catch (err) {
+          applyMapping('GB');
+        }
+        setIsDetecting(false);
       }
-      setIsDetecting(false);
     };
 
     initCurrency();

@@ -357,7 +357,7 @@ router.post('/wallet-topup', async (req, res) => {
       merchant_key: process.env.PAYFAST_MERCHANT_KEY,
       return_url: `${process.env.APP_BASE_URL}/wallet/payfast/success?payment_id=${paymentId}&user_id=${userId}&amount=${amount}`,
       cancel_url: `${process.env.APP_BASE_URL}/wallet/payfast/cancel?payment_id=${paymentId}`,
-      notify_url: `${process.env.APP_BASE_URL}/api/payfast/webhook`,
+      notify_url: `${process.env.PAYFAST_NOTIFY_URL}`,
       m_payment_id: paymentId,
       amount: amount.toFixed(2),
       item_name: 'Wallet Top-up',

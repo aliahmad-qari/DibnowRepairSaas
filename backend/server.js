@@ -15,6 +15,8 @@ const paypalRoutes = require('./routes/paypal');
 const walletRoutes = require('./routes/wallet');
 const adminPaymentRoutes = require('./routes/adminPayments');
 const publicRoutes = require('./routes/public');
+const plansRoutes = require('./routes/plans');
+const locationRoutes = require('./routes/location');
 
 // Import services
 const { startRenewalScheduler } = require('./services/renewalService');
@@ -118,6 +120,8 @@ app.use('/api/paypal', paypalRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/admin/payments', adminPaymentRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/plans', plansRoutes);
+app.use('/api/location', locationRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => res.send("DibNow API is Running..."));

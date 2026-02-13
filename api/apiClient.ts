@@ -7,35 +7,84 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://dibnowrepairsaas.onrender.com';
 
 /**
- * Make a POST request to the backend API
+ * Make an HTTP request to the backend API
  * @param endpoint - API endpoint path (e.g., '/api/stripe/create-checkout-session')
- * @param data - Request payload
+ * @param data - Request payload (optional for GET requests)
+ * @param method - HTTP method (default: 'POST', can be 'GET')
  * @returns Response data from the API
  */
-export async function callBackendAPI(endpoint: string, data: any) {
+export async function callBackendAPI(endpoint: string, data?: any, method: 'GET' | 'POST' = 'POST') {
+    // 🔍 Log request details
+    console.log('🚀 [API Client] Request:', {
+        method: method,
+        endpoint: endpoint,
+        fullUrl: `${API_BASE_URL}${endpoint}`,
+        data: data,
+        timestamp: new Date().toISOString()
+    });
+
     try {
         const token = localStorage.getItem('dibnow_token');
 
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: 'POST',
+        const fetchOptions: RequestInit = {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
                 // Include auth token if available
                 ...(token && { 'Authorization': `Bearer ${token}` })
-            },
-            body: JSON.stringify(data)
+            }
+        };
+
+        // Only add body for POST requests
+        if (method === 'POST' && data) {
+            fetchOptions.body = JSON.stringify(data);
+        }
+
+        console.log('📤 [API Client] Sending request with options:', fetchOptions);
+
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
+
+        console.log('📥 [API Client] Response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            url: response.url
         });
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({
                 message: `HTTP ${response.status}: ${response.statusText}`
             }));
+
+            console.error('❌ [API Client] Request failed:', {
+                endpoint: endpoint,
+                status: response.status,
+                error: error,
+                timestamp: new Date().toISOString()
+            });
+
             throw new Error(error.message || 'API request failed');
         }
 
-        return await response.json();
+        const responseData = await response.json();
+
+        console.log('✅ [API Client] Success:', {
+            endpoint: endpoint,
+            response: responseData,
+            timestamp: new Date().toISOString()
+        });
+
+        return responseData;
     } catch (error: any) {
-        console.error('[API Client] Error:', error);
+        console.error('💥 [API Client] Exception caught:', {
+            endpoint: endpoint,
+            method: method,
+            error: error,
+            errorMessage: error.message,
+            errorStack: error.stack,
+            timestamp: new Date().toISOString()
+        });
+
         // Return a user-friendly error message
         if (error.message.includes('Failed to fetch')) {
             throw new Error('Cannot connect to payment server. Please check your internet connection.');
