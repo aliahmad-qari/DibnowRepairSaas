@@ -492,6 +492,103 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     case 'checkout.session.completed':
       const session = event.data.object;
       console.log('[STRIPE WEBHOOK] Checkout session completed:', session.id);
+      
+      // AUTO-ACTIVATE SUBSCRIPTION ON PAYMENT SUCCESS
+      if (session.payment_status === 'paid') {
+        try {
+          const { planId, userId, type, autoRenew } = session.metadata;
+          
+          if (type === 'subscription') {
+            // Check for duplicate first
+            const duplicate = await checkDuplicateTransaction(session.payment_intent);
+            if (!duplicate) {
+              const plan = await Plan.findById(planId);
+              if (plan) {
+                // Calculate end date
+                const endDate = new Date();
+                endDate.setDate(endDate.getDate() + plan.duration);
+                
+                // Calculate next renewal date
+                const nextRenewalDate = autoRenew === 'true' ? new Date(endDate) : null;
+                
+                // Create subscription automatically
+                const { subscription, transaction } = await createSubscriptionWithProtection(
+                  {
+                    userId: userId,
+                    planId: planId,
+                    status: 'active',
+                    startDate: new Date(),
+                    endDate: endDate,
+                    paymentMethod: 'stripe',
+                    paymentId: session.payment_intent,
+                    stripeSubscriptionId: session.subscription,
+                    amount: plan.price,
+                    currency: plan.currency,
+                    autoRenew: autoRenew === 'true',
+                    nextRenewalDate: nextRenewalDate
+                  },
+                  {
+                    userId: userId,
+                    transactionType: 'subscription',
+                    amount: plan.price,
+                    currency: plan.currency,
+                    status: 'completed',
+                    paymentMethod: 'stripe',
+                    paymentId: session.payment_intent,
+                    subscriptionId: null,
+                    planId: planId,
+                    description: `Subscription to ${plan.name}`
+                  }
+                );
+                
+                // Update transaction with subscription ID
+                transaction.subscriptionId = subscription._id;
+                await transaction.save();
+                
+                console.log(`[STRIPE WEBHOOK] Auto-activated subscription ${subscription._id} for user ${userId}`);
+              } else {
+                console.error('[STRIPE WEBHOOK] Plan not found:', planId);
+              }
+            } else {
+              console.log('[STRIPE WEBHOOK] Duplicate transaction detected, skipping activation');
+            }
+          } else if (type === 'wallet_topup') {
+            // Handle wallet top-up
+            const amount = parseFloat(session.metadata.amount);
+            const currency = session.metadata.currency;
+            
+            // Check for duplicate
+            const duplicate = await checkDuplicateTransaction(session.payment_intent);
+            if (!duplicate) {
+              let wallet = await Wallet.findOne({ userId: userId });
+              if (!wallet) {
+                wallet = new Wallet({ userId: userId, balance: 0, currency: currency });
+              }
+              
+              wallet.balance += amount;
+              wallet.updatedAt = new Date();
+              await wallet.save();
+              
+              const transaction = new Transaction({
+                userId: userId,
+                transactionType: 'wallet_topup',
+                amount: amount,
+                currency: currency,
+                status: 'completed',
+                paymentMethod: 'stripe',
+                paymentId: session.payment_intent,
+                description: `Wallet top-up via Stripe`
+              });
+              await transaction.save();
+              
+              console.log(`[STRIPE WEBHOOK] Auto-processed wallet top-up for user ${userId}: ${amount} ${currency}`);
+            }
+          }
+        } catch (error) {
+          console.error('[STRIPE WEBHOOK] Error auto-activating:', error.message);
+          // Don't fail the webhook, just log the error
+        }
+      }
       break;
 
     case 'payment_intent.succeeded':
