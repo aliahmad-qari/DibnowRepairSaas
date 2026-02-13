@@ -4,8 +4,8 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { UserRole, Permission } from '../types.ts';
 import { TopNavbar } from '../components/layout/TopNavbar.tsx';
-import { 
-  LayoutDashboard, Rocket, Wrench, Package, ShoppingCart, 
+import {
+  LayoutDashboard, Rocket, Wrench, Package, ShoppingCart,
   Layers, UsersRound, Wallet, Globe, MessageSquare,
   ShieldCheck, History, Tag, Boxes, ShieldHalf, LogOut, ChevronRight,
   UserCheck, Settings, ClipboardList, Menu, X, LifeBuoy, Coins,
@@ -73,7 +73,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   ];
 
   const items = user?.role === UserRole.ADMIN ? adminItems : userItems;
-  
+
   // GRANULAR PERMISSION FILTERING (Requirement 3)
   const filteredItems = items.filter(item => {
     if (user?.role === UserRole.SUPER_ADMIN) return true;
@@ -88,7 +88,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <button 
+      <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="lg:hidden fixed top-5 left-5 z-[200] p-3 bg-indigo-600 text-white rounded-xl shadow-2xl"
         aria-label="Toggle Menu"
@@ -111,11 +111,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                    isActive 
-                      ? 'bg-indigo-50 text-indigo-600 shadow-sm' 
-                      : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${isActive
+                    ? 'bg-indigo-50 text-indigo-600 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                    }`}
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   <Icon size={18} className={isActive ? 'text-indigo-600' : 'text-slate-400'} />
@@ -136,7 +135,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <p className="text-[10px] font-bold text-slate-400 truncate uppercase">{user?.subRole || user?.role}</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black text-rose-500 uppercase tracking-widest hover:bg-rose-50 transition-all"
             >
@@ -155,7 +154,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       </main>
 
       {isSidebarOpen && (
-        <div 
+        <div
           onClick={() => setIsSidebarOpen(false)}
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[140] lg:hidden animate-in fade-in"
         />

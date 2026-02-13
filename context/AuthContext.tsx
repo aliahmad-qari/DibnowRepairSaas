@@ -186,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           subRole: role === UserRole.SUPER_ADMIN ? 'Platform Root' : 'Administrator',
           permissions: role === UserRole.SUPER_ADMIN
             ? ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports', 'manage_system', 'manage_support']
-            : ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports'],
+            : ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports', 'manage_system', 'manage_support'],
           walletBalance: 0,
           status: data.user.status,
           planId: 'starter'

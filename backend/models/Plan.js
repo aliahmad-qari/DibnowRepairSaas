@@ -32,6 +32,10 @@ const planSchema = new mongoose.Schema({
   stripePriceId: {
     type: String
   },
+  limits: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   createdAt: {
     type: Date,
     default: Date.now
