@@ -10,7 +10,13 @@ export const aiService = {
      * Uses process.env.API_KEY injected via the index.html shim.
      */
     getClient: () => {
-        return new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const apiKey =
+            (process.env.GEMINI_API_KEY) ||
+            (process.env.API_KEY) ||
+            (import.meta.env.VITE_GEMINI_API_KEY) ||
+            (import.meta.env.VITE_API_KEY) ||
+            "";
+        return new GoogleGenAI({ apiKey });
     },
 
     /**
@@ -18,7 +24,7 @@ export const aiService = {
      */
     generate: async (prompt: string, systemInstruction?: string) => {
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = aiService.getClient();
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: prompt,
@@ -36,7 +42,7 @@ export const aiService = {
      */
     generateJson: async (prompt: string, systemInstruction: string) => {
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = aiService.getClient();
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: prompt,
@@ -57,7 +63,7 @@ export const aiService = {
      */
     chat: async (messages: { role: 'user' | 'model', parts: { text: string }[] }[], systemInstruction?: string) => {
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = aiService.getClient();
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: messages,

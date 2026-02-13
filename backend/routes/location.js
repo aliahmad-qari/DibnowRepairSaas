@@ -24,38 +24,109 @@ router.get('/detect', async (req, res) => {
 
     console.log(`🌍 [Location] Detecting for IP: ${ip || 'Self'}`);
 
-    // Call external Geo API
-    const apiUrl = ip ? `https://ipapi.co/${ip}/json/` : `https://ipapi.co/json/`;
+    // 1. Priority: Checked for native Cloudflare/Vercel/Render headers
+    const cfCountry = req.headers['cf-ipcountry'];
+    const vercelCountry = req.headers['x-vercel-ip-country'];
     
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-
-    if (data.error) {
-      console.warn('⚠️ [Location] External API returned error:', data.reason);
-      return res.status(400).json({
-        success: false,
-        message: data.reason || 'Location detection failed'
+    if (cfCountry || vercelCountry) {
+      const countryCode = cfCountry || vercelCountry;
+      console.log(`🌍 [Location] Detected from Headers: ${countryCode}`);
+      
+      // Basic mapping for header-only detection
+      const defaults = {
+        'PK': { country: 'Pakistan', currency: 'PKR' },
+        'GB': { country: 'United Kingdom', currency: 'GBP' },
+        'US': { country: 'United States', currency: 'USD' }
+      };
+      
+      const mapped = defaults[countryCode] || { country: countryCode, currency: 'GBP' };
+      
+      return res.json({
+        success: true,
+        countryCode,
+        country: mapped.country,
+        currency: mapped.currency,
+        city: 'Detected (Header)',
+        ip: ip || 'Hidden'
       });
     }
 
-    const locationData = {
-      country: data.country_name,
-      countryCode: data.country_code,
-      city: data.city,
-      latitude: data.latitude,
-      longitude: data.longitude,
-      ip: data.ip,
-      region: data.region,
-      currency: data.currency
-    };
+    console.log(`🌍 [Location] Detecting for IP: ${ip || 'Self'}`);
 
-    console.log('✅ [Location] Detected:', locationData.city, locationData.countryCode);
+    // List of providers for fallback
+    const providers = [
+      {
+        name: 'ipapi.co',
+        url: ip ? `https://ipapi.co/${ip}/json/` : `https://ipapi.co/json/`,
+        parser: (data) => ({
+          country: data.country_name,
+          countryCode: data.country_code,
+          city: data.city,
+          currency: data.currency
+        })
+      },
+      {
+        name: 'freeipapi.com',
+        url: ip ? `https://freeipapi.com/api/json/${ip}` : `https://freeipapi.com/api/json`,
+        parser: (data) => ({
+          country: data.countryName,
+          countryCode: data.countryCode,
+          city: data.cityName,
+          currency: data.currencyCode
+        })
+      },
+      {
+        name: 'ip-api.com',
+        url: ip ? `http://ip-api.com/json/${ip}` : `http://ip-api.com/json/`,
+        parser: (data) => ({
+          country: data.country,
+          countryCode: data.countryCode,
+          city: data.city,
+          currency: 'PKR' // Fallback currency
+        })
+      }
+    ];
 
-    res.json({
-      success: true,
-      ...locationData
+    for (const provider of providers) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout per provider
+      
+      try {
+        console.log(`🔍 [Location] Trying ${provider.name}...`);
+        const response = await fetch(provider.url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        const data = await response.json();
+
+        if (data.error || data.reason === 'RateLimited' || data.status === 'fail' || data.message === 'limit exceeded') {
+          console.warn(`⚠️ [Location] ${provider.name} failed/limited.`);
+          continue;
+        }
+
+        const locationData = provider.parser(data);
+        if (!locationData.countryCode) continue;
+
+        console.log(`✅ [Location] Detected via ${provider.name}:`, locationData.countryCode);
+        
+        return res.json({
+          success: true,
+          ...locationData,
+          ip: ip || 'Self'
+        });
+      } catch (err) {
+        clearTimeout(timeoutId);
+        console.warn(`⚠️ [Location] ${provider.name} request failed or timed out:`, err.message);
+      }
+    }
+
+    // FINAL FALLBACK
+    console.error('💥 [Location] All location providers failed.');
+    return res.json({
+      success: false,
+      country: 'Pakistan',
+      countryCode: 'PK',
+      currency: 'PKR',
     });
-
   } catch (error) {
     console.error('💥 [Location] Error:', error.message);
     res.status(500).json({

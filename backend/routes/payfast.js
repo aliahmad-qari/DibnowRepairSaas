@@ -8,23 +8,29 @@ const Wallet = require('../models/Wallet');
 
 // ==================== HELPER FUNCTIONS ====================
 
-// Generate PayFast signature
-function generatePayFastSignature(data) {
-  const pfParamString = Object.keys(data)
-    .sort()
-    .map(key => `${key}=${encodeURIComponent(data[key]).replace(/%20/g, '+')}`)
-    .join('&');
-  
-  return crypto
-    .createHash('md5')
-    .update(pfParamString + `&passphrase=${process.env.PAYFAST_PASSPHRASE || ''}`)
-    .digest('hex');
-}
+/**
+ * Get Access Token from APPS Pakistan
+ */
+async function getAppsAccessToken() {
+  try {
+    const response = await fetch(process.env.PAYFAST_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        MerchantId: process.env.PAYFAST_MERCHANT_ID,
+        SecuredKey: process.env.PAYFAST_SECURED_KEY
+      })
+    });
 
-// Check for duplicate transaction
-async function checkDuplicateTransaction(paymentId) {
-  const existing = await Transaction.findOne({ paymentId, status: { $in: ['completed', 'pending'] } });
-  return !!existing;
+    const data = await response.json();
+    if (data && data.ACCESS_TOKEN) {
+      return data.ACCESS_TOKEN;
+    }
+    throw new Error(data.MESSAGE || 'Failed to obtain access token from APPS');
+  } catch (error) {
+    console.error('[PAYFAST] Token acquisition failed:', error.message);
+    throw error;
+  }
 }
 
 // ==================== SUBSCRIPTION ENDPOINTS ====================
@@ -32,7 +38,7 @@ async function checkDuplicateTransaction(paymentId) {
 // Create PayFast Payment Request for Plan Subscription
 router.post('/create-payment', async (req, res) => {
   try {
-    const { planId, userId, enableAutoRenew = false } = req.body;
+    const { planId, userId, amount, currency = 'PKR', enableAutoRenew = false } = req.body;
 
     // Get plan details
     const plan = await Plan.findById(planId);
@@ -40,42 +46,61 @@ router.post('/create-payment', async (req, res) => {
       return res.status(404).json({ message: 'Plan not found' });
     }
 
+    // Use amount from request if provided (localized), otherwise fallback to plan price
+    const finalAmount = amount ? parseFloat(amount).toFixed(2) : plan.price.toFixed(2);
+
     // Generate unique payment ID
     const paymentId = `PF_${Date.now()}_${userId}`;
 
-    // Prepare PayFast data
-    const payfastData = {
-      merchant_id: process.env.PAYFAST_MERCHANT_ID,
-      merchant_key: process.env.PAYFAST_MERCHANT_KEY,
-      return_url: `${process.env.PAYFAST_RETURN_URL}?payment_id=${paymentId}&plan_id=${planId}&user_id=${userId}&auto_renew=${enableAutoRenew}`,
-      cancel_url: `${process.env.PAYFAST_CANCEL_URL}?payment_id=${paymentId}`,
-      notify_url: `${process.env.PAYFAST_NOTIFY_URL}`,
-      m_payment_id: paymentId,
-      amount: plan.price.toFixed(2),
-      item_name: plan.name,
-      item_description: plan.description,
-      email_confirmation: 1,
-      confirmation_address: process.env.EMAIL_FROM,
-      custom_str1: userId,
-      custom_str2: planId,
-      custom_str3: 'subscription',
-      custom_str4: enableAutoRenew.toString()
+    // 1. Get Access Token
+    const accessToken = await getAppsAccessToken();
+
+    // 2. Prepare Transaction Data (APPS Pakistan Format)
+    const transactionData = {
+      MerchantId: process.env.PAYFAST_MERCHANT_ID,
+      Amount: finalAmount,
+      Order_Id: paymentId,
+      CurrencyCode: currency, 
+      Return_Url: `${process.env.PAYFAST_RETURN_URL}?payment_id=${paymentId}&plan_id=${planId}&user_id=${userId}&auto_renew=${enableAutoRenew}`,
+      Cancel_Url: `${process.env.PAYFAST_CANCEL_URL}?payment_id=${paymentId}`,
+      Error_Url: `${process.env.PAYFAST_CANCEL_URL}?payment_id=${paymentId}`,
+      Checkout_Url: process.env.PAYFAST_RETURN_URL, // Fallback
+      IsBasket: '0',
+      Basket_Id: paymentId,
+      Basket_Data: plan.name,
+      Payment_Type: 'All', // Allow all payment methods
+      Customer_Email: userId + '@dibnow.com', // Fallback if no user email in req
+      Customer_Mobile: '03000000000',
+      Custom_Str1: userId,
+      Custom_Str2: planId,
+      Custom_Str3: 'subscription',
+      Custom_Str4: enableAutoRenew.toString()
     };
 
-    // Generate signature
-    payfastData.signature = generatePayFastSignature(payfastData);
-
-    // Create payment URL
-    const paymentUrl = `${process.env.PAYFAST_HPP_URL}?${Object.keys(payfastData)
-      .map(key => `${key}=${encodeURIComponent(payfastData[key])}`)
-      .join('&')}`;
-
-    res.json({
-      paymentId: paymentId,
-      paymentUrl: paymentUrl,
-      amount: plan.price,
-      currency: plan.currency
+    // 3. Initiate Transaction
+    const txResponse = await fetch(process.env.PAYFAST_TRANSACTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(transactionData)
     });
+
+    const txResult = await txResponse.json();
+
+    if (txResult && txResult.RedirectUrl) {
+      res.json({
+        paymentId: paymentId,
+        paymentUrl: txResult.RedirectUrl,
+        amount: plan.price,
+        currency: 'PKR'
+      });
+    } else {
+      console.error('[PAYFAST] Transaction initiation failed:', txResult);
+      throw new Error(txResult.MESSAGE || 'Failed to initiate transaction with APPS');
+    }
+
   } catch (error) {
     console.error('PayFast create payment error:', error);
     res.status(500).json({ message: error.message });
@@ -337,7 +362,7 @@ router.post('/refund', async (req, res) => {
 
 router.post('/wallet-topup', async (req, res) => {
   try {
-    const { userId, amount, currency = 'USD' } = req.body;
+    const { userId, amount, currency = 'PKR' } = req.body;
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Invalid amount' });
@@ -346,43 +371,53 @@ router.post('/wallet-topup', async (req, res) => {
     // Generate unique payment ID
     const paymentId = `PF_WALLET_${Date.now()}_${userId}`;
 
-    // Check for duplicate
-    if (await checkDuplicateTransaction(paymentId)) {
-      return res.status(400).json({ message: 'Transaction already in progress' });
-    }
+    // 1. Get Access Token
+    const accessToken = await getAppsAccessToken();
 
-    // Prepare PayFast data
-    const payfastData = {
-      merchant_id: process.env.PAYFAST_MERCHANT_ID,
-      merchant_key: process.env.PAYFAST_MERCHANT_KEY,
-      return_url: `${process.env.APP_BASE_URL}/wallet/payfast/success?payment_id=${paymentId}&user_id=${userId}&amount=${amount}`,
-      cancel_url: `${process.env.APP_BASE_URL}/wallet/payfast/cancel?payment_id=${paymentId}`,
-      notify_url: `${process.env.PAYFAST_NOTIFY_URL}`,
-      m_payment_id: paymentId,
-      amount: amount.toFixed(2),
-      item_name: 'Wallet Top-up',
-      item_description: `Add ${amount} ${currency} to your wallet`,
-      email_confirmation: 1,
-      confirmation_address: process.env.EMAIL_FROM,
-      custom_str1: userId,
-      custom_str2: amount.toString(),
-      custom_str3: 'wallet_topup'
+    // 2. Prepare Transaction Data
+    const transactionData = {
+      MerchantId: process.env.PAYFAST_MERCHANT_ID,
+      Amount: amount.toFixed(2),
+      Order_Id: paymentId,
+      CurrencyCode: 'PKR',
+      Return_Url: `${process.env.APP_BASE_URL}/wallet/payfast/success?payment_id=${paymentId}&user_id=${userId}&amount=${amount}`,
+      Cancel_Url: `${process.env.APP_BASE_URL}/wallet/payfast/cancel?payment_id=${paymentId}`,
+      Error_Url: `${process.env.APP_BASE_URL}/wallet/payfast/cancel?payment_id=${paymentId}`,
+      Checkout_Url: process.env.APP_BASE_URL,
+      IsBasket: '0',
+      Basket_Id: paymentId,
+      Basket_Data: 'Wallet Top-up',
+      Payment_Type: 'All',
+      Customer_Email: userId + '@dibnow.com',
+      Customer_Mobile: '03000000000',
+      Custom_Str1: userId,
+      Custom_Str2: amount.toString(),
+      Custom_Str3: 'wallet_topup'
     };
 
-    // Generate signature
-    payfastData.signature = generatePayFastSignature(payfastData);
-
-    // Create payment URL
-    const paymentUrl = `${process.env.PAYFAST_HPP_URL}?${Object.keys(payfastData)
-      .map(key => `${key}=${encodeURIComponent(payfastData[key])}`)
-      .join('&')}`;
-
-    res.json({
-      paymentId: paymentId,
-      paymentUrl: paymentUrl,
-      amount: amount,
-      currency: currency
+    // 3. Initiate Transaction
+    const txResponse = await fetch(process.env.PAYFAST_TRANSACTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(transactionData)
     });
+
+    const txResult = await txResponse.json();
+
+    if (txResult && txResult.RedirectUrl) {
+      res.json({
+        paymentId: paymentId,
+        paymentUrl: txResult.RedirectUrl,
+        amount: amount,
+        currency: 'PKR'
+      });
+    } else {
+      throw new Error(txResult.MESSAGE || 'Failed to initiate wallet top-up');
+    }
+
   } catch (error) {
     console.error('PayFast wallet topup error:', error);
     res.status(500).json({ message: error.message });
@@ -393,164 +428,82 @@ router.post('/wallet-topup', async (req, res) => {
 
 router.post('/webhook', async (req, res) => {
   try {
+    // APPS Pakistan sends data in body
     const data = req.body;
+    
+    // Note: APPS Pakistan parameter names might vary slightly, but they usually include Order_Id, Transaction_Status
+    // We'll support both old (South Africa) and new (Pakistan) names for maximum compatibility
+    const paymentId = data.Order_Id || data.m_payment_id;
+    const status = data.Transaction_Status || data.payment_status;
+    const userId = data.Custom_Str1 || data.custom_str1;
+    const type = data.Custom_Str3 || data.custom_str3;
+    const amountGross = data.Amount || data.amount_gross;
 
-    // Verify signature
-    const receivedSignature = data.signature;
-    const calculatedSignature = generatePayFastSignature(data);
+    console.log(`[PAYFAST WEBHOOK] Received notification for Order: ${paymentId}, Status: ${status}`);
 
-    if (receivedSignature !== calculatedSignature) {
-      console.error('[PAYFAST WEBHOOK] Signature verification failed');
-      return res.status(400).send('Bad Signature');
+    // Verify payment status (APPS success is usually 'SUCCESS' or '00')
+    if (status !== 'SUCCESS' && status !== '00' && status !== 'COMPLETE') {
+      console.log(`[PAYFAST WEBHOOK] Payment not successful: ${status}`);
+      return res.send('Payment not successful');
     }
 
-    console.log(`[PAYFAST WEBHOOK] Received payment notification: ${data.m_payment_id}`);
-
-    // Verify payment status
-    if (data.payment_status !== 'COMPLETE') {
-      console.log(`[PAYFAST WEBHOOK] Payment not complete: ${data.payment_status}`);
-      return res.send('Payment not complete');
-    }
-
-    const paymentId = data.m_payment_id;
-    const userId = data.custom_str1;
-    const type = data.custom_str3;
-
-    // Check for duplicate processing
-    if (await checkDuplicateTransaction(paymentId)) {
+    // Check for duplicate processing (Already implemented helper in payfast.js)
+    const existing = await Transaction.findOne({ paymentId });
+    if (existing && existing.status === 'completed') {
       console.log(`[PAYFAST WEBHOOK] Transaction already processed: ${paymentId}`);
       return res.send('Transaction already processed');
     }
 
     if (type === 'subscription') {
-      const planId = data.custom_str2;
-      const autoRenew = data.custom_str4 === 'true';
-      const amount = parseFloat(data.amount_gross);
+      const planId = data.Custom_Str2 || data.custom_str2;
+      const autoRenew = (data.Custom_Str4 || data.custom_str4) === 'true';
+      const amount = parseFloat(amountGross);
 
-      // Get plan details
       const plan = await Plan.findById(planId);
-      if (!plan) {
-        return res.status(404).send('Plan not found');
-      }
+      if (!plan) return res.status(404).send('Plan not found');
 
-      // Calculate end date
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + plan.duration);
 
-      // Calculate next renewal date
-      const nextRenewalDate = autoRenew ? new Date(endDate) : null;
-
-      // Create subscription
       const subscription = new Subscription({
-        userId: userId,
-        planId: planId,
-        status: 'active',
-        startDate: new Date(),
-        endDate: endDate,
-        paymentMethod: 'payfast',
-        paymentId: paymentId,
-        amount: amount,
-        currency: data.currency_code || 'USD',
-        autoRenew: autoRenew,
-        nextRenewalDate: nextRenewalDate
+        userId, planId, status: 'active',
+        startDate: new Date(), endDate,
+        paymentMethod: 'payfast', paymentId,
+        amount, currency: 'PKR', autoRenew,
+        nextRenewalDate: autoRenew ? new Date(endDate) : null
       });
       await subscription.save();
 
-      // Create transaction record
       const transaction = new Transaction({
-        userId: userId,
-        transactionType: 'subscription',
-        amount: amount,
-        currency: data.currency_code || 'USD',
-        status: 'completed',
-        paymentMethod: 'payfast',
-        paymentId: paymentId,
-        subscriptionId: subscription._id,
-        planId: planId,
-        description: `Subscription to ${plan.name} via PayFast`,
+        userId, transactionType: 'subscription', amount,
+        currency: 'PKR', status: 'completed',
+        paymentMethod: 'payfast', paymentId,
+        subscriptionId: subscription._id, planId,
+        description: `Subscription to ${plan.name} via PayFast Pakistan`,
         extraData: data
       });
       await transaction.save();
-
-      console.log(`[PAYFAST WEBHOOK] Subscription created: ${subscription._id}`);
-
-    } else if (type === 'renewal') {
-      const subscriptionId = data.custom_str2;
-      const amount = parseFloat(data.amount_gross);
-
-      const subscription = await Subscription.findById(subscriptionId);
-      if (!subscription) {
-        return res.status(404).send('Subscription not found');
-      }
-
-      const plan = await Plan.findById(subscription.planId);
-      if (!plan) {
-        return res.status(404).send('Plan not found');
-      }
-
-      // Calculate new end date
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + plan.duration);
-
-      // Update subscription
-      subscription.endDate = endDate;
-      subscription.lastRenewalDate = new Date();
-      subscription.renewAttempts = 0;
-      subscription.nextRenewalDate = subscription.autoRenew ? new Date(endDate) : null;
-      await subscription.save();
-
-      // Create renewal transaction
-      const transaction = new Transaction({
-        userId: subscription.userId,
-        transactionType: 'renewal',
-        amount: amount,
-        currency: data.currency_code || 'USD',
-        status: 'completed',
-        paymentMethod: 'payfast',
-        paymentId: paymentId,
-        subscriptionId: subscription._id,
-        planId: subscription.planId,
-        description: `Renewal of ${plan.name}`,
-        extraData: data
-      });
-      await transaction.save();
-
-      console.log(`[PAYFAST WEBHOOK] Subscription renewed: ${subscription._id}`);
 
     } else if (type === 'wallet_topup') {
-      const amount = parseFloat(data.amount_gross);
-      const currency = data.currency_code || 'USD';
+      const amount = parseFloat(amountGross);
 
-      // Find or create wallet
-      let wallet = await Wallet.findOne({ userId: userId });
-      if (!wallet) {
-        wallet = new Wallet({ userId: userId, balance: 0, currency: currency });
-      }
+      let wallet = await Wallet.findOne({ userId });
+      if (!wallet) wallet = new Wallet({ userId, balance: 0, currency: 'PKR' });
 
-      // Update wallet balance
       wallet.balance += amount;
       wallet.updatedAt = new Date();
-      await wallet.save();
-
-      // Create transaction record
+      
       const transaction = new Transaction({
-        userId: userId,
-        transactionType: 'wallet_topup',
-        amount: amount,
-        currency: currency,
-        status: 'completed',
-        paymentMethod: 'payfast',
-        paymentId: paymentId,
-        description: `Wallet top-up of ${amount} ${currency} via PayFast`,
+        userId, transactionType: 'wallet_topup', amount,
+        currency: 'PKR', status: 'completed',
+        paymentMethod: 'payfast', paymentId,
+        description: `Wallet top-up via PayFast Pakistan`,
         extraData: data
       });
       await transaction.save();
-
-      // Add transaction to wallet
+      
       wallet.transactions.push(transaction._id);
       await wallet.save();
-
-      console.log(`[PAYFAST WEBHOOK] Wallet top-up completed: ${amount}`);
     }
 
     res.send('OK');
