@@ -6,8 +6,8 @@ import {
    Search, Filter, CheckCircle2, ChevronRight, Terminal,
    LayoutGrid, Wrench, Package, ShoppingCart, BarChart3,
    Rocket, LifeBuoy, Fingerprint, Activity, Clock,
-   /* Added missing RefreshCw import */
-   RefreshCw
+   RefreshCw, UserCheck, UsersRound, BrainCircuit,
+   Settings, Megaphone, ToggleRight
 } from 'lucide-react';
 import { db } from '../../api/db.ts';
 import { callBackendAPI } from '../../api/apiClient';
