@@ -332,11 +332,12 @@ export const UserPricing: React.FC = () => {
 
   const isFormValid = useMemo(() => {
     if (!paymentMethod) return false;
-    if (paymentMethod === 'Stripe') return cardData.number.length >= 12 && cardData.expiry.length >= 4;
+    // Stripe is now a redirect, so no local form validation needed
+    if (paymentMethod === 'Stripe') return true;
     if (paymentMethod === 'Manual Payment') return manualForm.transactionId.length > 3;
     if (paymentMethod === 'Wallet Balance') return (user?.walletBalance || 0) >= getLocalizedPrice(selectedPlanForUpgrade);
     return true; // PayPal, PayFast (Redirect mock)
-  }, [paymentMethod, cardData, manualForm, user, selectedPlanForUpgrade]);
+  }, [paymentMethod, manualForm, user, selectedPlanForUpgrade]);
 
   // Derived high-usage state
   const highUsageDetected = useMemo(() => {

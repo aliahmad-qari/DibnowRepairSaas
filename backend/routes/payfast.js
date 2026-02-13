@@ -14,20 +14,40 @@ const Wallet = require('../models/Wallet');
  */
 async function getAppsAccessToken() {
   try {
-    const response = await fetch(process.env.PAYFAST_TOKEN_URL, {
+    const tokenUrl = process.env.PAYFAST_TOKEN_URL;
+    const merchantId = process.env.PAYFAST_MERCHANT_ID;
+    
+    // Log configuration (masking secrets)
+    console.log(`[PAYFAST] Requesting token from: ${tokenUrl}`);
+    console.log(`[PAYFAST] Using MerchantId: ${merchantId}`);
+
+    const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        MerchantId: process.env.PAYFAST_MERCHANT_ID,
+        MerchantId: parseInt(merchantId, 10) || merchantId, // Ensure integer
         SecuredKey: process.env.PAYFAST_SECURED_KEY
       })
     });
 
-    const data = await response.json();
-    if (data && data.ACCESS_TOKEN) {
-      return data.ACCESS_TOKEN;
+    // Clone response to read text body for debugging without consuming stream
+    const responseClone = response.clone();
+    const rawBody = await responseClone.text();
+    console.log(`[PAYFAST] Raw Token Response: ${rawBody}`);
+
+    // Parse JSON
+    let data;
+    try {
+        data = JSON.parse(rawBody);
+    } catch (e) {
+        throw new Error(`Invalid JSON response: ${rawBody}`);
     }
-    throw new Error(data.MESSAGE || 'Failed to obtain access token from APPS');
+
+    if (data && (data.ACCESS_TOKEN || data.access_token)) {
+      return data.ACCESS_TOKEN || data.access_token;
+    }
+    
+    throw new Error(data.MESSAGE || data.message || 'Failed to obtain access token from APPS');
   } catch (error) {
     console.error('[PAYFAST] Token acquisition failed:', error.message);
     throw error;
