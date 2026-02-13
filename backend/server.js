@@ -36,7 +36,7 @@ const allowedOrigins = [
   'https://dibnow-repair-saas.vercel.app',  // Production frontend
   'https://dibnowrepairsaas.onrender.com',  // This backend
   process.env.FRONTEND_URL,  // Dynamic frontend URL
-  process.env.CORS_ORIGINS    // Custom CORS origins
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()) : [])    // Custom CORS origins
 ].filter(Boolean);  // Remove undefined values
 
 // CORS middleware
@@ -48,7 +48,8 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS policy'));
+      console.warn(`[CORS] Rejected origin: ${origin}`);
+      callback(new Error(`Not allowed by CORS policy for origin: ${origin}`));
     }
   },
   credentials: true,

@@ -28,26 +28,22 @@ async function createSuperadmin() {
 
     const email = 'ali.islamic.meh4@gmail.com';
     const password = '123456A!a';
-    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Find or create user
     let user = await User.findOne({ email: email.toLowerCase() });
 
     if (user) {
-      console.log('User exists, upgrading to SUPERADMIN...');
-      user.role = 'superadmin';
+      console.log('User exists, updating role and resetting password...');
+      user.role = 'superadmin'.toLowerCase();
       user.status = 'active';
       user.emailVerified = true;
-      // Optionally update password if provided
-      if (process.argv.includes('--update-pass')) {
-          user.password = hashedPassword;
-      }
+      user.password = password; // Let model's pre-save hook hash this
     } else {
       console.log('Creating new superadmin...');
       user = new User({
         name: 'Ali SuperAdmin',
         email: email.toLowerCase(),
-        password: hashedPassword,
+        password: password, // Let model's pre-save hook hash this
         role: 'superadmin',
         emailVerified: true,
         status: 'active'
