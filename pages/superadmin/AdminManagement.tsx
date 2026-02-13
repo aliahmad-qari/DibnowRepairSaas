@@ -14,14 +14,20 @@ import { callBackendAPI } from '../../api/apiClient';
 import { Permission, UserRole } from '../../types.ts';
 
 const PERMISSION_NODES = [
-   { id: 'manage_inventory', label: 'Inventory Control', icon: Package },
+   { id: 'manage_repairs', label: 'Repairs', icon: Wrench },
+   { id: 'manage_inventory', label: 'Inventory', icon: Package },
    { id: 'manage_sales', label: 'Sales & POS', icon: ShoppingCart },
-   { id: 'manage_repairs', label: 'Repair Lifecycle', icon: Wrench },
-   { id: 'manage_team', label: 'Personnel Management', icon: Users },
-   { id: 'manage_billing', label: 'Fiscal Settlement', icon: Rocket },
-   { id: 'view_reports', label: 'Business Analytics', icon: BarChart3 },
-   { id: 'manage_support', label: 'Customer Relations', icon: LifeBuoy },
-   { id: 'manage_system', label: 'System Configurations', icon: Terminal },
+   { id: 'manage_billing', label: 'Fiscal/Billing', icon: Rocket },
+   { id: 'view_reports', label: 'Analytics', icon: BarChart3 },
+   { id: 'manage_team', label: 'Staff Management', icon: UserCheck },
+   { id: 'manage_users', label: 'User Control', icon: UsersRound },
+   { id: 'manage_security', label: 'Intelligence', icon: ShieldAlert },
+   { id: 'manage_ai', label: 'AI Strategy', icon: BrainCircuit },
+   { id: 'manage_system', label: 'System Settings', icon: Settings },
+   { id: 'manage_audit', label: 'Forensic Logs', icon: Terminal },
+   { id: 'manage_announcements', label: 'Broadcasts', icon: Megaphone },
+   { id: 'manage_features', label: 'Feature Flags', icon: ToggleRight },
+   { id: 'manage_support', label: 'Support Hub', icon: LifeBuoy },
 ];
 
 export const AdminManagement: React.FC = () => {
@@ -333,8 +339,8 @@ export const AdminManagement: React.FC = () => {
                                     type="button"
                                     onClick={() => handleTogglePermission(node.id as Permission)}
                                     className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 text-center ${formData.permissions.includes(node.id as Permission)
-                                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-xl scale-[1.03]'
-                                          : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10'
+                                       ? 'bg-indigo-600 border-indigo-500 text-white shadow-xl scale-[1.03]'
+                                       : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10'
                                        }`}
                                  >
                                     <node.icon size={24} className={formData.permissions.includes(node.id as Permission) ? 'text-white' : 'text-slate-400'} />

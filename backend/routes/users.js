@@ -296,6 +296,7 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        permissions: user.permissions,
         status: user.status
       },
       token,
@@ -341,6 +342,7 @@ router.post('/verify-email', otpValidation, async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        permissions: user.permissions,
         status: user.status
       },
       token,
@@ -622,6 +624,7 @@ router.post('/admin/login', loginLimiter, async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        permissions: user.permissions,
         status: user.status
       },
       token,

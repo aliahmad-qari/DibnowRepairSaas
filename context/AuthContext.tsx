@@ -184,9 +184,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: data.user.email,
           role: role,
           subRole: role === UserRole.SUPER_ADMIN ? 'Platform Root' : 'Administrator',
-          permissions: role === UserRole.SUPER_ADMIN
-            ? ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports', 'manage_system', 'manage_support']
-            : ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports', 'manage_system', 'manage_support'],
+          permissions: data.user.permissions || (role === UserRole.SUPER_ADMIN
+            ? ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports', 'manage_system', 'manage_support', 'manage_users', 'manage_audit', 'manage_ai', 'manage_announcements', 'manage_features', 'manage_security']
+            : ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports', 'manage_system', 'manage_support', 'manage_users', 'manage_audit', 'manage_ai', 'manage_announcements', 'manage_features', 'manage_security']),
           walletBalance: 0,
           status: data.user.status,
           planId: 'starter'

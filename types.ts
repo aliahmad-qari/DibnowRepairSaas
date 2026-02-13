@@ -6,15 +6,21 @@ export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN'
 }
 
-export type Permission = 
-  | 'manage_repairs' 
-  | 'manage_inventory' 
-  | 'manage_sales' 
-  | 'manage_billing' 
-  | 'manage_team' 
-  | 'view_reports' 
+export type Permission =
+  | 'manage_repairs'
+  | 'manage_inventory'
+  | 'manage_sales'
+  | 'manage_billing'
+  | 'manage_team'
+  | 'view_reports'
   | 'manage_system'
-  | 'manage_support';
+  | 'manage_support'
+  | 'manage_users'
+  | 'manage_audit'
+  | 'manage_ai'
+  | 'manage_announcements'
+  | 'manage_features'
+  | 'manage_security';
 
 export type TicketStatus = 'pending' | 'investigating' | 'resolved' | 'closed';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';

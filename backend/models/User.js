@@ -34,6 +34,10 @@ const userSchema = new mongoose.Schema({
     },
     default: 'user'
   },
+  permissions: {
+    type: [String],
+    default: []
+  },
   emailVerified: {
     type: Boolean,
     default: false

@@ -52,10 +52,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   const adminItems: SidebarItem[] = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Intelligence', path: '/admin/security-intel', icon: ShieldAlert, permission: 'manage_system' },
-    { name: 'AI Insights', path: '/admin/ai-insights', icon: BrainCircuit, permission: 'manage_system' },
-    { name: 'Users', path: '/admin/users', icon: UsersRound, permission: 'manage_system' },
-    { name: 'Staff', path: '/admin/staff', icon: UserCheck, permission: 'manage_system' },
+    { name: 'Intelligence', path: '/admin/security-intel', icon: ShieldAlert, permission: 'manage_security' },
+    { name: 'AI Insights', path: '/admin/ai-insights', icon: BrainCircuit, permission: 'manage_ai' },
+    { name: 'Users', path: '/admin/users', icon: UsersRound, permission: 'manage_users' },
+    { name: 'Staff', path: '/admin/staff', icon: UserCheck, permission: 'manage_team' },
     { name: 'Repairs', path: '/admin/all-repairs', icon: Wrench, permission: 'manage_repairs' },
     { name: 'Inventory', path: '/admin/all-inventory', icon: Package, permission: 'manage_inventory' },
     { name: 'Sales', path: '/admin/all-sales', icon: ShoppingCart, permission: 'manage_sales' },
@@ -64,15 +64,15 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     { name: 'Plan Requests', path: '/admin/plan-requests', icon: ClipboardList, permission: 'manage_billing' },
     { name: 'Wallet', path: '/admin/wallet', icon: Wallet, permission: 'manage_billing' },
     { name: 'Currency Rules', path: '/admin/currencies', icon: Coins, permission: 'manage_system' },
-    { name: 'Audit Logs', path: '/admin/audit-logs', icon: Terminal, permission: 'manage_system' },
-    { name: 'Announcements', path: '/admin/announcements', icon: Megaphone, permission: 'manage_system' },
-    { name: 'Feature Flags', path: '/admin/feature-flags', icon: ToggleRight, permission: 'manage_system' },
+    { name: 'Audit Logs', path: '/admin/audit-logs', icon: Terminal, permission: 'manage_audit' },
+    { name: 'Announcements', path: '/admin/announcements', icon: Megaphone, permission: 'manage_announcements' },
+    { name: 'Feature Flags', path: '/admin/feature-flags', icon: ToggleRight, permission: 'manage_features' },
     { name: 'Support Hub', path: '/admin/tickets', icon: LifeBuoy, permission: 'manage_support' },
     { name: 'Complaints', path: '/admin/complaints', icon: MessageSquare, permission: 'manage_support' },
     { name: 'Settings', path: '/admin/settings', icon: Settings, permission: 'manage_system' },
   ];
 
-  const items = user?.role === UserRole.ADMIN ? adminItems : userItems;
+  const items = (user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN) ? adminItems : userItems;
 
   // GRANULAR PERMISSION FILTERING (Requirement 3)
   const filteredItems = items.filter(item => {
