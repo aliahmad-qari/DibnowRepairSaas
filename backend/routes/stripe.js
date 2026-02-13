@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Plan = require('../models/Plan');
 const Subscription = require('../models/Subscription');
@@ -37,11 +38,24 @@ router.post('/create-checkout-session', async (req, res) => {
   try {
     const { planId, userId, enableAutoRenew = false } = req.body;
 
+    console.log(`[STRIPE] Initiating checkout for User: ${userId}, Plan: ${planId}`);
+
+    // Validate ObjectId format to avoid CastError 500
+    if (!mongoose.Types.ObjectId.isValid(planId)) {
+      console.error(`[STRIPE] Invalid Plan ID format: ${planId}`);
+      return res.status(400).json({ 
+        message: 'Invalid Plan ID format. Please ensure plans are seeded in the database.' 
+      });
+    }
+
     // Get plan details
     const plan = await Plan.findById(planId);
     if (!plan) {
-      return res.status(404).json({ message: 'Plan not found' });
+      console.error(`[STRIPE] Plan not found in database: ${planId}`);
+      return res.status(404).json({ message: 'Plan not found in database. Please contact support.' });
     }
+
+    console.log(`[STRIPE] Creating checkout session for ${plan.name} (${plan.price} ${plan.currency})`);
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -68,10 +82,14 @@ router.post('/create-checkout-session', async (req, res) => {
       }
     });
 
+    console.log(`[STRIPE] Checkout session created: ${session.id}`);
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
     console.error('Stripe checkout error:', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

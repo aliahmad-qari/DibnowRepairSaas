@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const Plan = require('../models/Plan');
 const Subscription = require('../models/Subscription');
 const Transaction = require('../models/Transaction');
@@ -40,10 +41,34 @@ router.post('/create-payment', async (req, res) => {
   try {
     const { planId, userId, amount, currency = 'PKR', enableAutoRenew = false } = req.body;
 
-    // Get plan details
-    const plan = await Plan.findById(planId);
+    console.log(`[PAYFAST] Initiating payment for User: ${userId}, Plan: ${planId}, Amount: ${amount}`);
+
+    let plan;
+
+    // Check if planId is a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(planId)) {
+      plan = await Plan.findById(planId);
+    } else {
+      // Fallback: Try to find by name (legacy support for 'gold', 'premium', etc.)
+      console.log(`[PAYFAST] Non-ObjectId planId detected: ${planId}. Attempting lookup by name...`);
+      const nameMap = {
+        'starter': 'FREE TRIAL',
+        'basic': 'BASIC',
+        'premium': 'PREMIUM',
+        'gold': 'GOLD'
+      };
+      
+      const searchName = nameMap[planId.toLowerCase()] || planId.toUpperCase();
+      plan = await Plan.findOne({ name: searchName });
+      
+      if (plan) {
+         console.log(`[PAYFAST] Resolved legacy ID '${planId}' to Plan: ${plan.name} (${plan._id})`);
+      }
+    }
+
     if (!plan) {
-      return res.status(404).json({ message: 'Plan not found' });
+      console.error(`[PAYFAST] Plan not found in database: ${planId}`);
+      return res.status(404).json({ message: 'Plan not found in database. Please contact support.' });
     }
 
     // Use amount from request if provided (localized), otherwise fallback to plan price
@@ -53,14 +78,16 @@ router.post('/create-payment', async (req, res) => {
     const paymentId = `PF_${Date.now()}_${userId}`;
 
     // 1. Get Access Token
+    console.log('[PAYFAST] Requesting access token from APPS...');
     const accessToken = await getAppsAccessToken();
+    console.log('[PAYFAST] Access token acquired successfully.');
 
     // 2. Prepare Transaction Data (APPS Pakistan Format)
     const transactionData = {
       MerchantId: process.env.PAYFAST_MERCHANT_ID,
       Amount: finalAmount,
       Order_Id: paymentId,
-      CurrencyCode: currency, 
+      CurrencyCode: 'PKR', // Mandatory for APPS Pakistan
       Return_Url: `${process.env.PAYFAST_RETURN_URL}?payment_id=${paymentId}&plan_id=${planId}&user_id=${userId}&auto_renew=${enableAutoRenew}`,
       Cancel_Url: `${process.env.PAYFAST_CANCEL_URL}?payment_id=${paymentId}`,
       Error_Url: `${process.env.PAYFAST_CANCEL_URL}?payment_id=${paymentId}`,
@@ -78,6 +105,7 @@ router.post('/create-payment', async (req, res) => {
     };
 
     // 3. Initiate Transaction
+    console.log(`[PAYFAST] Posting transaction to ${process.env.PAYFAST_TRANSACTION_URL}...`);
     const txResponse = await fetch(process.env.PAYFAST_TRANSACTION_URL, {
       method: 'POST',
       headers: {
@@ -90,6 +118,7 @@ router.post('/create-payment', async (req, res) => {
     const txResult = await txResponse.json();
 
     if (txResult && txResult.RedirectUrl) {
+      console.log(`[PAYFAST] Transaction successful. Redirecting to: ${txResult.RedirectUrl.substring(0, 50)}...`);
       res.json({
         paymentId: paymentId,
         paymentUrl: txResult.RedirectUrl,
@@ -97,13 +126,16 @@ router.post('/create-payment', async (req, res) => {
         currency: 'PKR'
       });
     } else {
-      console.error('[PAYFAST] Transaction initiation failed:', txResult);
-      throw new Error(txResult.MESSAGE || 'Failed to initiate transaction with APPS');
+      console.error('[PAYFAST] APPS Transaction Error:', txResult);
+      throw new Error(txResult.MESSAGE || 'Failed to initiate transaction with APPS. Verify credentials.');
     }
 
   } catch (error) {
-    console.error('PayFast create payment error:', error);
-    res.status(500).json({ message: error.message });
+    console.error('PayFast create payment exception:', error);
+    res.status(500).json({ 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

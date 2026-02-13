@@ -89,10 +89,10 @@ export const UserPricing: React.FC = () => {
         }
       } catch (error) {
         console.error('❌ [Plans] Failed to fetch plans from database:', error);
-        // Fallback to localStorage plans if API fails
-        const localPlans = db.plans.getAll();
-        console.log('📁 [Plans] Using localStorage fallback:', localPlans.length, 'plans');
-        setPlans(localPlans);
+        // database-driven only - no local fallback
+        setPlans([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -628,71 +628,83 @@ export const UserPricing: React.FC = () => {
       </div>
 
       {/* 5. PRICING GRIDS - REDESIGNED PER USER REQUEST */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {plans.map((plan) => {
-          const isActive = plan.id === user?.planId || (plan.id === 'starter' && !user?.planId);
-          return (
-            <div key={plan.id} className={`p-10 rounded-[3.5rem] flex flex-col border-2 transition-all duration-500 hover:-translate-y-2 group ${isActive ? 'bg-indigo-600 text-white shadow-2xl scale-105 border-indigo-500' : 'bg-white border-slate-100 shadow-xl text-slate-900 hover:border-indigo-400'}`}>
-              <div className="mb-10">
-                <h3 className={`text-2xl font-black uppercase tracking-tight ${isActive ? 'text-white' : 'text-slate-900'}`}>{plan.name}</h3>
-                <div className="text-4xl font-black mt-2 tracking-tighter">
-                  <span className="text-xl font-bold">{currency.symbol}</span>
-                  {getLocalizedPrice(plan)}
-                  <span className="text-xs opacity-50 font-black uppercase">/mo</span>
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-6 mb-10">
-                <div className="space-y-4">
-                  {[
-                    { label: 'Repair Customer', value: plan.limits.repairsPerMonth, icon: Wrench },
-                    { label: 'In Stock', value: plan.limits.inventoryItems, icon: Boxes },
-                    { label: 'Category', value: plan.limits.categories, icon: Layers },
-                    { label: 'Brand', value: plan.limits.brands, icon: Tag },
-                    { label: 'Teams', value: plan.limits.teamMembers, icon: Users }
-                  ].map((limit, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-indigo-200' : 'bg-indigo-600'}`} />
-                      <span className={`text-[11px] font-black uppercase tracking-widest ${isActive ? 'text-indigo-50' : 'text-slate-600'}`}>
-                        {limit.value >= 999 ? '∞' : limit.value} {limit.label}
-                      </span>
-                    </div>
-                  ))}
-
-                  <div className="pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-3">
-                      {plan.limits.aiDiagnostics ? (
-                        <Sparkles size={16} className={isActive ? 'text-amber-300' : 'text-indigo-600'} />
-                      ) : (
-                        <Lock size={16} className={isActive ? 'text-white/40' : 'text-slate-300'} />
-                      )}
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-white' : plan.limits.aiDiagnostics ? 'text-slate-800' : 'text-slate-400'}`}>
-                        {plan.limits.aiDiagnostics ? 'AI Diagnostics Authorized' : 'AI Diagnostics Locked'}
-                      </span>
-                    </div>
+      {isLoading ? (
+        <div className="text-center py-20"><Loader2 className="animate-spin mx-auto text-indigo-600 h-12 w-12" /><p className="mt-4 text-slate-400 font-bold uppercase tracking-widest">Loading Infrastructure Tiers...</p></div>
+      ) : plans.length === 0 ? (
+        <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center">
+          <div className="h-16 w-16 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+            <AlertTriangle className="text-amber-500 h-8 w-8" />
+          </div>
+          <h3 className="text-xl font-black uppercase text-slate-800 tracking-tight">System Configuration Pending</h3>
+          <p className="mt-2 text-slate-400 font-bold uppercase tracking-widest max-w-md mx-auto text-xs leading-relaxed">Infrastructure tiers have not been seeded. Please contact system administration to initialize the billing node.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {plans.map((plan) => {
+            const isActive = plan.id === user?.planId || (plan.id === 'starter' && !user?.planId);
+            return (
+              <div key={plan.id} className={`p-10 rounded-[3.5rem] flex flex-col border-2 transition-all duration-500 hover:-translate-y-2 group ${isActive ? 'bg-indigo-600 text-white shadow-2xl scale-105 border-indigo-500' : 'bg-white border-slate-100 shadow-xl text-slate-900 hover:border-indigo-400'}`}>
+                <div className="mb-10">
+                  <h3 className={`text-2xl font-black uppercase tracking-tight ${isActive ? 'text-white' : 'text-slate-900'}`}>{plan.name}</h3>
+                  <div className="text-4xl font-black mt-2 tracking-tighter">
+                    <span className="text-xl font-bold">{currency.symbol}</span>
+                    {getLocalizedPrice(plan)}
+                    <span className="text-xs opacity-50 font-black uppercase">/mo</span>
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-4 border-t border-white/5 opacity-80">
-                  {plan.features.slice(0, 2).map((f, i) => (
-                    <div key={i} className="flex items-start gap-2 text-[9px] font-bold uppercase tracking-tight italic">
-                      • {f}
-                    </div>
-                  ))}
-                </div>
-              </div>
+                <div className="flex-1 space-y-6 mb-10">
+                  <div className="space-y-4">
+                    {[
+                      { label: 'Repair Customer', value: plan.limits.repairsPerMonth, icon: Wrench },
+                      { label: 'In Stock', value: plan.limits.inventoryItems, icon: Boxes },
+                      { label: 'Category', value: plan.limits.categories, icon: Layers },
+                      { label: 'Brand', value: plan.limits.brands, icon: Tag },
+                      { label: 'Teams', value: plan.limits.teamMembers, icon: Users }
+                    ].map((limit, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-indigo-200' : 'bg-indigo-600'}`} />
+                        <span className={`text-[11px] font-black uppercase tracking-widest ${isActive ? 'text-indigo-50' : 'text-slate-600'}`}>
+                          {limit.value >= 999 ? '∞' : limit.value} {limit.label}
+                        </span>
+                      </div>
+                    ))}
 
-              <button
-                onClick={() => handleSelectPlan(plan)}
-                disabled={isActive}
-                className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-2xl active:scale-95 ${isActive ? 'bg-white/10 text-white/50 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'}`}
-              >
-                {isActive ? '✓ Active Node' : 'Deploy Tier'}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                    <div className="pt-4 border-t border-white/10">
+                      <div className="flex items-center gap-3">
+                        {plan.limits.aiDiagnostics ? (
+                          <Sparkles size={16} className={isActive ? 'text-amber-300' : 'text-indigo-600'} />
+                        ) : (
+                          <Lock size={16} className={isActive ? 'text-white/40' : 'text-slate-300'} />
+                        )}
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-white' : plan.limits.aiDiagnostics ? 'text-slate-800' : 'text-slate-400'}`}>
+                          {plan.limits.aiDiagnostics ? 'AI Diagnostics Authorized' : 'AI Diagnostics Locked'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-white/5 opacity-80">
+                    {plan.features.slice(0, 2).map((f, i) => (
+                      <div key={i} className="flex items-start gap-2 text-[9px] font-bold uppercase tracking-tight italic">
+                        • {f}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleSelectPlan(plan)}
+                  disabled={isActive}
+                  className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-2xl active:scale-95 ${isActive ? 'bg-white/10 text-white/50 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'}`}
+                >
+                  {isActive ? '✓ Active Node' : 'Deploy Tier'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* SECURE INFRASTRUCTURE CHECKOUT MODAL */}
       {selectedPlanForUpgrade && !successState && !failureState && (
