@@ -96,15 +96,15 @@ import { AdminManagement } from './pages/superadmin/AdminManagement.tsx';
 const ProtectedRoute: React.FC<{ children: React.ReactNode; role?: UserRole; permission?: Permission }> = ({ children, role, permission }) => {
   const { isAuthenticated, user, hasPermission } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" />;
-  
+
   // ROLE VALIDATION
   if (role && user?.role !== role && user?.role !== UserRole.TEAM_MEMBER && user?.role !== UserRole.SUPER_ADMIN) {
-     return <Navigate to="/" />;
+    return <Navigate to="/" />;
   }
-  
+
   // PERMISSION VALIDATION (Requirement 7)
   if (permission && !hasPermission(permission)) {
-     return <Navigate to="/" />;
+    return <Navigate to="/" />;
   }
 
   return <>{children}</>;
@@ -121,14 +121,13 @@ const App: React.FC = () => {
             <Route path="/auth/register" element={<Register />} />
             <Route path="/auth/verify-otp" element={<VerifyOTP />} />
             <Route path="/team/login" element={<TeamPortal />} />
-            
+
             {/* Super Admin Routes */}
             <Route path="/superadmin/dashboard" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><SuperAdminDashboard /></SuperAdminLayout></ProtectedRoute>} />
             <Route path="/superadmin/users" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><GlobalUserManagement /></SuperAdminLayout></ProtectedRoute>} />
             <Route path="/superadmin/shops" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><ShopManagement /></SuperAdminLayout></ProtectedRoute>} />
             <Route path="/superadmin/revenue" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><RevenueAnalytics /></SuperAdminLayout></ProtectedRoute>} />
             <Route path="/superadmin/payments" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><PaymentControl /></SuperAdminLayout></ProtectedRoute>} />
-            <Route path="/superadmin/plans" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><GlobalPlans /></SuperAdminLayout></ProtectedRoute>} />
             <Route path="/superadmin/currencies" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><GlobalCurrencies /></SuperAdminLayout></ProtectedRoute>} />
             <Route path="/superadmin/announcements" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><GlobalAnnouncements /></SuperAdminLayout></ProtectedRoute>} />
             <Route path="/superadmin/ai-monitor" element={<ProtectedRoute role={UserRole.SUPER_ADMIN}><SuperAdminLayout><AIMonitor /></SuperAdminLayout></ProtectedRoute>} />
@@ -169,12 +168,12 @@ const App: React.FC = () => {
             <Route path="/user/team" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><TeamMembers /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user/wallet" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><Wallet /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user/utilities" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><Utilities /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/user/help" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><HelpCenter /></DashboardLayout></ProtectedRoute> } />
+            <Route path="/user/help" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><HelpCenter /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user/complaints" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><UserComplaints /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user/pricing" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><UserPricing /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user/tickets" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><SupportTickets /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user/settings" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><UserSettings /></DashboardLayout></ProtectedRoute>} />
-            
+
             {/* Admin Routes with Granular Permission Gates */}
             <Route path="/admin/dashboard" element={<ProtectedRoute role={UserRole.ADMIN}><DashboardLayout><AdminDashboard /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute role={UserRole.ADMIN} permission="view_reports"><DashboardLayout><AdminReports /></DashboardLayout></ProtectedRoute>} />

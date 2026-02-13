@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
-import { 
-  LayoutDashboard, Users, ShieldAlert, Globe, 
-  Terminal, LogOut, ChevronRight, Menu, X, 
+import {
+  LayoutDashboard, Users, ShieldAlert, Globe,
+  Terminal, LogOut, ChevronRight, Menu, X,
   Database, Activity, Lock, Settings, Building2, TrendingUp, CreditCard,
   Rocket, Coins, Megaphone, BrainCircuit, LifeBuoy, ToggleRight, ScrollText,
   UserCheck
@@ -23,7 +23,6 @@ export const SuperAdminLayout: React.FC<{ children: React.ReactNode }> = ({ chil
     { name: 'Shop Ecosystem', path: '/superadmin/shops', icon: Building2 },
     { name: 'Revenue Analytics', path: '/superadmin/revenue', icon: TrendingUp },
     { name: 'Gateway Control', path: '/superadmin/payments', icon: CreditCard },
-    { name: 'Pricing Tiers', path: '/superadmin/plans', icon: Rocket },
     { name: 'Currency Rules', path: '/superadmin/currencies', icon: Coins },
     { name: 'Broadcasts', path: '/superadmin/announcements', icon: Megaphone },
     { name: 'AI Monitor', path: '/superadmin/ai-monitor', icon: BrainCircuit },
@@ -40,7 +39,7 @@ export const SuperAdminLayout: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex overflow-hidden">
       {/* Mobile Toggle */}
-      <button 
+      <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="lg:hidden fixed top-5 left-5 z-[200] p-3 bg-indigo-600 text-white rounded-xl shadow-2xl"
       >
@@ -63,11 +62,10 @@ export const SuperAdminLayout: React.FC<{ children: React.ReactNode }> = ({ chil
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    isActive 
-                      ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-900/40' 
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive
+                      ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-900/40'
                       : 'text-slate-500 hover:text-white hover:bg-white/5'
-                  }`}
+                    }`}
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   <Icon size={16} className={isActive ? 'text-white' : 'text-slate-600'} />
@@ -80,11 +78,11 @@ export const SuperAdminLayout: React.FC<{ children: React.ReactNode }> = ({ chil
 
           <div className="mt-6 pt-6 border-t border-white/5 space-y-4">
             <div className="px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Operator</p>
-                <p className="text-xs font-black text-white uppercase truncate">{user?.name}</p>
-                <p className="text-[9px] font-bold text-indigo-400 mt-1 uppercase">L-9 Authority</p>
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Operator</p>
+              <p className="text-xs font-black text-white uppercase truncate">{user?.name}</p>
+              <p className="text-[9px] font-bold text-indigo-400 mt-1 uppercase">L-9 Authority</p>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20"
             >

@@ -74,6 +74,7 @@ export const UserPricing: React.FC = () => {
             baseCurrency: plan.currency,
             duration: 'monthly',
             features: plan.features || [],
+            limits: plan.limits || { repairsPerMonth: 0, inventoryItems: 0, aiDiagnostics: false },
             description: plan.description
           }));
 

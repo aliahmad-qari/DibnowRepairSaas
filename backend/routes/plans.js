@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Plan = require('../models/Plan');
-const { authenticateToken, superAdminOnly } = require('../middleware/auth');
+const { authenticateToken, adminOnly } = require('../middleware/auth');
 
 // ==================== GET ALL PLANS ====================
 
@@ -10,7 +10,7 @@ router.get('/all', async (req, res) => {
   try {
     const plans = await Plan.find({ isActive: true })
       .sort({ price: 1 }) // Sort by price ascending
-      .select('_id name description price currency duration features stripePriceId isActive createdAt');
+      .select('_id name description price currency duration features stripePriceId isActive limits createdAt');
 
     res.json({
       success: true,
