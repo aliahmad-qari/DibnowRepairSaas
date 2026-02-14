@@ -1,0 +1,6 @@
+@echo off
+echo Killing existing server process...
+FOR /F "tokens=5" %%P IN ('netstat -ano ^| findstr :5002') DO taskkill /F /PID %%P 2>nul
+timeout /t 2 /nobreak >nul
+echo Starting server...
+node server.js

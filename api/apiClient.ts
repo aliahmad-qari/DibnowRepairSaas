@@ -63,6 +63,17 @@ export async function callBackendAPI(endpoint: string, data?: any, method: 'GET'
                 timestamp: new Date().toISOString()
             });
 
+            // If it's a specific limit error, throw an error that includes the data
+            if (response.status === 403 && error.limitHit) {
+                const limitErr = new Error(error.message);
+                (limitErr as any).limitHit = true;
+                (limitErr as any).resourceType = error.resourceType;
+                (limitErr as any).limit = error.limit;
+                (limitErr as any).upgradeRequired = error.upgradeRequired;
+                (limitErr as any).upgradeMessage = error.upgradeMessage;
+                throw limitErr;
+            }
+
             throw new Error(error.message || 'API request failed');
         }
 

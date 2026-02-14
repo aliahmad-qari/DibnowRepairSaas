@@ -25,7 +25,7 @@ const loginLimiter = rateLimit({
 // Registration rate limiter - 3 registrations per hour per IP
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3,
+  max: 10, // Increased for local testing
   message: { 
     message: 'Too many registration attempts. Please try again after an hour.',
     retryAfter: 60
@@ -34,6 +34,10 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => {
     return req.ip;
+  },
+  handler: (req, res, next, options) => {
+    console.log(`[SECURITY] Registration rate limit exceeded for ${req.ip}`);
+    res.status(429).json(options.message);
   }
 });
 

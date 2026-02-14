@@ -8,13 +8,19 @@ export default defineConfig(({ mode }) => {
 
   return {
     server: {
-      port: 3000,
+      port: 5173,
       host: '0.0.0.0',
       proxy: isProd ? undefined : {
         '/api': {
-          target: 'http://localhost:5000',
+          target: 'http://localhost:5002',
           changeOrigin: true,
           secure: false,
+          bypass: (req, res, options) => {
+            const proxyUrl = req.url;
+            if (proxyUrl?.includes('.ts') || proxyUrl?.includes('.tsx')) {
+              return proxyUrl;
+            }
+          }
         }
       }
     },

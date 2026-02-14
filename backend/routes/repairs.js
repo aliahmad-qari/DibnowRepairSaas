@@ -19,6 +19,7 @@ const {
 
 // Validation middleware
 const { repairIdValidation, userIdValidation } = require('../middleware/validation');
+const checkLimits = require('../middleware/checkLimits');
 
 // Apply security middleware
 router.use(securityHeaders);
@@ -151,7 +152,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create new repair
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, checkLimits('repairsPerMonth'), async (req, res) => {
   try {
     const {
       customerName,

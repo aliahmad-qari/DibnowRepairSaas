@@ -168,12 +168,16 @@ router.get('/', authenticateToken, authorizeRoles('superadmin'), async (req, res
 // Register new user - NO EMAIL VERIFICATION NEEDED
 router.post('/register', registerLimiter, registerValidation, async (req, res) => {
   try {
+    console.log('[REGISTER] Starting registration process...');
     const { name, email, password, phone, company, address, postcode } = req.body;
+    console.log('[REGISTER] Request data:', { name, email, phone, company });
 
     // Check if user already exists
+    console.log('[REGISTER] Checking for existing user...');
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     
     if (existingUser) {
+      console.log('[REGISTER] User already exists:', email);
       return res.status(400).json({ 
         message: 'User with this email already exists. Please login instead.',
         alreadyExists: true
@@ -181,6 +185,7 @@ router.post('/register', registerLimiter, registerValidation, async (req, res) =
     }
 
     // Create user - Auto-verified, no email needed
+    console.log('[REGISTER] Creating new user...');
     const user = new User({
       name,
       email,
@@ -193,15 +198,20 @@ router.post('/register', registerLimiter, registerValidation, async (req, res) =
       status: 'active'
     });
 
+    console.log('[REGISTER] Saving user to database...');
     await user.save();
+    console.log('[REGISTER] User saved successfully');
 
     // Generate tokens
+    console.log('[REGISTER] Generating tokens...');
     const token = generateToken(user);
     const refreshToken = generateRefreshToken(user);
+    console.log('[REGISTER] Tokens generated successfully');
 
     // Remove sensitive data
     user.password = undefined;
 
+    console.log('[REGISTER] Registration complete for:', email);
     res.status(201).json({
       message: 'Registration successful!',
       user: {
@@ -214,8 +224,12 @@ router.post('/register', registerLimiter, registerValidation, async (req, res) =
       refreshToken
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Error during registration' });
+    console.error('[REGISTER] Registration error:', error);
+    console.error('[REGISTER] Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Error during registration',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

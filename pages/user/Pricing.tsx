@@ -220,8 +220,8 @@ export const UserPricing: React.FC = () => {
       if (paymentMethod === 'Manual Payment') {
         console.log('📝 [Payment] Processing manual payment request');
         await new Promise(resolve => setTimeout(resolve, 1500));
-        db.planRequests.add({
-          shopId: user.id,
+        const response = await callBackendAPI('/api/plan-requests', {
+          userId: getBackendUserId(),
           shopName: user.name,
           currentPlanId: user.planId || 'starter',
           currentPlanName: currentPlan?.name || 'Starter',

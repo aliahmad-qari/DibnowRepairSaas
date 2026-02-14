@@ -173,8 +173,6 @@ const repairSchema = new mongoose.Schema({
 repairSchema.index({ ownerId: 1, status: 1 });
 repairSchema.index({ createdAt: -1 });
 repairSchema.index({ 'statusHistory.timestamp': -1 });
-repairSchema.index({ createdAt: -1 });
-repairSchema.index({ 'statusHistory.timestamp': -1 });
 
 // Virtual for status progress percentage
 repairSchema.virtual('progressPercentage').get(function() {

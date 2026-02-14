@@ -1,19 +1,46 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Moon, MapPin, Clock, Loader2, ChevronLeft, Bell, BellOff, Info, ShieldCheck, Settings, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../../api/db.ts';
+import { callBackendAPI } from '../../../api/apiClient.ts';
+import { useAuth } from '../../../context/AuthContext.tsx';
 
 export const PrayerPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [timings, setTimings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [locationName, setLocationName] = useState('Multan, Pakistan');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => localStorage.getItem('dibnow_prayer_notifs') === 'true');
-  const [notifyLeadTime, setNotifyLeadTime] = useState(() => Number(localStorage.getItem('dibnow_prayer_lead') || 10));
+
+  // Settings from backend metadata
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notifyLeadTime, setNotifyLeadTime] = useState(10);
+
   const [error, setError] = useState<string | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(typeof Notification !== 'undefined' ? Notification.permission : 'default');
 
-  // --- ADDITIVE: NOTIFICATION ENGINE ---
+  useEffect(() => {
+    if (user?.metadata?.prayerSettings) {
+      setNotificationsEnabled(!!user.metadata.prayerSettings.notificationsEnabled);
+      setNotifyLeadTime(Number(user.metadata.prayerSettings.notifyLeadTime || 10));
+    }
+  }, [user]);
+
+  const updatePrayerSettings = async (settings: any) => {
+    if (!user) return;
+    try {
+      await callBackendAPI(`/users/${user._id || user.id}`, {
+        metadata: {
+          ...user.metadata,
+          prayerSettings: {
+            ...user.metadata?.prayerSettings,
+            ...settings
+          }
+        }
+      }, 'PUT');
+    } catch (err) {
+      console.error('Settings sync failed:', err);
+    }
+  };
 
   const requestNotificationPermission = async () => {
     if (!("Notification" in window)) return;
@@ -21,28 +48,38 @@ export const PrayerPage: React.FC = () => {
     setPermissionStatus(permission);
     if (permission === "granted") {
       setNotificationsEnabled(true);
-      localStorage.setItem('dibnow_prayer_notifs', 'true');
-      db.activity.log({ actionType: 'Prayer Alerts Enabled', moduleName: 'Spiritual', refId: 'NOTIF_NODE', status: 'Success' });
+      updatePrayerSettings({ notificationsEnabled: true });
+      await callBackendAPI('/activities', {
+        actionType: 'Prayer Alerts Enabled',
+        moduleName: 'Spiritual',
+        refId: 'NOTIF_NODE',
+        status: 'Success'
+      });
     } else {
       setNotificationsEnabled(false);
-      localStorage.setItem('dibnow_prayer_notifs', 'false');
+      updatePrayerSettings({ notificationsEnabled: false });
     }
   };
 
-  const handleToggleNotifications = () => {
+  const handleToggleNotifications = async () => {
     const nextVal = !notificationsEnabled;
     if (nextVal) {
       requestNotificationPermission();
     } else {
       setNotificationsEnabled(false);
-      localStorage.setItem('dibnow_prayer_notifs', 'false');
-      db.activity.log({ actionType: 'Prayer Alerts Disabled', moduleName: 'Spiritual', refId: 'NOTIF_NODE', status: 'Success' });
+      updatePrayerSettings({ notificationsEnabled: false });
+      await callBackendAPI('/activities', {
+        actionType: 'Prayer Alerts Disabled',
+        moduleName: 'Spiritual',
+        refId: 'NOTIF_NODE',
+        status: 'Success'
+      });
     }
   };
 
   const handleLeadTimeChange = (mins: number) => {
     setNotifyLeadTime(mins);
-    localStorage.setItem('dibnow_prayer_lead', String(mins));
+    updatePrayerSettings({ notifyLeadTime: mins });
   };
 
   const scheduleNextCheck = useCallback((currentTimings: any) => {
@@ -55,7 +92,7 @@ export const PrayerPage: React.FC = () => {
       const [hours, minutes] = time.split(':');
       const prayerTime = new Date();
       prayerTime.setHours(parseInt(hours), parseInt(minutes), 0);
-      
+
       const diffMs = prayerTime.getTime() - now.getTime();
       const diffMins = Math.floor(diffMs / 60000);
 
@@ -77,7 +114,7 @@ export const PrayerPage: React.FC = () => {
     try {
       let url = '';
       let source = 'Fallback (Multan)';
-      
+
       if (lat && lon) {
         url = `https://api.aladhan.com/v1/timingsByAddress?address=${lat},${lon}&method=1&school=1`;
         setLocationName('Detected Location');
@@ -96,11 +133,11 @@ export const PrayerPage: React.FC = () => {
       const json = await res.json();
       if (json.data) {
         setTimings(json.data.timings);
-        db.activity.log({ 
-          actionType: 'Prayer Sync', 
-          moduleName: 'Spiritual', 
-          refId: source, 
-          status: 'Success' 
+        await callBackendAPI('/activities', {
+          actionType: 'Prayer Sync',
+          moduleName: 'Spiritual',
+          refId: source,
+          status: 'Success'
         });
       }
     } catch (e) {
@@ -176,15 +213,15 @@ export const PrayerPage: React.FC = () => {
             <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400 mb-4">Current Coordinate Node</h4>
             <h2 className="text-3xl font-black tracking-tight">{locationName}</h2>
             <p className="text-slate-400 text-[10px] font-bold mt-4 leading-relaxed uppercase tracking-widest">Solar calculations provided by Karachi Method (Pakistan).</p>
-            
+
             <div className="mt-10 grid grid-cols-1 gap-3">
-               <button onClick={() => fetchTimings(undefined, undefined, 'Multan', 'Pakistan')} className="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
-                 <RefreshCw size={14} /> Force Multan Node
-               </button>
-               <button onClick={() => fetchTimings(undefined, undefined, 'London', 'UK')} className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">London Node Switch</button>
+              <button onClick={() => fetchTimings(undefined, undefined, 'Multan', 'Pakistan')} className="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+                <RefreshCw size={14} /> Force Multan Node
+              </button>
+              <button onClick={() => fetchTimings(undefined, undefined, 'London', 'UK')} className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">London Node Switch</button>
             </div>
           </div>
-          
+
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 space-y-6">
             <div className="flex items-center gap-3 border-b border-slate-50 pb-4">
               <ShieldCheck size={20} className="text-indigo-600" />
@@ -216,68 +253,68 @@ export const PrayerPage: React.FC = () => {
 
       {/* --- NEW ADDITIVE SECTION: PRAYER NOTIFICATION CONTROLS --- */}
       <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-10 animate-in slide-in-from-bottom-4 duration-700">
-         <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
-               <Settings size={24} />
-            </div>
-            <div>
-               <h3 className="text-xl font-black uppercase tracking-tight text-slate-800 leading-none">Notification Control Matrix</h3>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Manage browser reminders and alerts</p>
-            </div>
-         </div>
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
+            <Settings size={24} />
+          </div>
+          <div>
+            <h3 className="text-xl font-black uppercase tracking-tight text-slate-800 leading-none">Notification Control Matrix</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Manage browser reminders and alerts</p>
+          </div>
+        </div>
 
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="space-y-6">
-               <div className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                  <div>
-                    <h5 className="text-xs font-black uppercase text-slate-800">Enable Notifications</h5>
-                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1">Receive technical reminders before prayer starts</p>
-                  </div>
-                  <button 
-                    onClick={handleToggleNotifications}
-                    className={`w-12 h-6 rounded-full relative transition-all ${notificationsEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${notificationsEnabled ? 'left-7' : 'left-1'}`} />
-                  </button>
-               </div>
-               
-               {permissionStatus === 'denied' && (
-                 <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3">
-                   <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
-                   <p className="text-[9px] font-bold text-rose-600 uppercase leading-relaxed">
-                     Browser permission denied. Please reset notification settings in your browser to enable this node.
-                   </p>
-                 </div>
-               )}
-
-               {notificationsEnabled && permissionStatus === 'granted' && (
-                 <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3">
-                   <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-                   <p className="text-[9px] font-bold text-emerald-600 uppercase leading-relaxed">
-                     Reminders authorized. Ensure this browser tab remains active or open for the system pings to function.
-                   </p>
-                 </div>
-               )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+              <div>
+                <h5 className="text-xs font-black uppercase text-slate-800">Enable Notifications</h5>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1">Receive technical reminders before prayer starts</p>
+              </div>
+              <button
+                onClick={handleToggleNotifications}
+                className={`w-12 h-6 rounded-full relative transition-all ${notificationsEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${notificationsEnabled ? 'left-7' : 'left-1'}`} />
+              </button>
             </div>
 
-            <div className={`space-y-6 transition-opacity duration-300 ${!notificationsEnabled ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
-               <h5 className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Notify Before Node Entry</h5>
-               <div className="grid grid-cols-3 gap-3">
-                  {[15, 10, 5].map(mins => (
-                    <button 
-                      key={mins}
-                      onClick={() => handleLeadTimeChange(mins)}
-                      className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${notifyLeadTime === mins ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
-                    >
-                      {mins} Minutes
-                    </button>
-                  ))}
-               </div>
-               <p className="text-[8px] font-bold text-slate-400 uppercase text-center tracking-tighter italic">
-                 Note: Notification timing depends on local system clock accuracy.
-               </p>
+            {permissionStatus === 'denied' && (
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3">
+                <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                <p className="text-[9px] font-bold text-rose-600 uppercase leading-relaxed">
+                  Browser permission denied. Please reset notification settings in your browser to enable this node.
+                </p>
+              </div>
+            )}
+
+            {notificationsEnabled && permissionStatus === 'granted' && (
+              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3">
+                <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                <p className="text-[9px] font-bold text-emerald-600 uppercase leading-relaxed">
+                  Reminders authorized. Ensure this browser tab remains active or open for the system pings to function.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className={`space-y-6 transition-opacity duration-300 ${!notificationsEnabled ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
+            <h5 className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Notify Before Node Entry</h5>
+            <div className="grid grid-cols-3 gap-3">
+              {[15, 10, 5].map(mins => (
+                <button
+                  key={mins}
+                  onClick={() => handleLeadTimeChange(mins)}
+                  className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${notifyLeadTime === mins ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
+                >
+                  {mins} Minutes
+                </button>
+              ))}
             </div>
-         </div>
+            <p className="text-[8px] font-bold text-slate-400 uppercase text-center tracking-tighter italic">
+              Note: Notification timing depends on local system clock accuracy.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

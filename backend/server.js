@@ -6,6 +6,10 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 require('dotenv').config();
 
+// Log environment for debugging
+console.log(`[ENV] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`[ENV] PORT: ${process.env.PORT || 'not set'}`);
+
 // Import routes
 const repairRoutes = require('./routes/repairs');
 const userRoutes = require('./routes/users');
@@ -17,6 +21,16 @@ const adminPaymentRoutes = require('./routes/adminPayments');
 const publicRoutes = require('./routes/public');
 const plansRoutes = require('./routes/plans');
 const locationRoutes = require('./routes/location');
+const inventoryRoutes = require('./routes/inventory');
+const salesRoutes = require('./routes/sales');
+const brandsRoutes = require('./routes/brands');
+const categoriesRoutes = require('./routes/categories');
+const teamRoutes = require('./routes/team');
+const dashboardRoutes = require('./routes/dashboard');
+const clientRoutes = require('./routes/clients');
+const complaintRoutes = require('./routes/complaints');
+const activityRoutes = require('./routes/activities');
+const notificationRoutes = require('./routes/notifications');
 
 // Import services
 const { startRenewalScheduler } = require('./services/renewalService');
@@ -28,29 +42,57 @@ const app = express();
 
 // ==================== CORS CONFIGURATION ====================
 
+console.log('[CORS] Configuring CORS...');
+console.log('[CORS] NODE_ENV:', process.env.NODE_ENV);
+
 // Dynamic CORS origins from environment
 const allowedOrigins = [
   'http://localhost:5173',  // Vite dev server
-  'http://localhost:3000',   // Alternative React dev server
-  'http://localhost:5174',
+  'http://localhost:5174',  // Alternative port
+  'http://localhost:5175',  // Alternative port
+  'http://localhost:5176',  // Alternative port
+  'http://localhost:5177',  // Alternative port
+  'http://localhost:3000',  // Alternative React dev server
   'https://dibnow-repair-saas.vercel.app',  // Production frontend
   'https://dibnowrepairsaas.onrender.com',  // This backend
   process.env.FRONTEND_URL,  // Dynamic frontend URL
   ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()) : [])    // Custom CORS origins
 ].filter(Boolean);  // Remove undefined values
 
-// CORS middleware
+console.log('[CORS] Allowed origins:', allowedOrigins);
+
+// CORS middleware - VERY PERMISSIVE FOR LOCAL DEVELOPMENT
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
-    if (!origin) return callback(null, true);
+    console.log('[CORS] Incoming request from origin:', origin);
+    console.log('[CORS] NODE_ENV check:', process.env.NODE_ENV);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS] Rejected origin: ${origin}`);
-      callback(new Error(`Not allowed by CORS policy for origin: ${origin}`));
+    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
+    if (!origin) {
+      console.log(`[CORS] ✅ Allowing request with no origin`);
+      return callback(null, true);
     }
+    
+    // ALWAYS allow localhost in any mode for local testing
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      console.log(`[CORS] ✅ Allowing localhost origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // In development mode, allow ALL origins
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[CORS] ✅ Allowing development origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // In production, check whitelist
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`[CORS] ✅ Allowing whitelisted origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    console.warn(`[CORS] ❌ Rejected origin: ${origin}`);
+    callback(new Error(`Not allowed by CORS policy for origin: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -112,6 +154,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// CORS test endpoint
+app.get('/api/cors-test', (req, res) => {
+  res.json({
+    message: 'CORS is working!',
+    origin: req.headers.origin,
+    nodeEnv: process.env.NODE_ENV
+  });
+});
+
 // API Routes
 app.use('/api/repairs', repairRoutes);
 app.use('/api/users', userRoutes);
@@ -123,6 +174,16 @@ app.use('/api/admin/payments', adminPaymentRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/plans', plansRoutes);
 app.use('/api/location', locationRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/brands', brandsRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/team', teamRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/complaints', complaintRoutes);
+app.use('/api/activities', activityRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => res.send("DibNow API is Running..."));

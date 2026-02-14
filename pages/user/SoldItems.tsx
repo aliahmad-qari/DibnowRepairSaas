@@ -15,6 +15,7 @@ import {
    BarChart, Bar, Cell, PieChart, Pie
 } from 'recharts';
 import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient.ts';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { useNavigate } from 'react-router-dom';
 import { aiService } from '../../api/aiService';
@@ -46,10 +47,23 @@ export const SoldItems: React.FC = () => {
       maxQty: ''
    });
 
+   const [isLoading, setIsLoading] = useState(true);
+
    useEffect(() => {
-      const loadData = () => {
-         setSales(db.sales.getAll());
-         setInventory(db.inventory.getAll());
+      const loadData = async () => {
+         setIsLoading(true);
+         try {
+            const [salesResp, invResp] = await Promise.all([
+               callBackendAPI('/sales', null, 'GET'),
+               callBackendAPI('/inventory', null, 'GET')
+            ]);
+            setSales(salesResp || []);
+            setInventory(invResp || []);
+         } catch (error) {
+            console.error('Failed to load sales data:', error);
+         } finally {
+            setIsLoading(false);
+         }
       };
       loadData();
       window.addEventListener('storage', loadData);
@@ -97,7 +111,7 @@ export const SoldItems: React.FC = () => {
          catMap[i.category].totalUnits += i.stock;
       });
       filtered.forEach(s => {
-         const invItem = inventory.find(i => i.id === s.productId);
+         const invItem = inventory.find(i => i._id === s.productId);
          const cat = invItem?.category || 'Uncategorized';
          if (!catMap[cat]) catMap[cat] = { name: cat, totalUnits: 0, sold: 0, unsold: 0 };
          catMap[cat].sold += s.qty;
@@ -122,7 +136,7 @@ export const SoldItems: React.FC = () => {
    const deadStock = useMemo(() => {
       const now = new Date();
       return inventory.map(item => {
-         const itemSales = sales.filter(s => s.productId === item.id);
+         const itemSales = sales.filter(s => s.productId === item._id);
          const lastSale = itemSales.length > 0
             ? new Date(Math.max(...itemSales.map(s => {
                const d = s.timestamp ? new Date(s.timestamp) : new Date(s.date);
@@ -150,7 +164,7 @@ export const SoldItems: React.FC = () => {
       return inventory.map(item => {
          const windowSales = sales.filter(s => {
             const sDate = s.timestamp ? new Date(s.timestamp) : new Date(s.date);
-            return s.productId === item.id && sDate >= windowStart;
+            return s.productId === item._id && sDate >= windowStart;
          });
          const totalUnitsSold = windowSales.reduce((a, b) => a + b.qty, 0);
          const avgDailySales = totalUnitsSold / daysWindow;
@@ -190,7 +204,12 @@ export const SoldItems: React.FC = () => {
    };
 
    return (
-      <div className="space-y-8 pb-24 animate-in fade-in duration-500">
+      <div className="space-y-8 pb-24 animate-in fade-in duration-500 relative">
+         {isLoading && (
+            <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+               <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
+            </div>
+         )}
          {/* Header */}
          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -350,7 +369,7 @@ export const SoldItems: React.FC = () => {
                               <td className="px-6 text-center text-slate-400 uppercase">{item.lastSaleDate}</td>
                               <td className="px-10 text-right">
                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${item.status === 'DEAD' ? 'bg-rose-100 text-rose-700' :
-                                       item.status === 'AT RISK' ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'
+                                    item.status === 'AT RISK' ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'
                                     }`}>
                                     {item.status} ({item.daysSinceSale}D)
                                  </span>
@@ -518,10 +537,10 @@ export const SoldItems: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                      {analytics.filtered.map((sale) => (
-                        <tr key={sale.id} className="hover:bg-indigo-50/30 transition-all cursor-pointer group">
+                        <tr key={sale._id} className="hover:bg-indigo-50/30 transition-all cursor-pointer group">
                            <td className="px-8 py-6">
                               <span className="font-mono text-xs font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                 {sale.id}
+                                 {sale._id}
                               </span>
                            </td>
                            <td className="px-8 py-6">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../api/db';
+import Swal from 'sweetalert2';
+import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import {
@@ -44,6 +45,7 @@ export const AddRepair: React.FC = () => {
     deviceImage: null as string | null
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -51,15 +53,35 @@ export const AddRepair: React.FC = () => {
   const symptomList = ['No Power', 'Screen Issue', 'Battery Problem', 'Network Issue', 'Water Damage', 'Software Loop'];
 
   useEffect(() => {
-    if (user) {
-      const plan = db.plans.getById(user.planId || 'starter');
-      setActivePlan(plan);
-      const repairCount = db.repairs.getAll().length;
-      if (repairCount >= plan.limits.repairsPerMonth) {
-        setIsLimitReached(true);
+    const loadPrerequisites = async () => {
+      if (user) {
+        try {
+          const [dashResp, teamResp] = await Promise.all([
+            callBackendAPI('/dashboard/overview', null, 'GET'),
+            callBackendAPI('/team', null, 'GET')
+          ]);
+
+          if (dashResp) {
+            const plan = dashResp.plans.find((p: any) =>
+              p.name.toLowerCase() === user.planId.toLowerCase() ||
+              (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
+              (user.planId === 'basic' && p.name === 'BASIC') ||
+              (user.planId === 'premium' && p.name === 'PREMIUM') ||
+              (user.planId === 'gold' && p.name === 'GOLD')
+            ) || dashResp.plans[0];
+
+            setActivePlan(plan);
+            if (plan && plan.limits && dashResp.repairCount >= plan.limits.repairsPerMonth) {
+              setIsLimitReached(true);
+            }
+          }
+          setTeamMembers(teamResp || []);
+        } catch (error) {
+          console.error('Failed to load repair prerequisites:', error);
+        }
       }
-      setTeamMembers(db.userTeamV2.getByOwner(user.id));
-    }
+    };
+    loadPrerequisites();
   }, [user]);
 
   // --- NEW ADDITIVE LOGIC: AI ANALYSIS ---
@@ -102,24 +124,68 @@ export const AddRepair: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLimitReached) return;
+    if (isLimitReached || isSubmitting) return;
+    setIsSubmitting(true);
 
-    // Core data + Additive metadata
-    db.repairs.add({
-      customerName: formData.customerName,
-      device: formData.device,
-      description: formData.description,
-      cost: parseFloat(formData.cost),
-      date: formData.date,
-      status: formData.status,
-      // Additive metadata preserved in db record
-      ...extraData,
-      aiNote: aiAnalysis?.diagnosis,
-      createdAt: new Date().toISOString()
-    });
-    navigate('/user/repairs');
+    try {
+      const payload = {
+        customerName: formData.customerName,
+        customerEmail: extraData.internalNotes.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i)?.[0] || `${formData.customerName.toLowerCase().replace(/\s+/g, '')}@example.com`,
+        customerPhone: extraData.serialNumber || '', // Hijacking serial as phone if not provided, or keeping default
+        device: formData.device,
+        deviceModel: extraData.storageVariant || '',
+        description: formData.description,
+        estimatedCost: parseFloat(formData.cost),
+        estimatedCompletionDate: formData.date,
+        status: formData.status,
+        brand: extraData.deviceColor || '',
+        category: 'Smartphone', // Default
+        serialNumber: extraData.serialNumber,
+        metadata: {
+          ...extraData,
+          aiNote: aiAnalysis?.diagnosis,
+        }
+      };
+
+      const response = await callBackendAPI('/repairs', payload, 'POST');
+      if (response) {
+        navigate('/user/repairs');
+      }
+    } catch (error: any) {
+      if (error.limitHit) {
+        Swal.fire({
+          title: 'Quota Exhausted',
+          text: error.upgradeMessage || 'You have reached the repair limit for your current plan.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Upgrade Tier',
+          cancelButtonText: 'Review Queue',
+          confirmButtonColor: '#0052FF',
+          cancelButtonColor: '#94a3b8',
+          background: '#ffffff',
+          customClass: {
+            popup: 'rounded-[1.5rem] border-2 border-blue-50 shadow-2xl',
+            title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+            htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
+            confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-blue-100',
+            cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/user/pricing');
+          } else {
+            navigate('/user/repairs');
+          }
+        });
+      } else {
+        console.error('Enrollment failed:', error);
+        alert(error.message || 'Failed to enroll new repair.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // --- NEW ADDITIVE LOGIC: VALIDATION SUMMARY ---

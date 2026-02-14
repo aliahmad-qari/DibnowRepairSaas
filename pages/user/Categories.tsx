@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Layers, Plus, Search, Trash2, Edit2, CheckCircle, ChevronLeft, Save, X, Lock, 
-  ArrowUpCircle, PieChart, TrendingUp, ShoppingCart, Package, Info, 
+import {
+  Layers, Plus, Search, Trash2, Edit2, CheckCircle, ChevronLeft, Save, X, Lock,
+  ArrowUpCircle, PieChart, TrendingUp, ShoppingCart, Package, Info,
   AlertCircle, BarChart3, Boxes, DollarSign, AlertTriangle, Activity, Flame,
   /* FIX: Corrected 'ArrowDownWideZap' to 'ArrowDownZa' which exists in lucide-react */
   Filter, ArrowDownZa, SortAsc
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, PieChart as RePieChart, Pie, Cell, Tooltip, 
-  BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid 
+import {
+  ResponsiveContainer, PieChart as RePieChart, Pie, Cell, Tooltip,
+  BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
-import { db } from '../../api/db';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 
@@ -26,7 +27,7 @@ export const Categories: React.FC = () => {
   const [sales, setSales] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // TASK 7: UI-only Filter States
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'empty' | 'revenue'>('all');
   const [sortOrder, setSortOrder] = useState<'a-z' | 'none'>('none');
@@ -35,20 +36,45 @@ export const Categories: React.FC = () => {
   const [activePlan, setActivePlan] = useState<any>(null);
   const [isAtLimit, setIsAtLimit] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
-    const loadData = () => {
-      const allCats = db.categories.getAll();
-      const allStock = db.inventory.getAll();
-      const allSales = db.sales.getAll();
-      
-      setCategories(allCats);
-      setInventory(allStock);
-      setSales(allSales);
-      
-      if (user) {
-        const plan = db.plans.getById(user.planId || 'starter');
-        setActivePlan(plan);
-        setIsAtLimit(allCats.length >= plan.limits.categories);
+    const loadData = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const [catsResp, invResp, salesResp, dashResp] = await Promise.all([
+          callBackendAPI('/categories', null, 'GET'),
+          callBackendAPI('/inventory', null, 'GET'),
+          callBackendAPI('/sales', null, 'GET'),
+          callBackendAPI('/dashboard/overview', null, 'GET')
+        ]);
+
+        setCategories(catsResp || []);
+        setInventory(invResp || []);
+        setSales(salesResp || []);
+
+        if (dashResp) {
+          const plan = dashResp.plans.find((p: any) =>
+            p.name.toLowerCase() === user.planId.toLowerCase() ||
+            (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
+            (user.planId === 'basic' && p.name === 'BASIC') ||
+            (user.planId === 'premium' && p.name === 'PREMIUM') ||
+            (user.planId === 'gold' && p.name === 'GOLD')
+          ) || dashResp.plans[0];
+
+          setActivePlan(plan);
+          if (plan && plan.limits && catsResp?.length >= plan.limits.categories) {
+            setIsAtLimit(true);
+          } else {
+            setIsAtLimit(false);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load categories data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadData();
@@ -64,7 +90,7 @@ export const Categories: React.FC = () => {
     let stats = categories.map(cat => {
       const catItems = inventory.filter(i => i.category === cat.name);
       const catSales = sales.filter(s => {
-        const item = inventory.find(i => i.id === s.productId);
+        const item = inventory.find(i => i._id === s.productId);
         return item?.category === cat.name;
       });
 
@@ -106,7 +132,7 @@ export const Categories: React.FC = () => {
       .sort((a, b) => b.value - a.value);
 
     // Task 7: UI Filtering Logic
-    let filtered = stats.filter(c => 
+    let filtered = stats.filter(c =>
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -120,22 +146,83 @@ export const Categories: React.FC = () => {
       filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    return { 
-      stats, filtered, totalCategories, withStock, withSales, empty, 
-      deadCategories, salesChartData 
+    return {
+      stats, filtered, totalCategories, withStock, withSales, empty,
+      deadCategories, salesChartData
     };
   }, [categories, inventory, sales, searchTerm, activeFilter, sortOrder]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCat.name || isAtLimit) return;
-    db.categories.add(newCat);
-    setNewCat({ name: '', description: '' });
-    setShowForm(false);
+    if (!newCat.name || isAtLimit || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const response = await callBackendAPI('/categories', newCat, 'POST');
+      if (response) {
+        setNewCat({ name: '', description: '' });
+        setShowForm(false);
+        // Refresh data
+        const catsResp = await callBackendAPI('/categories', null, 'GET');
+        setCategories(catsResp || []);
+
+        // Re-check limits
+        if (activePlan && activePlan.limits && catsResp.length >= activePlan.limits.categories) {
+          setIsAtLimit(true);
+        }
+      }
+    } catch (error: any) {
+      if (error.limitHit) {
+        Swal.fire({
+          title: 'Requirement Unmet',
+          text: error.upgradeMessage || 'You have reached the limit for your current plan.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Upgrade Tier',
+          cancelButtonText: 'Review Registry',
+          confirmButtonColor: '#0052FF',
+          cancelButtonColor: '#94a3b8',
+          background: '#ffffff',
+          customClass: {
+            popup: 'rounded-[1.5rem] border-2 border-blue-50 shadow-2xl',
+            title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+            htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
+            confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-blue-100',
+            cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/user/pricing');
+          }
+        });
+      } else {
+        console.error('Failed to define category node:', error);
+        alert(error.message || 'Failed to define category node.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (window.confirm("CRITICAL: De-commission this classification node?")) {
+      try {
+        await callBackendAPI(`/categories/${id}`, null, 'DELETE');
+        const catsResp = await callBackendAPI('/categories', null, 'GET');
+        setCategories(catsResp || []);
+      } catch (error) {
+        console.error('De-commissioning failed:', error);
+        alert('Failed to de-commission category.');
+      }
+    }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20 relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+          <Activity className="w-12 h-12 text-indigo-600 animate-spin" />
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -152,14 +239,14 @@ export const Categories: React.FC = () => {
             </div>
           </div>
         </div>
-        <button 
+        <button
           onClick={() => {
             if (isAtLimit) navigate('/user/pricing');
             else setShowForm(!showForm);
           }}
           className={`${isAtLimit ? 'bg-slate-800' : 'bg-[#0052FF]'} text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest w-full md:w-auto`}
         >
-          {isAtLimit ? <Lock size={18} /> : <Plus size={18} />} 
+          {isAtLimit ? <Lock size={18} /> : <Plus size={18} />}
           {isAtLimit ? 'Upgrade Tier' : 'Define Category Node'}
         </button>
       </div>
@@ -173,11 +260,11 @@ export const Categories: React.FC = () => {
           { label: 'Empty Nodes', val: analytics.empty, icon: Info, color: 'text-rose-600', bg: 'bg-rose-50' }
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4 group hover:shadow-xl transition-all">
-             <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}><stat.icon size={22}/></div>
-             <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
-                <h4 className="text-2xl font-black text-slate-800 tracking-tighter">{stat.val}</h4>
-             </div>
+            <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}><stat.icon size={22} /></div>
+            <div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
+              <h4 className="text-2xl font-black text-slate-800 tracking-tighter">{stat.val}</h4>
+            </div>
           </div>
         ))}
       </div>
@@ -210,38 +297,39 @@ export const Categories: React.FC = () => {
               <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Category Architect</h3>
-                  <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={24}/></button>
+                  <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Classification Name</label>
-                    <input 
-                      required 
-                      type="text" 
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold transition-all" 
+                    <input
+                      required
+                      type="text"
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold transition-all"
                       placeholder="e.g. OLED Assemblies, Batteries"
                       value={newCat.name}
-                      onChange={(e) => setNewCat({...newCat, name: e.target.value})}
+                      onChange={(e) => setNewCat({ ...newCat, name: e.target.value })}
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Functional Description</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold transition-all" 
+                    <input
+                      type="text"
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold transition-all"
                       placeholder="Operational brief..."
                       value={newCat.description}
-                      onChange={(e) => setNewCat({...newCat, description: e.target.value})}
+                      onChange={(e) => setNewCat({ ...newCat, description: e.target.value })}
                     />
                   </div>
                 </div>
                 <div className="pt-4 flex gap-3">
-                  <button type="submit" className="flex-1 bg-[#0052FF] text-white font-black py-4 rounded-2xl shadow-xl hover:bg-blue-600 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
-                    <Save size={16} /> Deploy Node
+                  <button type="submit" disabled={isSubmitting} className="flex-1 bg-[#0052FF] text-white font-black py-4 rounded-2xl shadow-xl hover:bg-blue-600 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 disabled:opacity-50">
+                    {isSubmitting ? <Activity className="animate-spin" size={16} /> : <Save size={16} />}
+                    {isSubmitting ? 'Deploying...' : 'Deploy Node'}
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowForm(false)}
                     className="px-8 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]"
                   >
@@ -255,40 +343,40 @@ export const Categories: React.FC = () => {
           {/* TASK 2 & 7: CATEGORY PERFORMANCE TABLE WITH FILTERS */}
           <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
             <div className="p-8 border-b border-slate-50 bg-slate-50/20 flex flex-col md:flex-row justify-between items-center gap-6">
-               <div className="relative flex-1 max-w-sm group">
-                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                 <input 
-                   type="text" 
-                   placeholder="Search nodes..." 
-                   className="w-full pl-14 pr-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all shadow-sm"
-                   value={searchTerm}
-                   onChange={(e) => setSearchTerm(e.target.value)}
-                 />
-               </div>
-               <div className="flex flex-wrap items-center gap-3">
-                  {/* Task 7: UI Filter Nodes */}
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl">
-                    <Filter size={14} className="text-slate-400" />
-                    <select 
-                      value={activeFilter}
-                      onChange={(e) => setActiveFilter(e.target.value as any)}
-                      className="bg-transparent text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer"
-                    >
-                      <option value="all">All Classifications</option>
-                      <option value="active">Active Nodes Only</option>
-                      <option value="empty">Empty Nodes Only</option>
-                      <option value="revenue">Revenue Generating</option>
-                    </select>
-                  </div>
-
-                  <button 
-                    onClick={() => setSortOrder(sortOrder === 'a-z' ? 'none' : 'a-z')}
-                    className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-all ${sortOrder === 'a-z' ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}
+              <div className="relative flex-1 max-w-sm group">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search nodes..."
+                  className="w-full pl-14 pr-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Task 7: UI Filter Nodes */}
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl">
+                  <Filter size={14} className="text-slate-400" />
+                  <select
+                    value={activeFilter}
+                    onChange={(e) => setActiveFilter(e.target.value as any)}
+                    className="bg-transparent text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer"
                   >
-                    <SortAsc size={14} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">A–Z</span>
-                  </button>
-               </div>
+                    <option value="all">All Classifications</option>
+                    <option value="active">Active Nodes Only</option>
+                    <option value="empty">Empty Nodes Only</option>
+                    <option value="revenue">Revenue Generating</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'a-z' ? 'none' : 'a-z')}
+                  className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-all ${sortOrder === 'a-z' ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}
+                >
+                  <SortAsc size={14} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">A–Z</span>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto custom-scrollbar">
@@ -312,18 +400,18 @@ export const Categories: React.FC = () => {
                     <tr>
                       <td colSpan={9} className="py-32 px-10 text-center">
                         <div className="max-w-md mx-auto space-y-6">
-                           <div className="w-24 h-24 bg-indigo-50 text-indigo-600 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border-2 border-dashed border-indigo-200">
-                             <Layers size={40} className="animate-pulse" />
-                           </div>
-                           <div className="space-y-2">
-                             <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Zero Registry Nodes</h4>
-                             <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tighter">
-                               Categories help organize stock, pricing, and analytics. Create at least one category to activate inventory insights.
-                             </p>
-                           </div>
-                           <button onClick={() => setShowForm(true)} className="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">
-                             Define First Node
-                           </button>
+                          <div className="w-24 h-24 bg-indigo-50 text-indigo-600 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border-2 border-dashed border-indigo-200">
+                            <Layers size={40} className="animate-pulse" />
+                          </div>
+                          <div className="space-y-2">
+                            <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Zero Registry Nodes</h4>
+                            <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tighter">
+                              Categories help organize stock, pricing, and analytics. Create at least one category to activate inventory insights.
+                            </p>
+                          </div>
+                          <button onClick={() => setShowForm(true)} className="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                            Define First Node
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -332,12 +420,12 @@ export const Categories: React.FC = () => {
                       <td colSpan={9} className="py-24 text-center">
                         <Layers size={48} className="mx-auto mb-4 opacity-10" />
                         <p className="font-black uppercase tracking-widest text-xs text-slate-400">No Nodes Identified matching filters</p>
-                        <button onClick={() => {setActiveFilter('all'); setSearchTerm(''); setSortOrder('none');}} className="mt-4 text-[9px] font-black text-indigo-600 uppercase underline">Clear All Criteria</button>
+                        <button onClick={() => { setActiveFilter('all'); setSearchTerm(''); setSortOrder('none'); }} className="mt-4 text-[9px] font-black text-indigo-600 uppercase underline">Clear All Criteria</button>
                       </td>
                     </tr>
                   ) : (
                     analytics.filtered.map((cat) => (
-                      <tr key={cat.id} className="hover:bg-indigo-50/30 transition-all group">
+                      <tr key={cat._id} className="hover:bg-indigo-50/30 transition-all group">
                         <td className="px-10 py-7">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-xl text-indigo-600 shadow-sm border border-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -366,27 +454,26 @@ export const Categories: React.FC = () => {
                         </td>
                         {/* TASK 5: CATEGORY USAGE HEAT INDICATOR */}
                         <td className="px-10 py-7 text-right">
-                           <div className="flex flex-col items-end gap-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Stock {cat.stockContribution.toFixed(0)}%</span>
-                                <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
-                                  <div className="h-full bg-blue-500" style={{ width: `${cat.stockContribution}%` }} />
-                                </div>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Stock {cat.stockContribution.toFixed(0)}%</span>
+                              <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500" style={{ width: `${cat.stockContribution}%` }} />
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">Rev {cat.revenueContribution.toFixed(0)}%</span>
-                                <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-500" style={{ width: `${cat.revenueContribution}%` }} />
-                                </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">Rev {cat.revenueContribution.toFixed(0)}%</span>
+                              <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500" style={{ width: `${cat.revenueContribution}%` }} />
                               </div>
-                           </div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-7 text-center">
-                          <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${
-                            cat.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                            cat.status === 'Stock Only' ? 'bg-blue-50 text-blue-700 border-blue-100' : 
-                            'bg-rose-50 text-rose-700 border-rose-100'
-                          }`}>
+                          <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${cat.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                            cat.status === 'Stock Only' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                              'bg-rose-50 text-rose-700 border-rose-100'
+                            }`}>
                             {cat.status}
                           </span>
                         </td>
@@ -395,7 +482,7 @@ export const Categories: React.FC = () => {
                             <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm">
                               <Edit2 size={14} />
                             </button>
-                            <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm">
+                            <button onClick={() => handleDeleteCategory(cat._id)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -411,96 +498,96 @@ export const Categories: React.FC = () => {
 
         {/* Intelligence Sidebar */}
         <div className="xl:col-span-4 space-y-8">
-           {/* TASK 3: CATEGORY SALES CONTRIBUTION GRAPH */}
-           {analytics.salesChartData.length > 0 && (
-             <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm group hover:shadow-xl transition-all">
-                <div className="flex items-center gap-3 mb-8">
-                   <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm">
-                      <PieChart size={20} />
-                   </div>
-                   <div>
-                      <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 leading-none">Revenue Distribution</h4>
-                      <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">Classification Yield Audit</p>
-                   </div>
+          {/* TASK 3: CATEGORY SALES CONTRIBUTION GRAPH */}
+          {analytics.salesChartData.length > 0 && (
+            <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm group hover:shadow-xl transition-all">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm">
+                  <PieChart size={20} />
                 </div>
-                
-                <div className="h-64 relative">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <RePieChart>
-                         <Pie
-                           data={analytics.salesChartData}
-                           cx="50%"
-                           cy="50%"
-                           innerRadius={60}
-                           outerRadius={85}
-                           paddingAngle={8}
-                           dataKey="value"
-                           stroke="none"
-                         >
-                           {analytics.salesChartData.map((_, index) => (
-                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                           ))}
-                         </Pie>
-                         <Tooltip 
-                           contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }}
-                           itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
-                         />
-                      </RePieChart>
-                   </ResponsiveContainer>
-                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">Top Yield</span>
-                      <span className="text-base font-black text-indigo-600 uppercase truncate max-w-[80px]">{analytics.salesChartData[0]?.name}</span>
-                   </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 leading-none">Revenue Distribution</h4>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">Classification Yield Audit</p>
                 </div>
-
-                <div className="mt-6 grid grid-cols-2 gap-3">
-                   {analytics.salesChartData.slice(0, 4).map((d, i) => (
-                     <div key={i} className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                        <span className="text-[9px] font-black text-slate-500 uppercase truncate">{d.name}</span>
-                     </div>
-                   ))}
-                </div>
-             </div>
-           )}
-
-           {/* HEAT MAP OVERVIEW */}
-           <div className="bg-slate-900 rounded-[3rem] p-8 text-white relative overflow-hidden group shadow-2xl">
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
-                 <Flame size={150} />
               </div>
-              <div className="relative z-10">
-                 <div className="flex items-center gap-3 mb-8">
-                    <div className="w-10 h-10 bg-indigo-50 text-white rounded-xl flex items-center justify-center">
-                       <Activity size={20} />
-                    </div>
-                    <div>
-                       <h4 className="text-xs font-black uppercase tracking-widest">Inventory Flow heat</h4>
-                       <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mt-1">Real-time Node Velocity</p>
-                    </div>
-                 </div>
 
-                 <div className="space-y-6">
-                    {analytics.stats.slice(0, 3).map((cat, i) => (
-                      <div key={i} className="space-y-2">
-                         <div className="flex justify-between items-end">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{cat.name}</span>
-                            <span className="text-[10px] font-black text-indigo-400">{cat.revenueContribution.toFixed(1)}% Weight</span>
-                         </div>
-                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${cat.revenueContribution}%` }} />
-                         </div>
-                      </div>
-                    ))}
-                 </div>
-                 
-                 <div className="mt-10 p-5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                    <p className="text-[9px] font-bold text-slate-400 leading-relaxed uppercase tracking-tighter">
-                       Neural engine detected <span className="text-indigo-400 font-black">"{analytics.stats[0]?.name}"</span> as the primary revenue hub for this cycle.
-                    </p>
-                 </div>
+              <div className="h-64 relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RePieChart>
+                    <Pie
+                      data={analytics.salesChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={85}
+                      paddingAngle={8}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {analytics.salesChartData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }}
+                      itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
+                    />
+                  </RePieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-[8px] font-black text-slate-400 uppercase">Top Yield</span>
+                  <span className="text-base font-black text-indigo-600 uppercase truncate max-w-[80px]">{analytics.salesChartData[0]?.name}</span>
+                </div>
               </div>
-           </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                {analytics.salesChartData.slice(0, 4).map((d, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    <span className="text-[9px] font-black text-slate-500 uppercase truncate">{d.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* HEAT MAP OVERVIEW */}
+          <div className="bg-slate-900 rounded-[3rem] p-8 text-white relative overflow-hidden group shadow-2xl">
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
+              <Flame size={150} />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-indigo-50 text-white rounded-xl flex items-center justify-center">
+                  <Activity size={20} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-widest">Inventory Flow heat</h4>
+                  <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mt-1">Real-time Node Velocity</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {analytics.stats.slice(0, 3).map((cat, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{cat.name}</span>
+                      <span className="text-[10px] font-black text-indigo-400">{cat.revenueContribution.toFixed(1)}% Weight</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${cat.revenueContribution}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10 p-5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+                <p className="text-[9px] font-bold text-slate-400 leading-relaxed uppercase tracking-tighter">
+                  Neural engine detected <span className="text-indigo-400 font-black">"{analytics.stats[0]?.name}"</span> as the primary revenue hub for this cycle.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

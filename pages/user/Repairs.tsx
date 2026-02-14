@@ -42,7 +42,7 @@ import {
   ComposedChart, Area, Line, Bar, ReferenceLine, PieChart, Pie
 } from 'recharts';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
@@ -108,18 +108,32 @@ export const Repairs: React.FC = () => {
 
   const symptomList = ['No Power', 'Screen Issue', 'Battery Problem', 'Network Issue', 'Water Damage', 'Software Loop'];
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
-    const loadData = () => {
-      const allRepairs = db.repairs.getAll();
-      setRepairs(allRepairs);
-      setBrands(db.brands.getAll());
-      if (user) {
-        setActivePlan(db.plans.getById(user.planId || 'starter'));
-        setTeamMembers(db.userTeamV2.getByOwner(user.id));
+    const loadData = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const [repairsResp, brandsResp, teamResp, planResp] = await Promise.all([
+          callBackendAPI('/repairs', null, 'GET'),
+          callBackendAPI('/brands', null, 'GET'),
+          callBackendAPI('/team', null, 'GET'),
+          callBackendAPI('/pricing/plans/' + (user.planId || 'starter'), null, 'GET')
+        ]);
+
+        setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
+        setBrands(brandsResp || []);
+        setTeamMembers(teamResp || []);
+        setActivePlan(planResp);
+      } catch (error) {
+        console.error('Failed to load infrastructure data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadData();
-    window.addEventListener('storage', loadData);
 
     const handleClickOutside = (e: MouseEvent) => {
       if (statusPickerRef.current && !statusPickerRef.current.contains(e.target as Node)) {
@@ -129,7 +143,6 @@ export const Repairs: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
-      window.removeEventListener('storage', loadData);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [user]);
@@ -253,31 +266,72 @@ export const Repairs: React.FC = () => {
     });
   }, [repairs, timeFilter, customRange, statusFilter, searchTerm]);
 
-  const handleEnrollment = (e: React.FormEvent) => {
+  const handleEnrollment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (parseFloat(formData.cost) <= 0) { alert("Estimated Repair Price must be greater than 0."); return; }
     if (repairs.length >= (activePlan?.limits?.repairsPerMonth || 0)) { alert("Plan limit reached."); return; }
-    const timestamp = new Date().toISOString();
-    db.repairs.add({ ...formData, trackingId: `RPR-${Math.floor(100000 + Math.random() * 900000)}`, cost: parseFloat(formData.cost) || 0, createdAt: timestamp, events: [{ type: 'Repair Created', timestamp, description: 'Technician logged intake protocol.', actor: user?.name }] });
-    setShowBookingForm(false);
-    setAiResult(null);
-    setFormData({ customerName: '', mobile: '', email: '', brand: '', device: '', description: '', cost: '', status: 'pending', date: new Date().toISOString().split('T')[0], assignedTo: '', deviceImage: null, symptoms: [], internalNotes: '', estimatedTime: 'Same Day', estimatedPickupDate: new Date().toISOString().split('T')[0], paymentStatus: 'unpaid', paymentMethod: 'cash', attachments: [], partsCost: '0', technicianCost: '0', aiDiagnosis: null, aiConfidence: null, aiEstimatedCost: null, aiEstimatedTime: null, serialNumber: '', deviceColor: '', storageVariant: '', fileError: null });
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        customerName: formData.customerName,
+        customerEmail: formData.email,
+        customerPhone: formData.mobile,
+        device: formData.device,
+        brand: formData.brand,
+        serialNumber: formData.serialNumber,
+        description: formData.description,
+        estimatedCost: parseFloat(formData.cost),
+        estimatedCompletionDate: formData.estimatedPickupDate,
+        assignedTo: formData.assignedTo || undefined,
+        paymentStatus: formData.paymentStatus,
+        metadata: {
+          deviceColor: formData.deviceColor,
+          storageVariant: formData.storageVariant,
+          symptoms: formData.symptoms,
+          internalNotes: formData.internalNotes,
+          estimatedTime: formData.estimatedTime,
+          partsCost: formData.partsCost,
+          technicianCost: formData.technicianCost
+        }
+      };
+
+      await callBackendAPI('/repairs', payload, 'POST');
+
+      const repairsResp = await callBackendAPI('/repairs', null, 'GET');
+      setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
+
+      setShowBookingForm(false);
+      setAiResult(null);
+      setFormData({ customerName: '', mobile: '', email: '', brand: '', device: '', description: '', cost: '', status: 'pending', date: new Date().toISOString().split('T')[0], assignedTo: '', deviceImage: null, symptoms: [], internalNotes: '', estimatedTime: 'Same Day', estimatedPickupDate: new Date().toISOString().split('T')[0], paymentStatus: 'unpaid', paymentMethod: 'cash', attachments: [], partsCost: '0', technicianCost: '0', aiDiagnosis: null, aiConfidence: null, aiEstimatedCost: null, aiEstimatedTime: null, serialNumber: '', deviceColor: '', storageVariant: '', fileError: null });
+    } catch (error) {
+      console.error('Enrollment failed:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleUpdateStatus = (id: string, nextStatus: string) => {
-    const repair = repairs.find(r => r.id === id);
-    if (!repair) return;
-    const events = [...(repair.events || [])];
-    events.push({ type: `STATUS_${nextStatus.toUpperCase()}`, timestamp: new Date().toISOString(), description: `Protocol state migrated to ${nextStatus.toUpperCase()}.`, actor: user?.name });
-    db.repairs.update(id, { status: nextStatus, events });
-    setActiveStatusPicker(null);
-    setRepairs(db.repairs.getAll());
+  const handleUpdateStatus = async (id: string, nextStatus: string) => {
+    try {
+      await callBackendAPI(`/repairs/${id}/status`, { status: nextStatus, note: `Protocol state migrated to ${nextStatus.toUpperCase()}` }, 'PUT');
+      const repairsResp = await callBackendAPI('/repairs', null, 'GET');
+      setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
+      setActiveStatusPicker(null);
+    } catch (error) {
+      console.error('Status migration failed:', error);
+    }
   };
 
-  const handleDeleteRepair = (id: string) => {
+  const handleDeleteRepair = async (id: string) => {
     if (window.confirm("CRITICAL: Decommission this repair node permanently?")) {
-      db.repairs.remove(id);
-      setRepairs(db.repairs.getAll());
+      try {
+        await callBackendAPI(`/repairs/${id}`, null, 'DELETE');
+        const repairsResp = await callBackendAPI('/repairs', null, 'GET');
+        setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
+      } catch (error) {
+        console.error('Decommission failed:', error);
+      }
     }
   };
 
@@ -439,20 +493,20 @@ export const Repairs: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-10 py-7 text-center relative">
-                    <div onClick={(e) => { e.stopPropagation(); if (hasPermission('manage_repairs')) setActiveStatusPicker(activeStatusPicker === r.id ? null : r.id); }} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 ${r.status === 'completed' || r.status === 'delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                    <div onClick={(e) => { e.stopPropagation(); if (hasPermission('manage_repairs')) setActiveStatusPicker(activeStatusPicker === r._id ? null : r._id); }} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 ${r.status === 'completed' || r.status === 'delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${r.status === 'completed' || r.status === 'delivered' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />{r.status}
-                      {hasPermission('manage_repairs') && <ChevronDown size={12} className={`transition-transform ${activeStatusPicker === r.id ? 'rotate-180' : ''}`} />}
+                      {hasPermission('manage_repairs') && <ChevronDown size={12} className={`transition-transform ${activeStatusPicker === r._id ? 'rotate-180' : ''}`} />}
                     </div>
-                    {activeStatusPicker === r.id && (
+                    {activeStatusPicker === r._id && (
                       <div ref={statusPickerRef} className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] p-2 animate-in fade-in slide-in-from-top-2">
-                        {['pending', 'in progress', 'completed', 'delivered', 'reject', 'incomplete'].map(opt => (
-                          <button key={opt} onClick={(e) => { e.stopPropagation(); handleUpdateStatus(r.id, opt); }} className={`w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded-xl transition-all uppercase text-[10px] font-black ${r.status === opt ? 'bg-slate-50 text-indigo-600' : 'text-slate-600'}`}>{opt}</button>
+                        {['pending', 'diagnosing', 'in_progress', 'parts_ordered', 'completed', 'ready', 'delivered', 'cancelled', 'refunded'].map(opt => (
+                          <button key={opt} onClick={(e) => { e.stopPropagation(); handleUpdateStatus(r._id, opt); }} className={`w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded-xl transition-all uppercase text-[10px] font-black ${r.status === opt ? 'bg-slate-50 text-indigo-600' : 'text-slate-600'}`}>{opt}</button>
                         ))}
                       </div>
                     )}
                   </td>
                   <td className="px-10 py-7 text-right">
-                    <p className="font-black text-slate-900 text-lg tracking-tighter">{currency.symbol}{parseFloat(r.cost).toLocaleString()}</p>
+                    <p className="font-black text-slate-900 text-lg tracking-tighter">{currency.symbol}{parseFloat(r.estimatedCost || r.cost).toLocaleString()}</p>
                   </td>
                   <td className="px-10 py-7 text-center">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{r.date}</p>
@@ -463,7 +517,7 @@ export const Repairs: React.FC = () => {
                       <button onClick={(e) => { e.stopPropagation(); setSelectedInvoiceRepair(r); }} className="p-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Quick QR Protocol"><QrCode size={16} /></button>
                       <button onClick={(e) => { e.stopPropagation(); setSelectedInvoiceRepair(r); }} className="p-2.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Repair Invoice Document"><FileDown size={16} /></button>
                       <button onClick={(e) => { e.stopPropagation(); setSelectedTimelineRepair(r); }} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="History"><History size={16} /></button>
-                      <button onClick={(e) => { e.stopPropagation(); handleDeleteRepair(r.id); }} className="p-2.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="Delete"><Trash2 size={16} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteRepair(r._id); }} className="p-2.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="Delete"><Trash2 size={16} /></button>
                     </div>
                   </td>
                 </tr>
