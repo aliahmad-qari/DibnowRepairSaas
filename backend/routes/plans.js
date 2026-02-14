@@ -152,11 +152,6 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
   }
 });
 
-module.exports = router;
-
-
-// ==================== MANUAL PAYMENT REQUEST ====================
-
 const PlanRequest = require('../models/PlanRequest');
 const User = require('../models/User');
 
@@ -234,3 +229,11 @@ router.get('/my-requests', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Error fetching requests' });
   }
 });
+
+
+
+module.exports = router;
+
+
+// ==================== MANUAL PAYMENT REQUEST ====================
+
