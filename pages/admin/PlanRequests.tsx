@@ -134,7 +134,7 @@ export const PlanRequests: React.FC = () => {
                       <div>
                         <p className="font-black text-slate-800 text-sm tracking-tight">{req.shopName}</p>
                         <p className="text-[10px] text-slate-400 font-black uppercase mt-1 tracking-widest flex items-center gap-1">
-                          <Clock size={10} /> {req.date}
+                          <Clock size={10} /> {new Date(req.createdAt || req.date).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

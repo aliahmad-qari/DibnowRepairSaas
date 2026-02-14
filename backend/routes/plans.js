@@ -154,6 +154,7 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
 
 const PlanRequest = require('../models/PlanRequest');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 // Submit manual payment request
 router.post('/manual-payment-request', authenticateToken, async (req, res) => {
@@ -161,19 +162,25 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
     const { planId, transactionId, amount, currency, method, notes } = req.body;
     const userId = req.user.userId;
 
-    console.log('[MANUAL PAYMENT] Request received:', { userId, planId, amount, method });
+    console.log('[MANUAL PAYMENT] ========== NEW REQUEST ==========');
+    console.log('[MANUAL PAYMENT] Request received:', { userId, planId, amount, method, transactionId });
+    console.log('[MANUAL PAYMENT] Full request body:', req.body);
 
     // Get user details
     const user = await User.findById(userId);
     if (!user) {
+      console.error('[MANUAL PAYMENT] User not found:', userId);
       return res.status(404).json({ message: 'User not found' });
     }
+    console.log('[MANUAL PAYMENT] User found:', { id: user._id, name: user.name, email: user.email });
 
     // Get plan details
     const plan = await Plan.findById(planId);
     if (!plan) {
+      console.error('[MANUAL PAYMENT] Plan not found:', planId);
       return res.status(404).json({ message: 'Plan not found' });
     }
+    console.log('[MANUAL PAYMENT] Plan found:', { id: plan._id, name: plan.name });
 
     // Create plan request
     const planRequest = new PlanRequest({
@@ -193,8 +200,29 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
     });
 
     await planRequest.save();
+    console.log('[MANUAL PAYMENT] Plan request saved:', { id: planRequest._id, status: planRequest.status });
 
-    console.log('[MANUAL PAYMENT] Request created successfully:', planRequest._id);
+    // Create notifications
+    // 1. Notification for user
+    await Notification.create({
+      userId: userId.toString(),
+      ownerId: userId,
+      title: 'Plan Upgrade Request Submitted',
+      message: `Your request to upgrade to ${plan.name} plan has been submitted. It will be reviewed within 2-3 hours.`,
+      type: 'info'
+    });
+    console.log('[MANUAL PAYMENT] User notification created');
+
+    // 2. Notification for admin (global)
+    await Notification.create({
+      userId: 'global',
+      title: 'New Manual Plan Upgrade Request',
+      message: `${user.name} has requested to upgrade to ${plan.name} plan. Amount: ${currency} ${amount}`,
+      type: 'warning'
+    });
+    console.log('[MANUAL PAYMENT] Admin notification created');
+
+    console.log('[MANUAL PAYMENT] ========== REQUEST COMPLETE ==========');
 
     res.json({
       success: true,
@@ -203,7 +231,9 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
       request: planRequest
     });
   } catch (error) {
+    console.error('[MANUAL PAYMENT] ========== ERROR ==========');
     console.error('[MANUAL PAYMENT] Error:', error);
+    console.error('[MANUAL PAYMENT] Stack:', error.stack);
     res.status(500).json({ 
       message: 'Error submitting payment request',
       error: error.message 

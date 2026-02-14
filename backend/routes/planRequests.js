@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const PlanRequest = require('../models/PlanRequest');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 // Middleware to check authentication (simplified for this context)
 // In a real app, use proper JWT middleware
@@ -137,6 +138,26 @@ router.put('/:id/status', async (req, res) => {
             });
             await subscription.save();
             console.log(`[PlanRequest] ✅ Created subscription for user ${user._id}`);
+            
+            // Create notifications for approval
+            // 1. Notification for user
+            await Notification.create({
+              userId: user._id.toString(),
+              ownerId: user._id,
+              title: 'Plan Upgrade Approved',
+              message: `Your plan upgrade to ${request.requestedPlanName} has been approved successfully. Your new plan is now active!`,
+              type: 'success'
+            });
+            
+            // 2. Notification for admin
+            await Notification.create({
+              userId: 'global',
+              title: 'Plan Upgrade Approved',
+              message: `Plan upgrade for ${user.name} to ${request.requestedPlanName} has been approved successfully.`,
+              type: 'success'
+            });
+            
+            console.log(`[PlanRequest] ✅ Created approval notifications`);
           }
         } else {
           console.error(`[PlanRequest] ❌ User not found with userId: ${userIdStr}`);

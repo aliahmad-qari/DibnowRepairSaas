@@ -45,6 +45,7 @@ export const UserPricing: React.FC = () => {
   // New Flow States
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [successState, setSuccessState] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
   const [failureState, setFailureState] = useState<string | null>(null);
 
   // Specific Method Form States
@@ -221,11 +222,10 @@ export const UserPricing: React.FC = () => {
         return;
       }
 
-      // ========== MANUAL PAYMENT (Keep existing logic) ==========
+      // ========== MANUAL PAYMENT (Updated logic) ==========
       if (paymentMethod === 'Manual Payment') {
         console.log('📝 [Payment] Processing manual payment request');
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const response = await callBackendAPI('/api/plans/manual-payment-request', {
+        console.log('📝 [Payment] Request data:', {
           planId: selectedPlanForUpgrade.id,
           transactionId: manualForm.transactionId,
           amount: localizedPrice,
@@ -233,15 +233,27 @@ export const UserPricing: React.FC = () => {
           method: manualForm.method,
           notes: manualForm.notes
         });
-
-        console.log('✅ [Payment] Manual payment request submitted');
-        setSuccessState(true);
-        setIsLoading(false);
         
-        // Refresh user data after successful submission
-        setTimeout(() => {
-          refreshUser();
-        }, 2000);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        try {
+          const response = await callBackendAPI('/api/plans/manual-payment-request', {
+            planId: selectedPlanForUpgrade.id,
+            transactionId: manualForm.transactionId,
+            amount: localizedPrice,
+            currency: currency.code,
+            method: manualForm.method,
+            notes: manualForm.notes
+          });
+
+          console.log('✅ [Payment] Manual payment request submitted:', response);
+          setPendingApproval(true);
+          setIsLoading(false);
+        } catch (error: any) {
+          console.error('❌ [Payment] Manual payment request failed:', error);
+          setFailureState(error.message || 'Failed to submit payment request');
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -887,8 +899,50 @@ export const UserPricing: React.FC = () => {
         </div>
       )}
 
+      {/* PENDING APPROVAL MODAL */}
+      {pendingApproval && selectedPlanForUpgrade && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-amber-100">
+            <div className="bg-gradient-to-br from-amber-500 to-orange-500 p-8 text-white text-center">
+              <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/20">
+                <Timer size={40} />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Request Submitted</h2>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="text-center space-y-3">
+                <p className="text-slate-700 font-bold text-sm leading-relaxed">
+                  Your plan upgrade request has been submitted successfully.
+                </p>
+                <p className="text-slate-600 text-xs leading-relaxed">
+                  It will be reviewed and approved within <span className="font-black text-amber-600">2–3 hours</span>.
+                </p>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+                  Please wait for admin approval.
+                </p>
+              </div>
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest text-center">
+                  📌 You will be notified once approved
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setPendingApproval(false);
+                  setSelectedPlanForUpgrade(null);
+                  navigate('/user/dashboard');
+                }}
+                className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-black transition-all"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SUCCESS MODAL (JAZZ WORLD CELEBRATION) */}
-      {successState && selectedPlanForUpgrade && (
+      {successState && selectedPlanForUpgrade && paymentMethod !== 'Manual Payment' && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-emerald-600 animate-in fade-in zoom-in duration-500">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-white/20 blur-[120px] rounded-full animate-pulse" />
