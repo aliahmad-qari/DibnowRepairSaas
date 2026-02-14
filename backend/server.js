@@ -31,6 +31,7 @@ const clientRoutes = require('./routes/clients');
 const complaintRoutes = require('./routes/complaints');
 const activityRoutes = require('./routes/activities');
 const notificationRoutes = require('./routes/notifications');
+const planRequestsRoutes = require('./routes/planRequests');
 
 // Import services
 const { startRenewalScheduler } = require('./services/renewalService');
@@ -184,6 +185,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/plan-requests', planRequestsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => res.send("DibNow API is Running..."));
