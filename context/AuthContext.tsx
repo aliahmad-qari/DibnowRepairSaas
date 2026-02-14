@@ -17,6 +17,7 @@ interface AuthContextType {
   refreshToken: () => Promise<boolean>;
   showSessionWarning: boolean;
   extendSession: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -330,6 +331,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return user.permissions.includes(permission);
   };
 
+  // Refresh user data from backend
+  const refreshUser = async () => {
+    try {
+      const token = localStorage.getItem('dibnow_token');
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('[AUTH] Refreshed user data:', userData);
+        setUser(userData);
+        // Also update localStorage
+        localStorage.setItem('fixit_user', JSON.stringify({
+          ...userData,
+          id: userData.id || userData._id
+        }));
+        window.dispatchEvent(new Event('storage'));
+      }
+    } catch (error) {
+      console.error('[AUTH] Error refreshing user data:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -340,7 +369,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       hasPermission,
       refreshToken,
       showSessionWarning,
-      extendSession
+      extendSession,
+      refreshUser
     }}>
       {children}
     </AuthContext.Provider>

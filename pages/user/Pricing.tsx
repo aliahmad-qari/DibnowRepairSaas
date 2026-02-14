@@ -31,7 +31,7 @@ const EXCHANGE_RATES: Record<string, number> = {
 };
 
 export const UserPricing: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { currency, setManualCurrency, availableCurrencies, isDetecting } = useCurrency();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -98,6 +98,11 @@ export const UserPricing: React.FC = () => {
 
     fetchPlans();
   }, []);
+
+  // Refresh user data on mount to get updated plan info
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
 
   const currentPlan = useMemo(() => {
     return plans.find(p => p.id === (user?.planId || 'starter')) || plans[0];
@@ -220,23 +225,23 @@ export const UserPricing: React.FC = () => {
       if (paymentMethod === 'Manual Payment') {
         console.log('📝 [Payment] Processing manual payment request');
         await new Promise(resolve => setTimeout(resolve, 1500));
-        const response = await callBackendAPI('/api/plan-requests', {
-          userId: getBackendUserId(),
-          shopName: user.name,
-          currentPlanId: user.planId || 'starter',
-          currentPlanName: currentPlan?.name || 'Starter',
-          requestedPlanId: selectedPlanForUpgrade.id,
-          requestedPlanName: selectedPlanForUpgrade.name,
+        const response = await callBackendAPI('/api/plans/manual-payment-request', {
+          planId: selectedPlanForUpgrade.id,
           transactionId: manualForm.transactionId,
           amount: localizedPrice,
           currency: currency.code,
-          manualMethod: manualForm.method,
+          method: manualForm.method,
           notes: manualForm.notes
         });
 
         console.log('✅ [Payment] Manual payment request submitted');
         setSuccessState(true);
         setIsLoading(false);
+        
+        // Refresh user data after successful submission
+        setTimeout(() => {
+          refreshUser();
+        }, 2000);
         return;
       }
 

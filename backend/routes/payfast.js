@@ -6,8 +6,36 @@ const Plan = require('../models/Plan');
 const Subscription = require('../models/Subscription');
 const Transaction = require('../models/Transaction');
 const Wallet = require('../models/Wallet');
+const User = require('../models/User');
 
 // ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Check for duplicate transaction
+ */
+async function checkDuplicateTransaction(paymentId) {
+  const existing = await Transaction.findOne({ paymentId });
+  return existing && existing.status === 'completed';
+}
+
+/**
+ * Generate PayFast signature for verification
+ */
+function generatePayFastSignature(data, passPhrase = '') {
+  // Create parameter string
+  let pfOutput = '';
+  for (let key in data) {
+    if (data.hasOwnProperty(key) && key !== 'signature') {
+      pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, '+')}&`;
+    }
+  }
+  // Remove last ampersand
+  pfOutput = pfOutput.slice(0, -1);
+  if (passPhrase) {
+    pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
+  }
+  return crypto.createHash('md5').update(pfOutput).digest('hex');
+}
 
 /**
  * Get Access Token from APPS Pakistan
@@ -259,6 +287,10 @@ router.post('/verify-payment', async (req, res) => {
       description: `Subscription to ${plan.name} via PayFast`
     });
     await transaction.save();
+
+    // Update user's planId
+    await User.findByIdAndUpdate(userId, { planId: planId });
+    console.log(`[PAYFAST] Updated user ${userId} to plan ${planId}`);
 
     res.json({
       success: true,
@@ -582,6 +614,10 @@ router.post('/webhook', async (req, res) => {
         extraData: data
       });
       await transaction.save();
+
+      // Update user's planId
+      await User.findByIdAndUpdate(userId, { planId: planId });
+      console.log(`[PAYFAST WEBHOOK] Updated user ${userId} to plan ${planId}`);
 
     } else if (type === 'wallet_topup') {
       const amount = parseFloat(amountGross);

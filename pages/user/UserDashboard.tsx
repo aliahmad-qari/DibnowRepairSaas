@@ -63,8 +63,20 @@ interface DashboardData {
 
 export const UserDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { currency, setManualCurrency, availableCurrencies, isDetecting } = useCurrency();
+
+  // Refresh user data on mount to get updated plan info
+  useEffect(() => {
+    refreshUser();
+    
+    // Poll for plan updates every 10 seconds
+    const interval = setInterval(() => {
+      refreshUser();
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [refreshUser]);
 
   const [repairCompleteTimeframe, setRepairCompleteTimeframe] = useState('1year');
   const [repairRevTimeframe, setRepairRevTimeframe] = useState('1year');

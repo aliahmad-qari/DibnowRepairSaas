@@ -113,8 +113,31 @@ router.put('/:id/status', async (req, res) => {
         if (user) {
           const oldPlanId = user.planId;
           user.planId = request.requestedPlanId;
+          user.status = 'active';
           await user.save();
           console.log(`[PlanRequest] ✅ Successfully updated user ${user._id} from plan "${oldPlanId}" to plan "${request.requestedPlanId}"`);
+          
+          // Create subscription record
+          const Subscription = require('../models/Subscription');
+          const Plan = require('../models/Plan');
+          const plan = await Plan.findById(request.requestedPlanId);
+          if (plan) {
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + (plan.duration || 30));
+            const subscription = new Subscription({
+              userId: user._id,
+              planId: request.requestedPlanId,
+              status: 'active',
+              startDate: new Date(),
+              endDate: endDate,
+              paymentMethod: 'manual',
+              paymentId: request.transactionId,
+              amount: request.amount,
+              currency: request.currency
+            });
+            await subscription.save();
+            console.log(`[PlanRequest] ✅ Created subscription for user ${user._id}`);
+          }
         } else {
           console.error(`[PlanRequest] ❌ User not found with userId: ${userIdStr}`);
           // Log all users for debugging
