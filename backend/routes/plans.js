@@ -188,7 +188,7 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
       shopName: user.company || user.name,
       currentPlanId: user.planId || 'starter',
       currentPlanName: user.planId || 'Starter',
-      requestedPlanId: plan._id,
+      requestedPlanId: plan._id.toString(),
       requestedPlanName: plan.name,
       transactionId: transactionId,
       amount: amount,
@@ -200,7 +200,15 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
     });
 
     await planRequest.save();
-    console.log('[MANUAL PAYMENT] Plan request saved:', { id: planRequest._id, status: planRequest.status });
+    console.log('[MANUAL PAYMENT] Plan request saved successfully');
+    console.log('[MANUAL PAYMENT] Saved data:', {
+      _id: planRequest._id,
+      userId: planRequest.userId,
+      shopName: planRequest.shopName,
+      requestedPlanId: planRequest.requestedPlanId,
+      requestedPlanName: planRequest.requestedPlanName,
+      status: planRequest.status
+    });
 
     // Create notifications
     // 1. Notification for user

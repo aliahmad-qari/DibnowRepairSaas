@@ -4,14 +4,7 @@ const mongoose = require('mongoose');
 const PlanRequest = require('../models/PlanRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
-
-// Middleware to check authentication (simplified for this context)
-// In a real app, use proper JWT middleware
-const requireAuth = async (req, res, next) => {
-  // Assuming req.user is populated by global middleware or we verify token here
-  // For now, we trust the endpoints are protected or called with valid context
-  next();
-};
+const { authenticateToken, adminOnly } = require('../middleware/auth');
 
 // Create a new plan request
 router.post('/', async (req, res) => {
@@ -48,9 +41,11 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get all requests (Admin View)
-router.get('/', async (req, res) => {
+// Get all requests (Admin View - Admin & SuperAdmin only)
+router.get('/', authenticateToken, adminOnly, async (req, res) => {
   try {
+    console.log('[PlanRequests] GET / - Fetching all plan requests');
+    
     // Check for filters
     const { status } = req.query;
     const query = {};
@@ -58,17 +53,34 @@ router.get('/', async (req, res) => {
 
     const requests = await PlanRequest.find(query)
       .sort({ createdAt: -1 })
-      .populate('userId', 'name email');
+      .lean(); // Use lean() for better performance and to avoid population issues
 
-    res.json(requests);
+    console.log(`[PlanRequests] Found ${requests.length} requests`);
+    
+    // Manually populate user data if needed
+    const populatedRequests = await Promise.all(requests.map(async (req) => {
+      try {
+        const user = await User.findById(req.userId).select('name email').lean();
+        return {
+          ...req,
+          userId: user || { name: 'Unknown', email: 'N/A' }
+        };
+      } catch (err) {
+        console.error(`[PlanRequests] Error populating user for request ${req._id}:`, err);
+        return req;
+      }
+    }));
+
+    console.log('[PlanRequests] Returning populated requests');
+    res.json(populatedRequests);
   } catch (error) {
-    console.error('Get Plan Requests Error:', error);
+    console.error('[PlanRequests] Get Plan Requests Error:', error);
     res.status(500).json({ message: 'Failed to fetch plan requests' });
   }
 });
 
-// Update request status (Approve/Deny)
-router.put('/:id/status', async (req, res) => {
+// Update request status (Approve/Deny - Admin & SuperAdmin only)
+router.put('/:id/status', authenticateToken, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, adminId, invoiceStatus } = req.body;

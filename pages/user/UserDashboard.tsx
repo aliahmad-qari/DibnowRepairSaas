@@ -69,13 +69,6 @@ export const UserDashboard: React.FC = () => {
   // Refresh user data on mount to get updated plan info
   useEffect(() => {
     refreshUser();
-    
-    // Poll for plan updates every 30 seconds (reduced from 10 seconds)
-    const interval = setInterval(() => {
-      refreshUser();
-    }, 30000);
-    
-    return () => clearInterval(interval);
   }, [refreshUser]);
 
   const [repairCompleteTimeframe, setRepairCompleteTimeframe] = useState('1year');
