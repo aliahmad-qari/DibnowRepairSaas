@@ -122,7 +122,7 @@ export const UserDashboard: React.FC = () => {
       if (!user) return;
       setIsLoading(true);
       try {
-        const response = await callBackendAPI('/dashboard/overview', null, 'GET');
+        const response = await callBackendAPI('/api/dashboard/overview', null, 'GET');
         if (response) {
           const activePlan = response.plans.find((p: any) => p.id === user.planId) || response.plans[0];
           setData(prev => ({
