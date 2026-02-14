@@ -153,3 +153,84 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
 });
 
 module.exports = router;
+
+
+// ==================== MANUAL PAYMENT REQUEST ====================
+
+const PlanRequest = require('../models/PlanRequest');
+const User = require('../models/User');
+
+// Submit manual payment request
+router.post('/manual-payment-request', authenticateToken, async (req, res) => {
+  try {
+    const { planId, transactionId, amount, currency, method, notes } = req.body;
+    const userId = req.user.userId;
+
+    console.log('[MANUAL PAYMENT] Request received:', { userId, planId, amount, method });
+
+    // Get user details
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get plan details
+    const plan = await Plan.findById(planId);
+    if (!plan) {
+      return res.status(404).json({ message: 'Plan not found' });
+    }
+
+    // Create plan request
+    const planRequest = new PlanRequest({
+      userId: userId,
+      shopName: user.company || user.name,
+      currentPlanId: user.planId || 'starter',
+      currentPlanName: user.planId || 'Starter',
+      requestedPlanId: plan._id,
+      requestedPlanName: plan.name,
+      transactionId: transactionId,
+      amount: amount,
+      currency: currency || 'PKR',
+      manualMethod: method || 'Bank Transfer',
+      notes: notes,
+      status: 'pending',
+      invoiceStatus: 'unpaid'
+    });
+
+    await planRequest.save();
+
+    console.log('[MANUAL PAYMENT] Request created successfully:', planRequest._id);
+
+    res.json({
+      success: true,
+      message: 'Payment request submitted successfully. Admin will review and approve.',
+      requestId: planRequest._id,
+      request: planRequest
+    });
+  } catch (error) {
+    console.error('[MANUAL PAYMENT] Error:', error);
+    res.status(500).json({ 
+      message: 'Error submitting payment request',
+      error: error.message 
+    });
+  }
+});
+
+// Get user's plan requests
+router.get('/my-requests', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const requests = await PlanRequest.find({ userId })
+      .sort({ createdAt: -1 })
+      .populate('processedBy', 'name email');
+
+    res.json({
+      success: true,
+      requests: requests
+    });
+  } catch (error) {
+    console.error('[MANUAL PAYMENT] Get requests error:', error);
+    res.status(500).json({ message: 'Error fetching requests' });
+  }
+});

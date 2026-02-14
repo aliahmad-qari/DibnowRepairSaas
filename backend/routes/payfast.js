@@ -16,41 +16,75 @@ async function getAppsAccessToken() {
   try {
     const tokenUrl = process.env.PAYFAST_TOKEN_URL;
     const merchantId = process.env.PAYFAST_MERCHANT_ID;
+    const securedKey = process.env.PAYFAST_SECURED_KEY;
     
-    // Log configuration (masking secrets)
+    // Validate environment variables
+    if (!tokenUrl || !merchantId || !securedKey) {
+      throw new Error('PayFast credentials not configured. Please check environment variables.');
+    }
+    
     console.log(`[PAYFAST] Requesting token from: ${tokenUrl}`);
     console.log(`[PAYFAST] Using MerchantId: ${merchantId}`);
 
-    const response = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        MerchantId: parseInt(merchantId, 10) || merchantId, // Ensure integer
-        SecuredKey: process.env.PAYFAST_SECURED_KEY
-      })
-    });
+    // Try multiple request formats (APPS.NET.PK API can be inconsistent)
+    const requestFormats = [
+      { MERCHANT_ID: merchantId, SECURED_KEY: securedKey },
+      { MerchantId: merchantId, SecuredKey: securedKey },
+      { merchantId: merchantId, securedKey: securedKey },
+      { merchant_id: merchantId, secured_key: securedKey }
+    ];
 
-    // Clone response to read text body for debugging without consuming stream
-    const responseClone = response.clone();
-    const rawBody = await responseClone.text();
-    console.log(`[PAYFAST] Raw Token Response: ${rawBody}`);
+    let lastError = null;
 
-    // Parse JSON
-    let data;
-    try {
-        data = JSON.parse(rawBody);
-    } catch (e) {
-        throw new Error(`Invalid JSON response: ${rawBody}`);
-    }
+    for (let i = 0; i < requestFormats.length; i++) {
+      const requestBody = requestFormats[i];
+      console.log(`[PAYFAST] Attempt ${i + 1}/${requestFormats.length} with format: ${Object.keys(requestBody).join(', ')}`);
 
-    if (data && (data.ACCESS_TOKEN || data.access_token)) {
-      return data.ACCESS_TOKEN || data.access_token;
+      try {
+        const response = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        const rawBody = await response.text();
+        console.log(`[PAYFAST] Response (attempt ${i + 1}): ${rawBody.substring(0, 200)}`);
+
+        let data;
+        try {
+          data = JSON.parse(rawBody);
+        } catch (e) {
+          console.log(`[PAYFAST] Invalid JSON in attempt ${i + 1}, trying next format...`);
+          continue;
+        }
+
+        // Check for access token in various formats
+        const token = data.ACCESS_TOKEN || data.access_token || data.AccessToken || data.Token || data.token;
+        
+        if (token) {
+          console.log(`[PAYFAST] ✅ Token acquired successfully with format ${i + 1}`);
+          return token;
+        }
+
+        // If we got a clear error message, save it
+        const errorMsg = data.Message || data.message || data.ERROR || data.error;
+        if (errorMsg && errorMsg !== 'An error has occurred.') {
+          lastError = errorMsg;
+        }
+      } catch (err) {
+        console.log(`[PAYFAST] Attempt ${i + 1} failed: ${err.message}`);
+        lastError = err.message;
+      }
     }
     
-    throw new Error(data.MESSAGE || data.message || 'Failed to obtain access token from APPS');
+    // All attempts failed
+    throw new Error(lastError || 'Failed to obtain access token from APPS after trying all formats');
   } catch (error) {
     console.error('[PAYFAST] Token acquisition failed:', error.message);
-    throw error;
+    throw new Error(`PayFast API Error: ${error.message}. Please contact PayFast support to verify your account is activated for API access.`);
   }
 }
 
@@ -152,9 +186,22 @@ router.post('/create-payment', async (req, res) => {
 
   } catch (error) {
     console.error('PayFast create payment exception:', error);
+    
+    // Provide user-friendly error message
+    let userMessage = 'Payment gateway temporarily unavailable. ';
+    
+    if (error.message.includes('credentials')) {
+      userMessage += 'Please contact support or try manual payment.';
+    } else if (error.message.includes('API access')) {
+      userMessage += 'Please use manual payment or contact support.';
+    } else {
+      userMessage += 'Please try again or use manual payment option.';
+    }
+    
     res.status(500).json({ 
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: userMessage,
+      technicalError: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      useManualPayment: true
     });
   }
 });
