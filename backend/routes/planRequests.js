@@ -21,6 +21,8 @@ router.post('/', async (req, res) => {
       amount, currency, manualMethod, notes 
     } = req.body;
 
+    console.log('[PlanRequest] Creating plan request with userId:', userId, 'type:', typeof userId);
+
     const newRequest = new PlanRequest({
       userId,
       shopName,
@@ -36,6 +38,7 @@ router.post('/', async (req, res) => {
     });
 
     await newRequest.save();
+    console.log('[PlanRequest] Plan request created successfully. Stored userId:', newRequest.userId);
 
     res.status(201).json(newRequest);
   } catch (error) {
@@ -83,12 +86,43 @@ router.put('/:id/status', async (req, res) => {
 
     // IF APPROVED: Update the User's Plan
     if (status === 'approved') {
-      const user = await User.findById(request.userId);
-      if (user) {
-        user.planId = request.requestedPlanId;
-        // Optionally update expiry if needed, for now just switching plan
-        await user.save();
-        console.log(`[PlanRequest] Updated user ${user._id} to plan ${request.requestedPlanId}`);
+      try {
+        // Get the userId - handle ObjectId, populated object, or string formats
+        let userIdValue = request.userId;
+        
+        // If userId is populated (has _id property), extract it
+        if (userIdValue && typeof userIdValue === 'object' && userIdValue._id) {
+          userIdValue = userIdValue._id;
+        }
+        
+        // Convert to string for logging
+        const userIdStr = userIdValue?.toString() || userIdValue;
+        console.log(`[PlanRequest] Attempting to update user plan. UserId: ${userIdStr}`);
+        
+        // Find the user using findById with the value
+        let user = null;
+        
+        // Try direct findById first
+        user = await User.findById(userIdValue);
+        
+        // If not found and it's a string, try as ObjectId
+        if (!user && typeof userIdValue === 'string' && mongoose.Types.ObjectId.isValid(userIdValue)) {
+          user = await User.findById(new mongoose.Types.ObjectId(userIdValue));
+        }
+        
+        if (user) {
+          const oldPlanId = user.planId;
+          user.planId = request.requestedPlanId;
+          await user.save();
+          console.log(`[PlanRequest] ✅ Successfully updated user ${user._id} from plan "${oldPlanId}" to plan "${request.requestedPlanId}"`);
+        } else {
+          console.error(`[PlanRequest] ❌ User not found with userId: ${userIdStr}`);
+          // Log all users for debugging
+          const allUsers = await User.find({}, '_id email name planId').limit(5);
+          console.log(`[PlanRequest] Available users in DB:`, allUsers.map(u => ({ _id: u._id.toString(), email: u.email, planId: u.planId })));
+        }
+      } catch (userError) {
+        console.error(`[PlanRequest] ❌ Error updating user plan:`, userError);
       }
     }
 

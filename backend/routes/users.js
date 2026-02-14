@@ -566,7 +566,11 @@ router.get('/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(user);
+    // Return user with both 'id' and '_id' for frontend compatibility
+    res.json({
+      ...user.toObject(),
+      id: user._id.toString()
+    });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ message: 'Error fetching user' });

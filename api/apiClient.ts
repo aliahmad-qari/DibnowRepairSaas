@@ -110,7 +110,8 @@ export async function callBackendAPI(endpoint: string, data?: any, method: 'GET'
  */
 export function getBackendUserId(): string {
     const user = JSON.parse(localStorage.getItem('fixit_user') || '{}');
-    return user.id || '';
+    // Handle both 'id' and '_id' formats (frontend uses 'id', backend returns '_id')
+    return user.id || user._id || '';
 }
 
 /**
