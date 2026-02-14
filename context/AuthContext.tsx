@@ -344,14 +344,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        console.log('[AUTH] Refreshed user data:', userData);
+        const backendData = await response.json();
+        console.log('[AUTH] Refreshed user data:', backendData);
+        
+        // Preserve existing user data and merge with backend updates
+        const currentUser = JSON.parse(localStorage.getItem('fixit_user') || '{}');
+        const userData: User = {
+          ...currentUser,
+          ...backendData,
+          id: backendData.id || backendData._id || currentUser.id,
+          role: currentUser.role || UserRole.USER,
+          subRole: currentUser.subRole || 'Owner',
+          permissions: currentUser.permissions || ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports']
+        };
+        
         setUser(userData);
-        // Also update localStorage
-        localStorage.setItem('fixit_user', JSON.stringify({
-          ...userData,
-          id: userData.id || userData._id
-        }));
+        localStorage.setItem('fixit_user', JSON.stringify(userData));
         window.dispatchEvent(new Event('storage'));
       } else if (response.status === 401) {
         // Only logout on 401 Unauthorized
