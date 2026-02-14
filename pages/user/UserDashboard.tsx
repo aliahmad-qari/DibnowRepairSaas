@@ -70,10 +70,10 @@ export const UserDashboard: React.FC = () => {
   useEffect(() => {
     refreshUser();
     
-    // Poll for plan updates every 10 seconds
+    // Poll for plan updates every 30 seconds (reduced from 10 seconds)
     const interval = setInterval(() => {
       refreshUser();
-    }, 10000);
+    }, 30000);
     
     return () => clearInterval(interval);
   }, [refreshUser]);

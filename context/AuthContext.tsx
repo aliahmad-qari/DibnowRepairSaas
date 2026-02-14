@@ -353,9 +353,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: userData.id || userData._id
         }));
         window.dispatchEvent(new Event('storage'));
+      } else if (response.status === 401) {
+        // Only logout on 401 Unauthorized
+        console.warn('[AUTH] Token expired, logging out');
+        logout();
+      } else {
+        // For other errors, just log and keep current session
+        console.warn('[AUTH] Failed to refresh user data, keeping current session');
       }
     } catch (error) {
-      console.error('[AUTH] Error refreshing user data:', error);
+      // Network errors - keep current session
+      console.error('[AUTH] Error refreshing user data (network issue), keeping current session:', error);
     }
   };
 
