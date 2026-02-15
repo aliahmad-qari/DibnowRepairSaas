@@ -194,7 +194,7 @@ export const UserPricing: React.FC = () => {
     setShowConfirmModal(false);
 
     try {
-      // ========== WALLET BALANCE PAYMENT (Keep existing logic) ==========
+      // ========== WALLET BALANCE PAYMENT (Auto-activate plan) ==========
       if (paymentMethod === 'Wallet Balance') {
         console.log('💰 [Payment] Processing wallet balance payment');
         const balance = user.walletBalance || 0;
@@ -205,19 +205,36 @@ export const UserPricing: React.FC = () => {
           return;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        db.user.updateBalance(localizedPrice, 'debit');
-        db.users.update(user.id, { planId: selectedPlanForUpgrade.id });
-        db.wallet.addTransaction({
-          amount: localizedPrice,
-          type: 'debit',
-          status: 'success',
-          date: new Date().toLocaleDateString(),
-          description: `Subscription Upgrade: ${selectedPlanForUpgrade.name}`
-        });
+        try {
+          // Deduct from wallet via backend API
+          const response = await callBackendAPI(`/api/wallet/${getBackendUserId()}/deduct`, {
+            amount: localizedPrice,
+            description: `Subscription Upgrade: ${selectedPlanForUpgrade.name}`,
+            planId: selectedPlanForUpgrade.id
+          });
 
-        console.log('✅ [Payment] Wallet payment successful');
-        setSuccessState(true);
+          if (response.success) {
+            // Update local storage
+            db.user.updateBalance(localizedPrice, 'debit');
+            db.users.update(user.id, { planId: selectedPlanForUpgrade.id });
+            db.wallet.addTransaction({
+              amount: localizedPrice,
+              type: 'debit',
+              status: 'success',
+              date: new Date().toLocaleDateString(),
+              description: `Subscription Upgrade: ${selectedPlanForUpgrade.name}`
+            });
+
+            console.log('✅ [Payment] Wallet payment successful, plan auto-activated');
+            await refreshUser();
+            setSuccessState(true);
+          } else {
+            throw new Error(response.message || 'Wallet deduction failed');
+          }
+        } catch (error: any) {
+          console.error('❌ [Payment] Wallet payment failed:', error);
+          setFailureState(error.message || 'Failed to process wallet payment');
+        }
         setIsLoading(false);
         return;
       }

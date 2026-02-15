@@ -158,6 +158,11 @@ router.post('/verify-payment', async (req, res) => {
       transaction.subscriptionId = subscription._id;
       await transaction.save();
 
+      // UPDATE USER'S PLANID
+      const User = require('../models/User');
+      await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
+      console.log(`[STRIPE] Updated user ${userId} planId to ${planId}`);
+
       res.json({
         success: true,
         subscription: subscription,
@@ -563,7 +568,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                 transaction.subscriptionId = subscription._id;
                 await transaction.save();
                 
+                // UPDATE USER'S PLANID
+                const User = require('../models/User');
+                await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
+                
                 console.log(`[STRIPE WEBHOOK] Auto-activated subscription ${subscription._id} for user ${userId}`);
+                console.log(`[STRIPE WEBHOOK] Updated user ${userId} planId to ${planId}`);
               } else {
                 console.error('[STRIPE WEBHOOK] Plan not found:', planId);
               }

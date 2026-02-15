@@ -185,6 +185,11 @@ router.post('/capture-payment', async (req, res) => {
       });
       await transaction.save();
 
+      // UPDATE USER'S PLANID
+      const User = require('../models/User');
+      await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
+      console.log(`[PAYPAL] Updated user ${userId} planId to ${planId}`);
+
       res.json({
         success: true,
         subscription: subscription,
@@ -666,7 +671,12 @@ router.post('/webhook', async (req, res) => {
           });
           await transaction.save();
 
+          // UPDATE USER'S PLANID
+          const User = require('../models/User');
+          await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
+
           console.log(`[PAYPAL WEBHOOK] Subscription created: ${subscription._id}`);
+          console.log(`[PAYPAL WEBHOOK] Updated user ${userId} planId to ${planId}`);
 
         } else if (type === 'renewal') {
           const sub = await Subscription.findById(subscriptionId);

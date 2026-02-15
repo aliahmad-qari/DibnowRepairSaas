@@ -16,26 +16,36 @@ const checkLimits = (resourceType) => {
       const user = await User.findById(req.user.userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
 
-      // Identify current plan. planId is usually the plan name or a slug
-      let plan = await Plan.findOne({ name: user.planId.toUpperCase() });
+      console.log(`[CheckLimits] Checking ${resourceType} for user ${user._id}, planId: ${user.planId}`);
+
+      // Find plan by ObjectId (MongoDB _id)
+      let plan = await Plan.findById(user.planId);
       
-      // Fallback for common mappings
-      if (!plan) {
-         if (user.planId === 'starter') plan = await Plan.findOne({ name: 'FREE TRIAL' });
-         else if (user.planId === 'basic') plan = await Plan.findOne({ name: 'BASIC' });
-         else if (user.planId === 'premium') plan = await Plan.findOne({ name: 'PREMIUM' });
-         else if (user.planId === 'gold') plan = await Plan.findOne({ name: 'GOLD' });
+      // If not found by ID, try finding by name as fallback
+      if (!plan && user.planId) {
+        plan = await Plan.findOne({ name: new RegExp(user.planId, 'i') });
       }
 
-      // Final fallback to FREE TRIAL if still not found
-      if (!plan) plan = await Plan.findOne({ name: 'FREE TRIAL' });
+      // Final fallback to FREE TRIAL
+      if (!plan) {
+        console.warn(`[CheckLimits] Plan not found for user ${user._id}, using FREE TRIAL`);
+        plan = await Plan.findOne({ name: /FREE TRIAL/i });
+      }
       
-      if (!plan) return res.status(500).json({ message: 'Plan configuration not found' });
+      if (!plan) {
+        console.error('[CheckLimits] No plan configuration found in database');
+        return res.status(500).json({ message: 'Plan configuration not found' });
+      }
+
+      console.log(`[CheckLimits] Using plan: ${plan.name}, limits:`, plan.limits);
 
       const limit = plan.limits ? plan.limits[resourceType] : undefined;
       
-      // If limit is -1 or null, it's unlimited. If undefined, we don't enforce here.
-      if (limit === undefined || limit === -1 || limit === null) return next();
+      // If limit is -1, 999, or null, it's unlimited
+      if (limit === undefined || limit === -1 || limit === null || limit >= 999) {
+        console.log(`[CheckLimits] Unlimited ${resourceType} for plan ${plan.name}`);
+        return next();
+      }
 
       let currentCount = 0;
       switch (resourceType) {
@@ -61,7 +71,10 @@ const checkLimits = (resourceType) => {
           return next();
       }
 
+      console.log(`[CheckLimits] ${resourceType}: ${currentCount}/${limit}`);
+
       if (currentCount >= limit) {
+        console.warn(`[CheckLimits] Limit reached for ${resourceType}: ${currentCount}/${limit}`);
         return res.status(403).json({
           message: 'Resource limit reached',
           limitHit: true,
@@ -75,7 +88,7 @@ const checkLimits = (resourceType) => {
 
       next();
     } catch (error) {
-      console.error('Limit check error:', error);
+      console.error('[CheckLimits] Error:', error);
       res.status(500).json({ message: 'Error verifying resource limits' });
     }
   };

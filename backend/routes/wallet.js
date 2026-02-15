@@ -39,7 +39,7 @@ router.get('/:userId/transactions', async (req, res) => {
 // Deduct from wallet (for purchases, etc.)
 router.post('/:userId/deduct', async (req, res) => {
   try {
-    const { amount, description } = req.body;
+    const { amount, description, planId } = req.body;
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Invalid amount' });
@@ -64,11 +64,12 @@ router.post('/:userId/deduct', async (req, res) => {
     // Create transaction record
     const transaction = new Transaction({
       userId: req.params.userId,
-      type: 'wallet_deduction',
+      transactionType: planId ? 'subscription' : 'wallet_deduction',
       amount: -amount,
       currency: wallet.currency,
       status: 'completed',
       paymentMethod: 'wallet',
+      planId: planId || undefined,
       description: description || 'Wallet deduction'
     });
     await transaction.save();
@@ -76,6 +77,13 @@ router.post('/:userId/deduct', async (req, res) => {
     // Add transaction to wallet
     wallet.transactions.push(transaction._id);
     await wallet.save();
+
+    // If this is a subscription purchase, update user's planId
+    if (planId) {
+      const User = require('../models/User');
+      await User.findByIdAndUpdate(req.params.userId, { planId: planId, status: 'active' });
+      console.log(`[WALLET] Updated user ${req.params.userId} planId to ${planId}`);
+    }
 
     res.json({
       success: true,
