@@ -83,8 +83,9 @@ const userSchema = new mongoose.Schema({
     default: 'pending'
   },
   planId: {
-    type: String,
-    default: 'starter'
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Plan',
+    default: null
   },
   walletBalance: {
     type: Number,

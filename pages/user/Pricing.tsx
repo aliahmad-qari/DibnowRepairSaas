@@ -106,7 +106,7 @@ export const UserPricing: React.FC = () => {
   }, [refreshUser]);
 
   const currentPlan = useMemo(() => {
-    return plans.find(p => p.id === (user?.planId || 'starter')) || plans[0];
+    return plans.find(p => p.id === user?.planId) || plans[0];
   }, [user, plans]);
 
   const usageStats = useMemo(() => {
@@ -132,7 +132,7 @@ export const UserPricing: React.FC = () => {
   };
 
   const handleSelectPlan = (plan: SubscriptionPlan) => {
-    const isActive = plan.id === user?.planId || (plan.id === 'starter' && !user?.planId);
+    const isActive = plan.id === user?.planId;
     if (isActive) return;
 
     setSelectedPlanForUpgrade(plan);
@@ -676,7 +676,7 @@ export const UserPricing: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {plans.map((plan) => {
-            const isActive = plan.id === user?.planId || (plan.id === 'starter' && !user?.planId);
+            const isActive = plan.id === user?.planId;
             return (
               <div key={plan.id} className={`p-10 rounded-[3.5rem] flex flex-col border-2 transition-all duration-500 hover:-translate-y-2 group ${isActive ? 'bg-indigo-600 text-white shadow-2xl scale-105 border-indigo-500' : 'bg-white border-slate-100 shadow-xl text-slate-900 hover:border-indigo-400'}`}>
                 <div className="mb-10">

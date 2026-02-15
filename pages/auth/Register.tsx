@@ -238,8 +238,8 @@ export const Register: React.FC = () => {
         {/* Right Side: Form */}
         <div className="w-full lg:w-7/12 p-8 lg:p-12 xl:p-16 bg-white flex flex-col justify-center">
           <div className="mb-8">
-            <h2 className="text-2xl lg:text-3xl font-black text-slate-800">Create Account</h2>
-            <p className="text-slate-500 text-xs lg:text-sm font-bold uppercase tracking-widest mt-1">Register your workshop today</p>
+            <h2 className="text-2xl lg:text-3xl font-black text-slate-800">Create Your Account</h2>
+            <p className="text-slate-500 text-xs lg:text-sm font-bold uppercase tracking-widest mt-1">Start Your Enterprise Journey</p>
           </div>
 
           {/* General Error */}
@@ -415,7 +415,7 @@ export const Register: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#00A3FF] text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/10 hover:bg-blue-600 hover:scale-[1.01] active:scale-95 transition-all text-sm uppercase tracking-[0.2em] mt-4 flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-[#00A3FF] to-[#0052FF] text-white font-black py-4 rounded-2xl shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-[0.2em] mt-4 flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -423,15 +423,30 @@ export const Register: React.FC = () => {
                   Creating Account...
                 </>
               ) : (
-                'Sign Up for Smarter Future'
+                <>
+                  <ShieldCheck size={18} />
+                  Create Enterprise Account
+                </>
               )}
             </button>
           </form>
 
-          {/* Security Note */}
-          <div className="mt-8 flex items-center gap-2 justify-center">
-             <ShieldCheck size={14} className="text-slate-400" />
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Secured by DibNow Cloud Systems</p>
+          {/* Security Indicators */}
+          <div className="mt-8 space-y-3">
+            <div className="flex items-center justify-center gap-6 text-[9px] font-black uppercase tracking-widest text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <Lock size={12} className="text-emerald-500" />
+                <span>256-bit Encrypted</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck size={12} className="text-blue-500" />
+                <span>Multi-Tenant Secure</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Cloud Infrastructure Active</span>
+            </div>
           </div>
         </div>
       </div>

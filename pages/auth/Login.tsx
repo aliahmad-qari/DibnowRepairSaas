@@ -119,8 +119,8 @@ export const Login: React.FC = () => {
         {/* Right Side: Form */}
         <div className="w-full md:w-7/12 p-12 md:p-16 bg-white flex flex-col justify-center">
           <div className="mb-8">
-            <h2 className="text-2xl font-black text-slate-800">Identity Portal</h2>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Authorized Access Only</p>
+            <h2 className="text-2xl font-black text-slate-800">Secure Sign In</h2>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Enterprise Access Portal</p>
           </div>
 
           {/* Role Selection Tabs */}
@@ -173,7 +173,7 @@ export const Login: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Access Token</label>
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Password</label>
               <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input
@@ -209,7 +209,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full ${role === UserRole.SUPER_ADMIN ? 'bg-slate-900' : role === UserRole.ADMIN ? 'bg-indigo-600' : 'bg-[#0052FF]'} text-white font-black py-5 rounded-2xl shadow-xl hover:scale-[1.01] active:scale-95 transition-all text-xs uppercase tracking-[0.2em] mt-4 flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full ${role === UserRole.SUPER_ADMIN ? 'bg-slate-900 hover:bg-black' : role === UserRole.ADMIN ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-[#0052FF] hover:bg-blue-700'} text-white font-black py-5 rounded-2xl shadow-2xl hover:shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase tracking-[0.2em] mt-4 flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {isLoading ? (
                 <>
@@ -217,24 +217,39 @@ export const Login: React.FC = () => {
                   Authenticating...
                 </>
               ) : (
-                'Sign In to Node'
+                <>
+                  <ShieldCheck size={18} />
+                  Secure Sign In
+                </>
               )}
             </button>
           </form>
 
+          {/* Security Indicators */}
+          <div className="mt-8 space-y-3">
+            <div className="flex items-center justify-center gap-6 text-[9px] font-black uppercase tracking-widest text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <Lock size={12} className="text-emerald-500" />
+                <span>256-bit Encrypted</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck size={12} className="text-blue-500" />
+                <span>Multi-Tenant Secure</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Cloud Infrastructure Active</span>
+            </div>
+          </div>
+
           {/* Sign Up Link */}
-          <div className="mt-8 text-center">
+          <div className="mt-6 text-center">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
               Don't have an account?{' '}
               <Link to="/auth/register" className="text-indigo-600 hover:text-indigo-800 font-black">
                 Sign Up
               </Link>
-            </p>
-          </div>
-
-          <div className="mt-6 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Secured by DibNow RBAC Architecture
             </p>
           </div>
         </div>

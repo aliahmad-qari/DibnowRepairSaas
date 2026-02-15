@@ -18,13 +18,8 @@ const checkLimits = (resourceType) => {
 
       console.log(`[CheckLimits] Checking ${resourceType} for user ${user._id}, planId: ${user.planId}`);
 
-      // Find plan by ObjectId (MongoDB _id)
-      let plan = await Plan.findById(user.planId);
-      
-      // If not found by ID, try finding by name as fallback
-      if (!plan && user.planId) {
-        plan = await Plan.findOne({ name: new RegExp(user.planId, 'i') });
-      }
+      // Find plan by ObjectId reference
+      let plan = user.planId ? await Plan.findById(user.planId) : null;
 
       // Final fallback to FREE TRIAL
       if (!plan) {
