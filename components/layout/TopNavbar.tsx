@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserRole } from '../../types.ts';
 
@@ -14,21 +15,55 @@ export const TopNavbar: React.FC = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
   
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const plan = user ? db.plans.getById(user.planId || 'starter') : null;
-
+  // Load plan from backend based on user.planId
   useEffect(() => {
-    const loadNotifs = () => {
+    const loadPlan = async () => {
+      if (user?.planId) {
+        try {
+          const response = await callBackendAPI('/api/plans/all', null, 'GET');
+          if (response.success && response.plans) {
+            const plan = response.plans.find((p: any) => p._id === user.planId);
+            setCurrentPlan(plan || null);
+          }
+        } catch (error) {
+          console.error('Failed to load plan:', error);
+          // Fallback to localStorage
+          setCurrentPlan(db.plans.getById(user.planId || 'starter'));
+        }
+      } else {
+        setCurrentPlan(null);
+      }
+    };
+
+    loadPlan();
+  }, [user?.planId]); // Re-run when planId changes
+
+  // Load notifications from backend
+  useEffect(() => {
+    const loadNotifs = async () => {
       if (user) {
-        setNotifications(db.notifications.getByUser(user.id));
+        try {
+          const response = await callBackendAPI('/api/notifications', null, 'GET');
+          if (response && Array.isArray(response)) {
+            setNotifications(response);
+          }
+        } catch (error) {
+          console.error('Failed to load notifications:', error);
+          // Fallback to localStorage
+          setNotifications(db.notifications.getByUser(user.id));
+        }
       }
     };
 
     loadNotifs();
-    window.addEventListener('storage', loadNotifs);
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(loadNotifs, 30000);
     
     // Close dropdowns on outside click
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,19 +77,35 @@ export const TopNavbar: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
-      window.removeEventListener('storage', loadNotifs);
+      clearInterval(interval);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [user]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const handleMarkRead = (id: string) => {
-    db.notifications.markAsRead(id);
+  const handleMarkRead = async (id: string) => {
+    try {
+      await callBackendAPI(`/api/notifications/${id}/read`, null, 'PUT');
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      // Fallback to localStorage
+      db.notifications.markAsRead(id);
+    }
   };
 
-  const handleMarkAllRead = () => {
-    if (user) db.notifications.markAllAsRead(user.id);
+  const handleMarkAllRead = async () => {
+    if (user) {
+      try {
+        await callBackendAPI('/api/notifications/mark-all-read', null, 'PUT');
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      } catch (error) {
+        console.error('Failed to mark all as read:', error);
+        // Fallback to localStorage
+        db.notifications.markAllAsRead(user.id);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -79,7 +130,7 @@ export const TopNavbar: React.FC = () => {
             <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">Active Ecosystem</span>
               <span className="text-slate-900 font-bold text-xl tracking-tight leading-none">
-                {plan?.name || 'Free Trial'}
+                {currentPlan?.name || 'Free Trial'}
               </span>
             </div>
             <button 
@@ -140,8 +191,8 @@ export const TopNavbar: React.FC = () => {
                   ) : (
                     notifications.map(n => (
                       <div 
-                        key={n.id} 
-                        onClick={() => handleMarkRead(n.id)}
+                        key={n._id || n.id} 
+                        onClick={() => handleMarkRead(n._id || n.id)}
                         className={`p-5 flex items-start gap-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${!n.read ? 'bg-indigo-50/20' : ''}`}
                       >
                          <div className="mt-1 w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-100">

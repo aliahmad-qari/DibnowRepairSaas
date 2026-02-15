@@ -54,8 +54,8 @@ export const SoldItems: React.FC = () => {
          setIsLoading(true);
          try {
             const [salesResp, invResp] = await Promise.all([
-               callBackendAPI('/sales', null, 'GET'),
-               callBackendAPI('/inventory', null, 'GET')
+               callBackendAPI('/api/sales', null, 'GET'),
+               callBackendAPI('/api/inventory', null, 'GET')
             ]);
             setSales(salesResp || []);
             setInventory(invResp || []);

@@ -40,10 +40,10 @@ export const Clients: React.FC = () => {
       setIsLoading(true);
       try {
         const [clientsResp, repairsResp, salesResp, complaintsResp] = await Promise.all([
-          callBackendAPI('/clients', null, 'GET'),
-          callBackendAPI('/repairs', null, 'GET'),
-          callBackendAPI('/sales', null, 'GET'),
-          callBackendAPI('/complaints', null, 'GET') // Assuming this exists or returns []
+          callBackendAPI('/api/clients', null, 'GET'),
+          callBackendAPI('/api/repairs', null, 'GET'),
+          callBackendAPI('/api/sales', null, 'GET'),
+          callBackendAPI('/api/complaints', null, 'GET') // Assuming this exists or returns []
         ]);
 
         setClients(clientsResp || []);
@@ -194,11 +194,11 @@ export const Clients: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await callBackendAPI('/clients', newClient, 'POST');
+      await callBackendAPI('/api/clients', newClient, 'POST');
       setNewClient({ name: '', phone: '', email: '' });
       setShowForm(false);
       // Refresh
-      const clientsResp = await callBackendAPI('/clients', null, 'GET');
+      const clientsResp = await callBackendAPI('/api/clients', null, 'GET');
       setClients(clientsResp || []);
     } catch (error) {
       console.error('Enrollment failed:', error);

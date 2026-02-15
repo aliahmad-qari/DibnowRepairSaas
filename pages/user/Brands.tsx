@@ -45,10 +45,10 @@ export const Brands: React.FC = () => {
       setIsLoading(true);
       try {
         const [brandsResp, invResp, salesResp, dashResp] = await Promise.all([
-          callBackendAPI('/brands', null, 'GET'),
-          callBackendAPI('/inventory', null, 'GET'),
-          callBackendAPI('/sales', null, 'GET'),
-          callBackendAPI('/dashboard/overview', null, 'GET')
+          callBackendAPI('/api/brands', null, 'GET'),
+          callBackendAPI('/api/inventory', null, 'GET'),
+          callBackendAPI('/api/sales', null, 'GET'),
+          callBackendAPI('/api/dashboard/overview', null, 'GET')
         ]);
 
         setBrands(brandsResp || []);
@@ -171,12 +171,12 @@ export const Brands: React.FC = () => {
     if (!newBrand.name || isAtLimit || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const response = await callBackendAPI('/brands', newBrand, 'POST');
+      const response = await callBackendAPI('/api/brands', newBrand, 'POST');
       if (response) {
         setNewBrand({ name: '', description: '' });
         setShowForm(false);
         // Refresh data
-        const brandsResp = await callBackendAPI('/brands', null, 'GET');
+        const brandsResp = await callBackendAPI('/api/brands', null, 'GET');
         setBrands(brandsResp || []);
       }
     } catch (error: any) {
@@ -215,8 +215,8 @@ export const Brands: React.FC = () => {
   const handleDeleteBrand = async (id: string) => {
     if (window.confirm("CRITICAL: De-enroll this manufacturer from the registry?")) {
       try {
-        await callBackendAPI(`/brands/${id}`, null, 'DELETE');
-        const brandsResp = await callBackendAPI('/brands', null, 'GET');
+        await callBackendAPI(`/api/brands/${id}`, null, 'DELETE');
+        const brandsResp = await callBackendAPI('/api/brands', null, 'GET');
         setBrands(brandsResp || []);
       } catch (error) {
         console.error('Deletion failed:', error);

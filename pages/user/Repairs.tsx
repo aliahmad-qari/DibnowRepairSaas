@@ -117,10 +117,10 @@ export const Repairs: React.FC = () => {
       setIsLoading(true);
       try {
         const [repairsResp, brandsResp, teamResp, planResp] = await Promise.all([
-          callBackendAPI('/repairs', null, 'GET'),
-          callBackendAPI('/brands', null, 'GET'),
-          callBackendAPI('/team', null, 'GET'),
-          callBackendAPI('/pricing/plans/' + (user.planId || 'starter'), null, 'GET')
+          callBackendAPI('/api/repairs', null, 'GET'),
+          callBackendAPI('/api/brands', null, 'GET'),
+          callBackendAPI('/api/team', null, 'GET'),
+          callBackendAPI('/api/pricing/plans/' + (user.planId || 'starter'), null, 'GET')
         ]);
 
         setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
@@ -297,9 +297,9 @@ export const Repairs: React.FC = () => {
         }
       };
 
-      await callBackendAPI('/repairs', payload, 'POST');
+      await callBackendAPI('/api/repairs', payload, 'POST');
 
-      const repairsResp = await callBackendAPI('/repairs', null, 'GET');
+      const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
       setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
 
       setShowBookingForm(false);
@@ -314,8 +314,8 @@ export const Repairs: React.FC = () => {
 
   const handleUpdateStatus = async (id: string, nextStatus: string) => {
     try {
-      await callBackendAPI(`/repairs/${id}/status`, { status: nextStatus, note: `Protocol state migrated to ${nextStatus.toUpperCase()}` }, 'PUT');
-      const repairsResp = await callBackendAPI('/repairs', null, 'GET');
+      await callBackendAPI(`/api/repairs/${id}/status`, { status: nextStatus, note: `Protocol state migrated to ${nextStatus.toUpperCase()}` }, 'PUT');
+      const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
       setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
       setActiveStatusPicker(null);
     } catch (error) {
@@ -326,8 +326,8 @@ export const Repairs: React.FC = () => {
   const handleDeleteRepair = async (id: string) => {
     if (window.confirm("CRITICAL: Decommission this repair node permanently?")) {
       try {
-        await callBackendAPI(`/repairs/${id}`, null, 'DELETE');
-        const repairsResp = await callBackendAPI('/repairs', null, 'GET');
+        await callBackendAPI(`/api/repairs/${id}`, null, 'DELETE');
+        const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
         setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
       } catch (error) {
         console.error('Decommission failed:', error);

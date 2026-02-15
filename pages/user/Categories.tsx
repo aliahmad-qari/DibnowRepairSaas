@@ -45,10 +45,10 @@ export const Categories: React.FC = () => {
       setIsLoading(true);
       try {
         const [catsResp, invResp, salesResp, dashResp] = await Promise.all([
-          callBackendAPI('/categories', null, 'GET'),
-          callBackendAPI('/inventory', null, 'GET'),
-          callBackendAPI('/sales', null, 'GET'),
-          callBackendAPI('/dashboard/overview', null, 'GET')
+          callBackendAPI('/api/categories', null, 'GET'),
+          callBackendAPI('/api/inventory', null, 'GET'),
+          callBackendAPI('/api/sales', null, 'GET'),
+          callBackendAPI('/api/dashboard/overview', null, 'GET')
         ]);
 
         setCategories(catsResp || []);
@@ -157,12 +157,12 @@ export const Categories: React.FC = () => {
     if (!newCat.name || isAtLimit || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const response = await callBackendAPI('/categories', newCat, 'POST');
+      const response = await callBackendAPI('/api/categories', newCat, 'POST');
       if (response) {
         setNewCat({ name: '', description: '' });
         setShowForm(false);
         // Refresh data
-        const catsResp = await callBackendAPI('/categories', null, 'GET');
+        const catsResp = await callBackendAPI('/api/categories', null, 'GET');
         setCategories(catsResp || []);
 
         // Re-check limits
@@ -206,8 +206,8 @@ export const Categories: React.FC = () => {
   const handleDeleteCategory = async (id: string) => {
     if (window.confirm("CRITICAL: De-commission this classification node?")) {
       try {
-        await callBackendAPI(`/categories/${id}`, null, 'DELETE');
-        const catsResp = await callBackendAPI('/categories', null, 'GET');
+        await callBackendAPI(`/api/categories/${id}`, null, 'DELETE');
+        const catsResp = await callBackendAPI('/api/categories', null, 'GET');
         setCategories(catsResp || []);
       } catch (error) {
         console.error('De-commissioning failed:', error);

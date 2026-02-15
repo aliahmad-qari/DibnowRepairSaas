@@ -41,9 +41,9 @@ export const AddInventory: React.FC = () => {
       if (user) {
         try {
           const [dashResp, brandsResp, catsResp] = await Promise.all([
-            callBackendAPI('/dashboard/overview', null, 'GET'),
-            callBackendAPI('/brands', null, 'GET'),
-            callBackendAPI('/categories', null, 'GET')
+            callBackendAPI('/api/dashboard/overview', null, 'GET'),
+            callBackendAPI('/api/brands', null, 'GET'),
+            callBackendAPI('/api/categories', null, 'GET')
           ]);
 
           if (dashResp) {
@@ -103,7 +103,7 @@ export const AddInventory: React.FC = () => {
         image: formData.image
       };
 
-      const response = await callBackendAPI('/inventory', payload, 'POST');
+      const response = await callBackendAPI('/api/inventory', payload, 'POST');
       if (response) {
         navigate('/user/inventory');
       }

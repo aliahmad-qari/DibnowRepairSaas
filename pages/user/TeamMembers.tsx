@@ -59,8 +59,8 @@ export const TeamMembers: React.FC = () => {
       setIsLoading(true);
       try {
         const [teamResp, dashResp] = await Promise.all([
-          callBackendAPI('/team', null, 'GET'),
-          callBackendAPI('/dashboard/overview', null, 'GET')
+          callBackendAPI('/api/team', null, 'GET'),
+          callBackendAPI('/api/dashboard/overview', null, 'GET')
         ]);
 
         setMembers(teamResp || []);
@@ -104,7 +104,7 @@ export const TeamMembers: React.FC = () => {
         initialPermissions[mod.id] = { read: true, create: false };
       });
 
-      const response = await callBackendAPI('/team', {
+      const response = await callBackendAPI('/api/team', {
         ...formData,
         permissions: initialPermissions
       }, 'POST');
@@ -113,7 +113,7 @@ export const TeamMembers: React.FC = () => {
         setShowAddModal(false);
         setFormData({ name: '', email: '', phone: '', password: '', role: 'Technician', department: 'General', status: 'active' });
         // Refresh
-        const teamResp = await callBackendAPI('/team', null, 'GET');
+        const teamResp = await callBackendAPI('/api/team', null, 'GET');
         setMembers(teamResp || []);
 
         // Re-check limits
@@ -157,8 +157,8 @@ export const TeamMembers: React.FC = () => {
   const toggleMemberStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'active' ? 'disabled' : 'active';
     try {
-      await callBackendAPI(`/team/${id}`, { status: nextStatus }, 'PUT');
-      const teamResp = await callBackendAPI('/team', null, 'GET');
+      await callBackendAPI(`/api/team/${id}`, { status: nextStatus }, 'PUT');
+      const teamResp = await callBackendAPI('/api/team', null, 'GET');
       setMembers(teamResp || []);
     } catch (error) {
       console.error('Failed to toggle status:', error);
@@ -181,8 +181,8 @@ export const TeamMembers: React.FC = () => {
     };
 
     try {
-      await callBackendAPI(`/team/${memberId}`, { permissions: newPerms }, 'PUT');
-      const teamResp = await callBackendAPI('/team', null, 'GET');
+      await callBackendAPI(`/api/team/${memberId}`, { permissions: newPerms }, 'PUT');
+      const teamResp = await callBackendAPI('/api/team', null, 'GET');
       setMembers(teamResp || []);
       const updatedMember = teamResp.find((m: any) => m._id === memberId);
       if (updatedMember) setShowPermissionModal(updatedMember);

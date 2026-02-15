@@ -69,16 +69,16 @@ export const Inventory: React.FC = () => {
          setIsLoading(true);
          try {
             const [invResp, salesResp, repairsResp, dashResp] = await Promise.all([
-               callBackendAPI('/inventory', null, 'GET'),
-               callBackendAPI('/sales', null, 'GET'),
-               callBackendAPI('/repairs', null, 'GET'),
-               callBackendAPI('/dashboard/overview', null, 'GET')
+               callBackendAPI('/api/inventory', null, 'GET'),
+               callBackendAPI('/api/sales', null, 'GET'),
+               callBackendAPI('/api/repairs', null, 'GET'),
+               callBackendAPI('/api/dashboard/overview', null, 'GET')
             ]);
 
             setItems(invResp || []);
             setSales(salesResp || []);
             setRepairs(repairsResp || []);
-            const activResp = await callBackendAPI('/activities', null, 'GET');
+            const activResp = await callBackendAPI('/api/activities', null, 'GET');
             setActivityLogs(activResp || []);
 
             if (dashResp && dashResp.plans) {
@@ -252,12 +252,12 @@ export const Inventory: React.FC = () => {
             customer: sellForm.customer || 'Walk-in Customer'
          };
 
-         const response = await callBackendAPI('/sales', payload, 'POST');
+         const response = await callBackendAPI('/api/sales', payload, 'POST');
          if (response) {
             setIsSellModalOpen(false);
             // Refresh local data
-            const invResp = await callBackendAPI('/inventory', null, 'GET');
-            const salesResp = await callBackendAPI('/sales', null, 'GET');
+            const invResp = await callBackendAPI('/api/inventory', null, 'GET');
+            const salesResp = await callBackendAPI('/api/sales', null, 'GET');
             setItems(invResp || []);
             setSales(salesResp || []);
          }
@@ -295,16 +295,16 @@ export const Inventory: React.FC = () => {
             actualCost: parseFloat(editForm.actualCost.toString())
          };
 
-         const response = await callBackendAPI(`/inventory/${itemToEdit._id}`, payload, 'PUT');
+         const response = await callBackendAPI(`/api/inventory/${itemToEdit._id}`, payload, 'PUT');
          if (response) {
-            await callBackendAPI('/activities', {
+            await callBackendAPI('/api/activities', {
                actionType: 'Stock Item Updated',
                moduleName: 'Inventory',
                refId: itemToEdit._id,
                status: 'Success'
             }, 'POST');
             setIsEditModalOpen(false);
-            const invResp = await callBackendAPI('/inventory', null, 'GET');
+            const invResp = await callBackendAPI('/api/inventory', null, 'GET');
             setItems(invResp || []);
          }
       } catch (error) {
@@ -318,8 +318,8 @@ export const Inventory: React.FC = () => {
    const handleDeleteItem = async (id: string) => {
       if (window.confirm("CRITICAL: Permanently remove this asset node from the ledger?")) {
          try {
-            await callBackendAPI(`/inventory/${id}`, null, 'DELETE');
-            const invResp = await callBackendAPI('/inventory', null, 'GET');
+            await callBackendAPI(`/api/inventory/${id}`, null, 'DELETE');
+            const invResp = await callBackendAPI('/api/inventory', null, 'GET');
             setItems(invResp || []);
          } catch (error) {
             console.error('Delete failed:', error);

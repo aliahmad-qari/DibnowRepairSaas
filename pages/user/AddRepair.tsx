@@ -57,8 +57,8 @@ export const AddRepair: React.FC = () => {
       if (user) {
         try {
           const [dashResp, teamResp] = await Promise.all([
-            callBackendAPI('/dashboard/overview', null, 'GET'),
-            callBackendAPI('/team', null, 'GET')
+            callBackendAPI('/api/dashboard/overview', null, 'GET'),
+            callBackendAPI('/api/team', null, 'GET')
           ]);
 
           if (dashResp) {
@@ -149,7 +149,7 @@ export const AddRepair: React.FC = () => {
         }
       };
 
-      const response = await callBackendAPI('/repairs', payload, 'POST');
+      const response = await callBackendAPI('/api/repairs', payload, 'POST');
       if (response) {
         navigate('/user/repairs');
       }

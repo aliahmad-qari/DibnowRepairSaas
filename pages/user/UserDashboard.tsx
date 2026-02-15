@@ -66,15 +66,17 @@ export const UserDashboard: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const { currency, setManualCurrency, availableCurrencies, isDetecting } = useCurrency();
 
-  // Refresh user data on mount to get updated plan info
+  // Refresh user data ONLY on mount - no polling
   useEffect(() => {
     refreshUser();
-  }, [refreshUser]);
+  }, []); // Empty dependency array - runs only once on mount
 
   const [repairCompleteTimeframe, setRepairCompleteTimeframe] = useState('1year');
   const [repairRevTimeframe, setRepairRevTimeframe] = useState('1year');
   const [salesProfitTimeframe, setSalesProfitTimeframe] = useState('1year');
   const [stockRevTimeframe, setStockRevTimeframe] = useState('1year');
+  const [dailySalesTimeframe, setDailySalesTimeframe] = useState('1week');
+  const [profitLossTimeframe, setProfitLossTimeframe] = useState('1week');
 
   const [showTeamPopup, setShowTeamPopup] = useState(false);
   const [teamMemberDetails, setTeamMemberDetails] = useState<any>(null);
@@ -145,33 +147,70 @@ export const UserDashboard: React.FC = () => {
     };
 
     loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
-  }, [user]);
+  }, [user]); // Only depends on user, not refreshUser
 
-  const generateTrendData = (timeframe: string, type: 'repairs' | 'sales') => {
-    let points = [];
-    if (timeframe.includes('day')) {
-      points = Array.from({ length: 24 }, (_, i) => ({
-        name: `${i}:00`, value: Math.floor(Math.random() * 50) + 10, secondary: Math.floor(Math.random() * 20), revenue: Math.floor(Math.random() * 200) + 50
-      }));
-    } else if (timeframe.includes('week')) {
-      points = Array.from({ length: 7 }, (_, i) => ({
-        name: `Day ${i + 1}`, value: Math.floor(Math.random() * 100) + 20, secondary: Math.floor(Math.random() * 40), revenue: Math.floor(Math.random() * 500) + 100
-      }));
-    } else {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      points = months.map(m => ({
-        name: m, value: Math.floor(Math.random() * 1500) + 500, secondary: Math.floor(Math.random() * 600) + 100, revenue: Math.floor(Math.random() * 8000) + 2000
-      }));
-    }
-    return points;
+  // Filter data based on timeframe
+  const filterDataByTimeframe = (items: any[], timeframe: string) => {
+    const now = new Date();
+    const filtered = items.filter(item => {
+      const itemDate = new Date(item.createdAt || item.date);
+      const diffTime = now.getTime() - itemDate.getTime();
+      const diffDays = diffTime / (1000 * 3600 * 24);
+
+      switch(timeframe) {
+        case '1day': return diffDays <= 1;
+        case '2days': return diffDays <= 2;
+        case '3days': return diffDays <= 3;
+        case '4days': return diffDays <= 4;
+        case '1week': return diffDays <= 7;
+        case '4weeks': return diffDays <= 28;
+        case '1month': return diffDays <= 30;
+        case '2months': return diffDays <= 60;
+        case '3months': return diffDays <= 90;
+        case '1year': return diffDays <= 365;
+        default: return true;
+      }
+    });
+    return filtered;
   };
 
-  const repairCompleteData = useMemo(() => generateTrendData(repairCompleteTimeframe, 'repairs'), [repairCompleteTimeframe, data.repairs]);
-  const repairRevData = useMemo(() => generateTrendData(repairRevTimeframe, 'repairs'), [repairRevTimeframe, data.repairs]);
-  const salesProfitData = useMemo(() => generateTrendData(salesProfitTimeframe, 'sales'), [salesProfitTimeframe, data.sales]);
-  const stockRevData = useMemo(() => generateTrendData(stockRevTimeframe, 'sales'), [stockRevTimeframe, data.stock]);
+  // Generate chart data based on timeframe and real data
+  const generateChartData = (items: any[], timeframe: string, valueKey: string = 'count') => {
+    const filtered = filterDataByTimeframe(items, timeframe);
+    
+    if (timeframe.includes('day') && !timeframe.includes('days')) {
+      // Hourly data for single day
+      return Array.from({ length: 24 }, (_, i) => {
+        const count = filtered.filter(item => new Date(item.createdAt || item.date).getHours() === i).length;
+        const revenue = filtered.filter(item => new Date(item.createdAt || item.date).getHours() === i)
+          .reduce((sum, item) => sum + (parseFloat(item.cost || item.price || item.amount) || 0), 0);
+        return { name: `${i}:00`, value: count, revenue };
+      });
+    } else if (timeframe.includes('week') || timeframe.includes('days')) {
+      // Daily data for week
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return days.map((day, i) => {
+        const count = filtered.filter(item => new Date(item.createdAt || item.date).getDay() === i).length;
+        const revenue = filtered.filter(item => new Date(item.createdAt || item.date).getDay() === i)
+          .reduce((sum, item) => sum + (parseFloat(item.cost || item.price || item.amount) || 0), 0);
+        return { name: day, value: count, revenue, sales: count, profit: revenue * 0.3, loss: revenue * 0.1 };
+      });
+    } else {
+      // Monthly data
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return months.map((month, i) => {
+        const count = filtered.filter(item => new Date(item.createdAt || item.date).getMonth() === i).length;
+        const revenue = filtered.filter(item => new Date(item.createdAt || item.date).getMonth() === i)
+          .reduce((sum, item) => sum + (parseFloat(item.cost || item.price || item.amount) || 0), 0);
+        return { name: month, value: count, revenue, sales: count, profit: revenue * 0.3, loss: revenue * 0.1 };
+      });
+    }
+  };
+
+  const repairCompleteData = useMemo(() => generateChartData(data.repairs.filter(r => ['completed', 'delivered'].includes(r.status?.toLowerCase())), repairCompleteTimeframe), [repairCompleteTimeframe, data.repairs]);
+  const repairRevData = useMemo(() => generateChartData(data.repairs.filter(r => ['completed', 'delivered'].includes(r.status?.toLowerCase())), repairRevTimeframe), [repairRevTimeframe, data.repairs]);
+  const dailySalesData = useMemo(() => generateChartData(data.sales, dailySalesTimeframe), [dailySalesTimeframe, data.sales]);
+  const profitLossData = useMemo(() => generateChartData([...data.repairs, ...data.sales], profitLossTimeframe), [profitLossTimeframe, data.repairs, data.sales]);
 
   const handleClosePopup = () => {
     setShowTeamPopup(false);
@@ -212,16 +251,16 @@ export const UserDashboard: React.FC = () => {
     </div>
   );
 
-  const TimeFilterDropdown = ({ value, onChange }: any) => (
+  const TimeFilterDropdown = ({ value, onChange, dark = false }: any) => (
     <div className="relative">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest outline-none appearance-none pr-8 cursor-pointer hover:bg-slate-100 transition-colors"
+        className={`${dark ? 'bg-white/10 border-white/20 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'} border px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest outline-none appearance-none pr-8 cursor-pointer hover:${dark ? 'bg-white/20' : 'bg-slate-100'} transition-colors`}
       >
         {FILTER_OPTIONS.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
       </select>
-      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      <ChevronDown size={12} className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${dark ? 'text-white/60' : 'text-slate-400'} pointer-events-none`} />
     </div>
   );
 
@@ -374,6 +413,91 @@ export const UserDashboard: React.FC = () => {
           <div className="flex-1 p-6 flex flex-col items-center justify-center bg-slate-50/10">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cycle Revenue</h4>
             <div className="text-2xl font-black text-blue-600 mb-1">{currency.symbol}{totalRepairRevenue.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* NEW: Daily Stock Sales & Profit/Loss Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Daily Stock Sales Chart */}
+        <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-6 border-b border-white/10">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-black text-sm uppercase flex items-center gap-2">
+                <ShoppingCart size={18} /> Daily Stock Sales
+              </h3>
+              <TimeFilterDropdown value={dailySalesTimeframe} onChange={setDailySalesTimeframe} dark={true} />
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="flex items-baseline gap-2 mb-6">
+              <h2 className="text-4xl font-black text-white">{filterDataByTimeframe(data.sales, dailySalesTimeframe).length}</h2>
+              <span className="text-emerald-300 text-sm font-black flex items-center gap-1">
+                <TrendingUp size={16} /> {((filterDataByTimeframe(data.sales, dailySalesTimeframe).length / (data.sales.length || 1)) * 100).toFixed(1)}%
+              </span>
+            </div>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={dailySalesData}>
+                  <defs>
+                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00b4d8" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#00b4d8" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 10 }} />
+                  <YAxis hide />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#1e293b' }} 
+                    labelStyle={{ color: '#fff' }}
+                    itemStyle={{ color: '#00b4d8' }}
+                    formatter={(value: any) => [`${value} sales`, 'Total']}
+                  />
+                  <Area type="monotone" dataKey="sales" stroke="#00b4d8" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Profit & Loss Chart */}
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-6 border-b border-white/10">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-black text-sm uppercase flex items-center gap-2">
+                <TrendingUp size={18} /> Profit & Loss Analysis
+              </h3>
+              <TimeFilterDropdown value={profitLossTimeframe} onChange={setProfitLossTimeframe} dark={true} />
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                <p className="text-emerald-400 text-xs font-black uppercase tracking-widest mb-2">Total Revenue</p>
+                <p className="text-2xl font-black text-white">{currency.symbol}{profitLossData.reduce((sum, d) => sum + (d.revenue || 0), 0).toLocaleString()}</p>
+              </div>
+              <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
+                <p className="text-rose-400 text-xs font-black uppercase tracking-widest mb-2">Total Cost</p>
+                <p className="text-2xl font-black text-white">{currency.symbol}{profitLossData.reduce((sum, d) => sum + (d.loss || 0), 0).toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={profitLossData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 10 }} />
+                  <YAxis hide />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#1e293b' }} 
+                    labelStyle={{ color: '#fff' }}
+                    formatter={(value: any) => [`${currency.symbol}${value}`, '']}
+                  />
+                  <Line type="monotone" dataKey="profit" stroke="#4caf50" strokeWidth={2} dot={{ r: 4, fill: '#4caf50' }} name="Profit" />
+                  <Line type="monotone" dataKey="loss" stroke="#f44336" strokeWidth={2} dot={{ r: 4, fill: '#f44336' }} name="Loss" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>

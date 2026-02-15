@@ -7,9 +7,14 @@ const { authenticateToken } = require('../middleware/auth');
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const notifications = await Notification.find({ 
-      $or: [{ userId: userId }, { userId: 'global' }] 
-    }).sort({ createdAt: -1 });
+    const role = req.user.role;
+    
+    // Admin gets 'global' notifications, users get their own
+    const query = role === 'admin' || role === 'superadmin' 
+      ? { $or: [{ userId: 'global' }, { userId: userId }] }
+      : { $or: [{ userId: userId }, { userId: 'global' }] };
+    
+    const notifications = await Notification.find(query).sort({ createdAt: -1 });
     res.json(notifications);
   } catch (error) {
     console.error('Fetch notifications error:', error);
@@ -17,14 +22,35 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Mark single notification as read
+router.put('/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const notification = await Notification.findByIdAndUpdate(
+      req.params.id,
+      { $set: { read: true } },
+      { new: true }
+    );
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+    res.json(notification);
+  } catch (error) {
+    console.error('Mark read error:', error);
+    res.status(500).json({ message: 'Error updating notification' });
+  }
+});
+
 // Mark all as read
-router.post('/mark-all-read', authenticateToken, async (req, res) => {
+router.put('/mark-all-read', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    await Notification.updateMany(
-      { userId: userId, read: false },
-      { $set: { read: true } }
-    );
+    const role = req.user.role;
+    
+    const query = role === 'admin' || role === 'superadmin'
+      ? { $or: [{ userId: 'global' }, { userId: userId }], read: false }
+      : { userId: userId, read: false };
+    
+    await Notification.updateMany(query, { $set: { read: true } });
     res.json({ message: 'All notifications marked as read' });
   } catch (error) {
     console.error('Mark all read error:', error);

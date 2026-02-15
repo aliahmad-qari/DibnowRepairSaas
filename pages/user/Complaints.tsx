@@ -28,7 +28,7 @@ export const UserComplaints: React.FC = () => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const all = await callBackendAPI('/complaints', null, 'GET');
+        const all = await callBackendAPI('/api/complaints', null, 'GET');
         setComplaints(all || []);
       } catch (error) {
         console.error('Failed to load complaints:', error);
@@ -45,13 +45,13 @@ export const UserComplaints: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      await callBackendAPI('/complaints', {
+      await callBackendAPI('/api/complaints', {
         ...formData,
         user: user?.name,
         userId: user?._id || user?.id
       }, 'POST');
 
-      const all = await callBackendAPI('/complaints', null, 'GET');
+      const all = await callBackendAPI('/api/complaints', null, 'GET');
       setComplaints(all || []);
       setShowForm(false);
       setFormData({ subject: '', description: '', priority: 'medium' });
