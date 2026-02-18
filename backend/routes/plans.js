@@ -8,16 +8,20 @@ const { authenticateToken, adminOnly } = require('../middleware/auth');
 // Get all active plans (public route - no auth required)
 router.get('/all', async (req, res) => {
   try {
+    console.log('[PLANS] Fetching all plans...');
     const plans = await Plan.find({ isActive: true })
       .sort({ price: 1 }) // Sort by price ascending
       .select('_id name description price currency duration features stripePriceId isActive limits createdAt');
+
+    console.log('[PLANS] Found plans:', plans.length);
+    console.log('[PLANS] Plans data:', JSON.stringify(plans, null, 2));
 
     res.json({
       success: true,
       plans: plans
     });
   } catch (error) {
-    console.error('Get plans error:', error);
+    console.error('[PLANS] Get plans error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching plans'
@@ -162,90 +166,56 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
     const { planId, transactionId, amount, currency, method, notes } = req.body;
     const userId = req.user.userId;
 
-    console.log('[MANUAL PAYMENT] ========== NEW REQUEST ==========');
-    console.log('[MANUAL PAYMENT] Request received:', { userId, planId, amount, method, transactionId });
-    console.log('[MANUAL PAYMENT] Full request body:', req.body);
-
-    // Get user details
     const user = await User.findById(userId);
-    if (!user) {
-      console.error('[MANUAL PAYMENT] User not found:', userId);
-      return res.status(404).json({ message: 'User not found' });
-    }
-    console.log('[MANUAL PAYMENT] User found:', { id: user._id, name: user.name, email: user.email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Get plan details
     const plan = await Plan.findById(planId);
-    if (!plan) {
-      console.error('[MANUAL PAYMENT] Plan not found:', planId);
-      return res.status(404).json({ message: 'Plan not found' });
-    }
-    console.log('[MANUAL PAYMENT] Plan found:', { id: plan._id, name: plan.name });
+    if (!plan) return res.status(404).json({ message: 'Plan not found' });
 
-    // Create plan request
+    // DO NOT activate plan immediately - wait for admin approval
+    // Create plan request for admin approval
     const planRequest = new PlanRequest({
-      userId: userId,
+      userId,
       shopName: user.company || user.name,
       currentPlanId: user.planId || 'starter',
-      currentPlanName: user.planId || 'Starter',
+      currentPlanName: user.planName || 'Starter',
       requestedPlanId: plan._id.toString(),
       requestedPlanName: plan.name,
-      transactionId: transactionId,
-      amount: amount,
+      transactionId,
+      amount,
       currency: currency || 'PKR',
       manualMethod: method || 'Bank Transfer',
-      notes: notes,
-      status: 'pending',
-      invoiceStatus: 'unpaid'
+      notes,
+      status: 'pending', // Changed from 'approved' to 'pending'
+      invoiceStatus: 'pending' // Changed from 'paid' to 'pending'
     });
-
     await planRequest.save();
-    console.log('[MANUAL PAYMENT] Plan request saved successfully');
-    console.log('[MANUAL PAYMENT] Saved data:', {
-      _id: planRequest._id,
-      userId: planRequest.userId,
-      shopName: planRequest.shopName,
-      requestedPlanId: planRequest.requestedPlanId,
-      requestedPlanName: planRequest.requestedPlanName,
-      status: planRequest.status
-    });
 
-    // Create notifications
-    // 1. Notification for user
+    // Notify user that request is pending
     await Notification.create({
       userId: userId.toString(),
       ownerId: userId,
-      title: 'Plan Upgrade Request Submitted',
-      message: `Your request to upgrade to ${plan.name} plan has been submitted. It will be reviewed within 2-3 hours.`,
+      title: 'Payment Request Submitted',
+      message: `Your payment request for ${plan.name} plan has been submitted. Admin will review and activate your plan within 2-4 hours.`,
       type: 'info'
     });
-    console.log('[MANUAL PAYMENT] User notification created');
 
-    // 2. Notification for admin (global)
+    // Notify admin about new payment request
     await Notification.create({
       userId: 'global',
-      title: 'New Manual Plan Upgrade Request',
-      message: `${user.name} has requested to upgrade to ${plan.name} plan. Amount: ${currency} ${amount}`,
-      type: 'warning'
+      title: 'New Manual Payment Request',
+      message: `${user.name} submitted a manual payment request for ${plan.name} plan. Transaction ID: ${transactionId}`,
+      type: 'info'
     });
-    console.log('[MANUAL PAYMENT] Admin notification created');
-
-    console.log('[MANUAL PAYMENT] ========== REQUEST COMPLETE ==========');
 
     res.json({
       success: true,
-      message: 'Payment request submitted successfully. Admin will review and approve.',
-      requestId: planRequest._id,
-      request: planRequest
+      message: 'Payment request submitted successfully. Your plan will be activated after admin approval.',
+      requestId: planRequest._id
     });
   } catch (error) {
-    console.error('[MANUAL PAYMENT] ========== ERROR ==========');
     console.error('[MANUAL PAYMENT] Error:', error);
-    console.error('[MANUAL PAYMENT] Stack:', error.stack);
-    res.status(500).json({ 
-      message: 'Error submitting payment request',
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Error submitting payment request' });
   }
 });
 

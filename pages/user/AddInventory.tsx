@@ -37,8 +37,10 @@ export const AddInventory: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadPrerequisites = async () => {
-      if (user) {
+      if (user && isMounted) {
         try {
           const [dashResp, brandsResp, catsResp] = await Promise.all([
             callBackendAPI('/api/dashboard/overview', null, 'GET'),
@@ -46,31 +48,38 @@ export const AddInventory: React.FC = () => {
             callBackendAPI('/api/categories', null, 'GET')
           ]);
 
+          if (!isMounted) return;
+
           if (dashResp) {
-            const plan = dashResp.plans.find((p: any) =>
-              p.name.toLowerCase() === user.planId.toLowerCase() ||
-              (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
-              (user.planId === 'basic' && p.name === 'BASIC') ||
-              (user.planId === 'premium' && p.name === 'PREMIUM') ||
-              (user.planId === 'gold' && p.name === 'GOLD')
-            ) || dashResp.plans[0];
+            const planId = typeof user.planId === 'object' ? user.planId.toString() : user.planId;
+            const plan = dashResp.plans?.find((p: any) =>
+              p._id === planId || p.id === planId || 
+              (typeof planId === 'string' && p.name?.toLowerCase() === planId.toLowerCase())
+            ) || dashResp.plans?.[0];
 
             setActivePlan(plan);
-            if (plan && plan.limits && dashResp.stockCount >= plan.limits.inventoryItems) {
+            if (plan?.limits && dashResp.stockCount >= plan.limits.inventoryItems) {
               setIsLimitReached(true);
             }
           }
 
-          setAvailableBrands(brandsResp || []);
-          setAvailableCategories(catsResp || []);
+          const brands = Array.isArray(brandsResp) ? brandsResp : (brandsResp?.data || []);
+          const cats = Array.isArray(catsResp) ? catsResp : (catsResp?.data || []);
+          
+          setAvailableBrands(brands);
+          setAvailableCategories(cats);
+          console.log('[AddInventory] Loaded brands:', brands.length, 'categories:', cats.length);
         } catch (error) {
           console.error('Failed to load prerequisites:', error);
+          setAvailableBrands([]);
+          setAvailableCategories([]);
         }
       }
     };
 
     loadPrerequisites();
-  }, [user]);
+    return () => { isMounted = false; };
+  }, [user?.id]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,6 +114,8 @@ export const AddInventory: React.FC = () => {
 
       const response = await callBackendAPI('/api/inventory', payload, 'POST');
       if (response) {
+        // Dispatch inventory update event to refresh other components
+        window.dispatchEvent(new CustomEvent('inventoryUpdated'));
         navigate('/user/inventory');
       }
     } catch (error: any) {
@@ -204,7 +215,7 @@ export const AddInventory: React.FC = () => {
               <div className="relative">
                 <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                 <select required className="w-full pl-12 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm appearance-none cursor-pointer" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })}>
-                  <option value="">Select Brand</option>
+                  <option value="">Select Brand ({availableBrands.length} available)</option>
                   {availableBrands.map(b => <option key={b._id || b.id} value={b.name}>{b.name}</option>)}
                 </select>
               </div>
@@ -215,7 +226,7 @@ export const AddInventory: React.FC = () => {
               <div className="relative">
                 <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                 <select required className="w-full pl-12 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm appearance-none cursor-pointer" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
-                  <option value="">Select Category</option>
+                  <option value="">Select Category ({availableCategories.length} available)</option>
                   {availableCategories.map(c => <option key={c._id || c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>

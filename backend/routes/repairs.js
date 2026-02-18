@@ -10,6 +10,9 @@ const {
   optionalAuth 
 } = require('../middleware/auth');
 
+// Permission middleware
+const { checkPermission, checkUserStatus } = require('../middleware/permissions');
+
 // Security middleware
 const { 
   apiLimiter, 
@@ -101,7 +104,7 @@ router.post('/search', async (req, res) => {
 // ==================== PROTECTED ROUTES (Auth Required) ====================
 
 // Get all repairs for logged-in user
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, checkUserStatus, checkPermission('repairs'), async (req, res) => {
   try {
     const { status, priority, page = 1, limit = 20 } = req.query;
     
@@ -152,7 +155,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create new repair
-router.post('/', authenticateToken, checkLimits('repairsPerMonth'), async (req, res) => {
+router.post('/', authenticateToken, checkUserStatus, checkPermission('repairs'), checkLimits('repairsPerMonth'), async (req, res) => {
   try {
     const {
       customerName,
@@ -241,6 +244,35 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Update status error:', error);
     res.status(500).json({ message: 'Error updating status' });
+  }
+});
+
+// Update protocol status
+router.patch('/:id/protocol-status', authenticateToken, async (req, res) => {
+  try {
+    const { protocolStatus } = req.body;
+    console.log('[REPAIR] Protocol status update request:', { id: req.params.id, protocolStatus, userId: req.user.userId });
+
+    const repair = await Repair.findOneAndUpdate(
+      { _id: req.params.id, ownerId: req.user.userId },
+      { protocolStatus },
+      { new: true, runValidators: true }
+    );
+
+    if (!repair) {
+      console.log('[REPAIR] Repair not found for update');
+      return res.status(404).json({ message: 'Repair not found' });
+    }
+
+    console.log(`[REPAIR] Protocol status updated: ${repair.trackingId} -> ${protocolStatus}`);
+
+    res.json({
+      message: 'Protocol status updated successfully',
+      repair
+    });
+  } catch (error) {
+    console.error('Update protocol status error:', error);
+    res.status(500).json({ message: 'Error updating protocol status', error: error.message });
   }
 });
 

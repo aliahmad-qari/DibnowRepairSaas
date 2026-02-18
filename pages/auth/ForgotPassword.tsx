@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { 
   Mail, Lock, ArrowLeft, AlertCircle, CheckCircle, 
@@ -8,16 +8,21 @@ import {
 
 export const ForgotPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [step, setStep] = useState<'request' | 'reset' | 'success'>('request');
+  const navigate = useNavigate();
+  
+  // Steps: email -> otp -> password -> success
+  const [step, setStep] = useState<'email' | 'otp' | 'password' | 'success'>('email');
   const [email, setEmail] = useState(searchParams.get('email') || '');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const token = searchParams.get('token');
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Password strength requirements
   const passwordRequirements = [
@@ -57,7 +62,8 @@ export const ForgotPassword: React.FC = () => {
     return true;
   };
 
-  const handleRequestReset = async (e: React.FormEvent) => {
+  // Step 1: Send OTP to email
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setMessage(null);
@@ -88,10 +94,21 @@ export const ForgotPassword: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || 'Failed to send reset link');
+        setError(data.message || 'Failed to send OTP');
       } else {
-        setMessage('If an account with that email exists, a password reset link has been sent.');
-        setStep('success');
+        setMessage('A 6-digit code has been sent to your email. Please enter it below.');
+        setStep('otp');
+        
+        // Auto-fill OTP if returned
+        if (data.otp) {
+          const otpDigits = data.otp.split('');
+          setOtp(otpDigits);
+        }
+        
+        // Focus first OTP input
+        setTimeout(() => {
+          otpRefs.current[0]?.focus();
+        }, 100);
       }
     } catch (error) {
       setError('Connection error. Please try again.');
@@ -100,6 +117,85 @@ export const ForgotPassword: React.FC = () => {
     }
   };
 
+  // Handle OTP input change
+  const handleOtpChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d+$/.test(value)) return;
+
+    const newOtp = [...otp];
+    
+    // Handle paste event (multiple digits)
+    if (value.length > 1) {
+      const digits = value.slice(0, 6).split('');
+      digits.forEach((digit, i) => {
+        if (i < 6) {
+          newOtp[i] = digit;
+        }
+      });
+      setOtp(newOtp);
+      // Focus last filled input or the next empty one
+      const nextIndex = Math.min(digits.length, 5);
+      otpRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  // Handle OTP key down (for backspace)
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Step 2: Verify OTP
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    setIsLoading(true);
+
+    const otpCode = otp.join('');
+    if (otpCode.length !== 6) {
+      setError('Please enter the complete 6-digit code');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/users/verify-reset-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, otp: otpCode })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Invalid OTP code');
+      } else {
+        // Store the reset token for password reset
+        setResetToken(data.resetToken || otpCode);
+        setMessage('OTP verified successfully. Please set your new password.');
+        setStep('password');
+      }
+    } catch (error) {
+      setError('Connection error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 3: Reset Password
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -118,8 +214,9 @@ export const ForgotPassword: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          token, 
           email, 
+          token: resetToken,
+          otp: otp.join(''),
           password, 
           confirmPassword 
         })
@@ -130,7 +227,9 @@ export const ForgotPassword: React.FC = () => {
       if (!response.ok) {
         setError(data.message || 'Failed to reset password');
       } else {
-        setMessage('Password reset successful! Redirecting to login...');
+        setMessage('Password reset successful!');
+        setStep('success');
+        // Redirect to login after 2 seconds
         setTimeout(() => {
           navigate('/auth/login');
         }, 2000);
@@ -142,12 +241,48 @@ export const ForgotPassword: React.FC = () => {
     }
   };
 
-  // Check if we have a token in URL
-  React.useEffect(() => {
-    if (token) {
-      setStep('reset');
+  // Resend OTP
+  const handleResendOTP = async () => {
+    setError(null);
+    setMessage(null);
+    setIsLoading(true);
+    setOtp(['', '', '', '', '', '']);
+
+    try {
+      const response = await fetch('/api/users/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Failed to resend OTP');
+      } else {
+        setMessage('A new 6-digit code has been sent to your email.');
+        otpRefs.current[0]?.focus();
+      }
+    } catch (error) {
+      setError('Connection error. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-  }, [token]);
+  };
+
+  // Auto-submit OTP when all 6 digits are entered
+  useEffect(() => {
+    const otpCode = otp.join('');
+    if (otpCode.length === 6 && step === 'otp') {
+      // Auto verify after a short delay
+      const timer = setTimeout(() => {
+        handleVerifyOTP({ preventDefault: () => {} } as React.FormEvent);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [otp, step]);
 
   return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6 relative overflow-hidden">
@@ -172,17 +307,21 @@ export const ForgotPassword: React.FC = () => {
             {/* Header */}
             <div className="text-center mb-10">
               <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Lock size={28} className="text-indigo-600" />
+                {step === 'email' && <Mail size={28} className="text-indigo-600" />}
+                {step === 'otp' && <ShieldCheck size={28} className="text-indigo-600" />}
+                {(step === 'password' || step === 'success') && <Lock size={28} className="text-indigo-600" />}
               </div>
               <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">
-                {step === 'request' && 'Forgot Password'}
-                {step === 'reset' && 'Reset Password'}
-                {step === 'success' && 'Check Your Email'}
+                {step === 'email' && 'Forgot Password'}
+                {step === 'otp' && 'Verify Code'}
+                {step === 'password' && 'Reset Password'}
+                {step === 'success' && 'Success!'}
               </h1>
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">
-                {step === 'request' && 'Enter your email to receive a reset link'}
-                {step === 'reset' && 'Enter your new password'}
-                {step === 'success' && 'We\'ve sent you instructions'}
+                {step === 'email' && 'Enter your email to receive a verification code'}
+                {step === 'otp' && 'Enter the 6-digit code sent to your email'}
+                {step === 'password' && 'Enter your new password'}
+                {step === 'success' && 'Your password has been reset'}
               </p>
             </div>
 
@@ -202,9 +341,9 @@ export const ForgotPassword: React.FC = () => {
               </div>
             )}
 
-            {/* Request Reset Form */}
-            {step === 'request' && (
-              <form onSubmit={handleRequestReset} className="space-y-6">
+            {/* Step 1: Email Form */}
+            {step === 'email' && (
+              <form onSubmit={handleSendOTP} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Email Address</label>
                   <div className="relative">
@@ -233,14 +372,76 @@ export const ForgotPassword: React.FC = () => {
                       Sending...
                     </>
                   ) : (
-                    'Send Reset Link'
+                    'Send Verification Code'
                   )}
                 </button>
               </form>
             )}
 
-            {/* Reset Password Form */}
-            {step === 'reset' && (
+            {/* Step 2: OTP Form */}
+            {step === 'otp' && (
+              <form onSubmit={handleVerifyOTP} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1 text-center block">
+                    Enter 6-Digit Code
+                  </label>
+                  <div className="flex justify-center gap-3">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => { otpRefs.current[index] = el; }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        className="w-12 h-14 text-center text-xl font-black bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pastedData = e.clipboardData.getData('text');
+                          handleOtpChange(0, pastedData);
+                        }}
+                        disabled={isLoading}
+                        autoFocus={index === 0}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-center text-slate-400 text-xs mt-2">
+                    Code sent to: <span className="font-bold text-slate-600">{email}</span>
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || otp.join('').length !== 6}
+                  className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl hover:scale-[1.01] active:scale-95 transition-all text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify Code'
+                  )}
+                </button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={isLoading}
+                    className="text-indigo-600 text-xs font-bold hover:underline disabled:opacity-50"
+                  >
+                    Didn't receive the code? Resend
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 3: Password Form */}
+            {step === 'password' && (
               <form onSubmit={handleResetPassword} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">New Password</label>
@@ -311,14 +512,14 @@ export const ForgotPassword: React.FC = () => {
               </form>
             )}
 
-            {/* Success State */}
+            {/* Step 4: Success State */}
             {step === 'success' && (
               <div className="text-center space-y-6">
                 <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle size={40} className="text-emerald-500" />
                 </div>
                 <p className="text-sm text-slate-600">
-                  {message}
+                  Your password has been reset successfully. Redirecting to login...
                 </p>
                 <Link
                   to="/auth/login"

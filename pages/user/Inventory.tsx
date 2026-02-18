@@ -75,11 +75,11 @@ export const Inventory: React.FC = () => {
                callBackendAPI('/api/dashboard/overview', null, 'GET')
             ]);
 
-            setItems(invResp || []);
-            setSales(salesResp || []);
-            setRepairs(repairsResp || []);
+            setItems(Array.isArray(invResp) ? invResp : []);
+            setSales(Array.isArray(salesResp) ? salesResp : []);
+            setRepairs(Array.isArray(repairsResp) ? repairsResp : []);
             const activResp = await callBackendAPI('/api/activities', null, 'GET');
-            setActivityLogs(activResp || []);
+            setActivityLogs(Array.isArray(activResp) ? activResp : []);
 
             if (dashResp && dashResp.plans) {
                const plan = dashResp.plans.find((p: any) => p.id === user.planId) || dashResp.plans[0];
@@ -93,8 +93,16 @@ export const Inventory: React.FC = () => {
       };
 
       loadData();
+      
+      const handleInventoryUpdate = () => loadData();
+      
       window.addEventListener('storage', loadData);
-      return () => window.removeEventListener('storage', loadData);
+      window.addEventListener('inventoryUpdated', handleInventoryUpdate);
+      
+      return () => {
+         window.removeEventListener('storage', loadData);
+         window.removeEventListener('inventoryUpdated', handleInventoryUpdate);
+      };
    }, [user]);
 
    // COMPARISON ANALYTICS ENGINE
@@ -144,12 +152,12 @@ export const Inventory: React.FC = () => {
          salesMap[s.productId] = (salesMap[s.productId] || 0) + s.qty;
       });
 
-      const fastMoving = [...items]
+      const fastMoving = (Array.isArray(items) ? [...items] : [])
          .map(i => ({ ...i, salesCount: salesMap[i._id || i.id] || 0 }))
          .sort((a, b) => b.salesCount - a.salesCount)
          .slice(0, 5);
 
-      const profitability = items.map(i => {
+      const profitability = (Array.isArray(items) ? items : []).map(i => {
          const cost = i.actualCost || i.price * 0.6;
          const margin = i.price - cost;
          const marginPercent = i.price > 0 ? (margin / i.price) * 100 : 0;
@@ -169,35 +177,40 @@ export const Inventory: React.FC = () => {
 
    const movementLedger = useMemo(() => {
       const list: any[] = [];
-      sales.forEach(s => {
-         list.push({
-            date: s.date,
-            timestamp: s.timestamp,
-            product: s.productName,
-            actionType: 'SALE',
-            qty: -s.qty,
-            ref: `#${s.id.slice(-4)}`,
-            user: 'Staff Terminal',
-            icon: TrendingDown,
-            color: 'text-rose-600'
-         });
-      });
-
-      repairs.forEach(r => {
-         if (r.status === 'completed' || r.status === 'delivered') {
+      
+      if (Array.isArray(sales)) {
+         sales.forEach(s => {
             list.push({
-               date: r.date,
-               timestamp: r.createdAt || r.date,
-               product: r.device,
-               actionType: 'REPAIR',
-               qty: -1,
-               ref: r.trackingId || `#${r.id.slice(-4)}`,
-               user: r.assignedTo || 'Technician',
-               icon: Wrench,
-               color: 'text-amber-600'
+               date: s.date,
+               timestamp: s.timestamp,
+               product: s.productName,
+               actionType: 'SALE',
+               qty: -s.qty,
+               ref: `#${(s.id || s._id || '').toString().slice(-4)}`,
+               user: 'Staff Terminal',
+               icon: TrendingDown,
+               color: 'text-rose-600'
             });
-         }
-      });
+         });
+      }
+
+      if (Array.isArray(repairs)) {
+         repairs.forEach(r => {
+            if (r.status === 'completed' || r.status === 'delivered') {
+               list.push({
+                  date: r.date,
+                  timestamp: r.createdAt || r.date,
+                  product: r.device,
+                  actionType: 'REPAIR',
+                  qty: -1,
+                  ref: r.trackingId || `#${(r.id || r._id || '').toString().slice(-4)}`,
+                  user: r.assignedTo || 'Technician',
+                  icon: Wrench,
+                  color: 'text-amber-600'
+               });
+            }
+         });
+      }
 
       return list.sort((a, b) => {
          const timeA = new Date(a.timestamp || a.date).getTime();
@@ -258,8 +271,10 @@ export const Inventory: React.FC = () => {
             // Refresh local data
             const invResp = await callBackendAPI('/api/inventory', null, 'GET');
             const salesResp = await callBackendAPI('/api/sales', null, 'GET');
-            setItems(invResp || []);
-            setSales(salesResp || []);
+            setItems(Array.isArray(invResp) ? invResp : []);
+            setSales(Array.isArray(salesResp) ? salesResp : []);
+            // Dispatch inventory update event
+            window.dispatchEvent(new CustomEvent('inventoryUpdated'));
          }
       } catch (error) {
          console.error('Sale registration failed:', error);
@@ -305,7 +320,9 @@ export const Inventory: React.FC = () => {
             }, 'POST');
             setIsEditModalOpen(false);
             const invResp = await callBackendAPI('/api/inventory', null, 'GET');
-            setItems(invResp || []);
+            setItems(Array.isArray(invResp) ? invResp : []);
+            // Dispatch inventory update event
+            window.dispatchEvent(new CustomEvent('inventoryUpdated'));
          }
       } catch (error) {
          console.error('Update failed:', error);
@@ -320,7 +337,9 @@ export const Inventory: React.FC = () => {
          try {
             await callBackendAPI(`/api/inventory/${id}`, null, 'DELETE');
             const invResp = await callBackendAPI('/api/inventory', null, 'GET');
-            setItems(invResp || []);
+            setItems(Array.isArray(invResp) ? invResp : []);
+            // Dispatch inventory update event
+            window.dispatchEvent(new CustomEvent('inventoryUpdated'));
          } catch (error) {
             console.error('Delete failed:', error);
             alert('Failed to delete item.');

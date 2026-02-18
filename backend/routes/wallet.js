@@ -64,7 +64,7 @@ router.post('/:userId/deduct', async (req, res) => {
     // Create transaction record
     const transaction = new Transaction({
       userId: req.params.userId,
-      transactionType: planId ? 'subscription' : 'wallet_deduction',
+      transactionType: planId ? 'subscription' : 'wallet_topup',
       amount: -amount,
       currency: wallet.currency,
       status: 'completed',
@@ -78,10 +78,20 @@ router.post('/:userId/deduct', async (req, res) => {
     wallet.transactions.push(transaction._id);
     await wallet.save();
 
-    // If this is a subscription purchase, update user's planId
+    // If this is a subscription purchase, update user's planId and create notification
     if (planId) {
       const User = require('../models/User');
+      const Notification = require('../models/Notification');
       await User.findByIdAndUpdate(req.params.userId, { planId: planId, status: 'active' });
+      
+      // Create success notification
+      await Notification.create({
+        userId: req.params.userId,
+        title: 'Subscription Activated',
+        message: `Your subscription has been successfully activated. Invoice #${transaction._id.toString().slice(-8).toUpperCase()} has been generated.`,
+        type: 'success'
+      });
+      
       console.log(`[WALLET] Updated user ${req.params.userId} planId to ${planId}`);
     }
 

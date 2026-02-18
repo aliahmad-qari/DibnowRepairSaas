@@ -16,10 +16,13 @@ export const UserNotifications: React.FC = () => {
   const loadNotifications = async () => {
     setIsLoading(true);
     try {
-      const resp = await callBackendAPI('/notifications', null, 'GET');
-      setNotifications(resp || []);
+      const resp = await callBackendAPI('/api/notifications', null, 'GET');
+      // Ensure we always have an array
+      const notifArray = Array.isArray(resp) ? resp : (resp?.data || []);
+      setNotifications(notifArray);
     } catch (error) {
       console.error('Signal breach during telemetry fetch:', error);
+      setNotifications([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -37,7 +40,7 @@ export const UserNotifications: React.FC = () => {
   const handleMarkAllRead = async () => {
     if (!user) return;
     try {
-      await callBackendAPI('/notifications/mark-all-read', {}, 'POST');
+      await callBackendAPI('/api/notifications/mark-all-read', {}, 'POST');
       loadNotifications();
     } catch (error) {
       console.error('Batch read handshake failed:', error);
@@ -46,7 +49,7 @@ export const UserNotifications: React.FC = () => {
 
   const handleDeleteNotification = async (id: string) => {
     try {
-      await callBackendAPI(`/notifications/${id}`, null, 'DELETE');
+      await callBackendAPI(`/api/notifications/${id}`, null, 'DELETE');
       loadNotifications();
     } catch (error) {
       console.error('Node deletion failed:', error);

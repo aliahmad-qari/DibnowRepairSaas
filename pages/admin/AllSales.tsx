@@ -1,13 +1,29 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Search, Filter, TrendingUp, Store, Clock } from 'lucide-react';
+import { adminApi } from '../../api/adminApi';
 
 export const AllSales: React.FC = () => {
-  const sales = [
-    { id: 'INV-8821', shop: 'Elite Mobile', product: 'iPhone 13 Display', amount: 345.00, date: 'Today, 02:30 PM', status: 'Completed' },
-    { id: 'INV-8822', shop: 'QuickFix Shop', product: 'S22 Ultra Charging Port', amount: 85.00, date: 'Today, 01:15 PM', status: 'Completed' },
-    { id: 'INV-8823', shop: 'Downtown Elec', product: 'MacBook Air M1 Keyboard', amount: 1200.00, date: 'Yesterday', status: 'Pending' },
-  ];
+  const [sales, setSales] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSales = async () => {
+      try {
+        setLoading(true);
+        const data = await adminApi.getAllSales();
+        setSales(data);
+      } catch (error) {
+        console.error('Failed to fetch sales:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSales();
+  }, []);
+
+  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+  const avgOrderValue = sales.length > 0 ? totalRevenue / sales.length : 0;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -22,13 +38,13 @@ export const AllSales: React.FC = () => {
         <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-indigo-50/10">
            <div className="flex items-center gap-6">
               <div className="text-center">
-                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Daily Volume</p>
-                 <p className="text-xl font-black text-emerald-600 tracking-tight">£18,245.00</p>
+                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Revenue</p>
+                 <p className="text-xl font-black text-emerald-600 tracking-tight">£{totalRevenue.toFixed(2)}</p>
               </div>
               <div className="h-10 w-px bg-slate-200" />
               <div className="text-center">
                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Avg. Order Value</p>
-                 <p className="text-xl font-black text-indigo-600 tracking-tight">£142.50</p>
+                 <p className="text-xl font-black text-indigo-600 tracking-tight">£{avgOrderValue.toFixed(2)}</p>
               </div>
            </div>
            <div className="flex gap-2">
@@ -49,30 +65,43 @@ export const AllSales: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {sales.map((sale) => (
-                <tr key={sale.id} className="hover:bg-slate-50 transition-all group">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading Sales...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : sales.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-8 py-20 text-center text-slate-400 font-bold">No sales found</td>
+                </tr>
+              ) : sales.map((sale) => (
+                <tr key={sale._id} className="hover:bg-slate-50 transition-all group">
                   <td className="px-8 py-6">
-                    <span className="text-[11px] font-black text-indigo-600 uppercase tracking-tighter">{sale.id}</span>
+                    <span className="text-[11px] font-black text-indigo-600 uppercase tracking-tighter">{sale.invoiceNumber || sale._id.slice(-8)}</span>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2 text-slate-800 font-bold text-sm tracking-tight">
                        <Store size={14} className="text-slate-400" />
-                       {sale.shop}
+                       Shop #{sale.ownerId?.slice(-6) || 'N/A'}
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <p className="text-sm font-bold text-slate-600">{sale.product}</p>
+                    <p className="text-sm font-bold text-slate-600">{sale.productName || 'Product'}</p>
                   </td>
                   <td className="px-8 py-6 text-right font-black text-slate-900 text-sm">
-                    £{sale.amount.toLocaleString()}
+                    £{(sale.total || 0).toLocaleString()}
                   </td>
                   <td className="px-8 py-6 text-center">
-                    <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${sale.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                       {sale.status}
+                    <span className="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600">
+                       Completed
                     </span>
                   </td>
                   <td className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    {sale.date}
+                    {new Date(sale.date || sale.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
               ))}

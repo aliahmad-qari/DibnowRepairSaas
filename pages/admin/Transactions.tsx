@@ -1,15 +1,40 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreditCard, Search, Download, Filter, ArrowUpRight, ArrowDownLeft, ExternalLink } from 'lucide-react';
+import { adminApi } from '../../api/adminApi';
 
 export const AdminTransactions: React.FC = () => {
-  const globalTransactions = [
-    { id: 'GT-001', shop: 'Elite Mobile', type: 'subscription', amount: 299.00, status: 'success', date: 'Oct 24, 2023, 14:20', gateway: 'Stripe' },
-    { id: 'GT-002', shop: 'QuickFix Shop', type: 'wallet_topup', amount: 50.00, status: 'success', date: 'Oct 24, 2023, 13:15', gateway: 'PayPal' },
-    { id: 'GT-003', shop: 'Downtown Elec', type: 'subscription', amount: 99.00, status: 'failed', date: 'Oct 24, 2023, 12:05', gateway: 'Stripe' },
-    { id: 'GT-004', shop: 'Gadget Gurus', type: 'subscription', amount: 299.00, status: 'success', date: 'Oct 24, 2023, 09:40', gateway: 'PayFast' },
-    { id: 'GT-005', shop: 'Elite Mobile', type: 'wallet_topup', amount: 100.00, status: 'success', date: 'Oct 23, 2023, 16:22', gateway: 'Internal' },
-  ];
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        const data = await adminApi.getAllTransactions();
+        setTransactions(data);
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTransactions();
+  }, []);
+
+  const today = new Date();
+  const dailyRevenue = transactions
+    .filter(t => {
+      const txDate = new Date(t.createdAt);
+      return txDate.toDateString() === today.toDateString() && t.status === 'completed';
+    })
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+  const refundRate = transactions.length > 0
+    ? ((transactions.filter(t => t.status === 'refunded').length / transactions.length) * 100).toFixed(1)
+    : 0;
+
+  const activeTopups = transactions.filter(t => t.transactionType === 'wallet_topup' && t.status === 'completed').length;
 
   return (
     <div className="space-y-8">
@@ -28,29 +53,29 @@ export const AdminTransactions: React.FC = () => {
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <p className="text-slate-500 text-sm font-medium">Daily Revenue</p>
           <div className="flex items-center gap-2 mt-2">
-            <h3 className="text-2xl font-bold">$12,450</h3>
-            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-bold">+8%</span>
+            <h3 className="text-2xl font-bold">${dailyRevenue.toFixed(2)}</h3>
+            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-bold">Today</span>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <p className="text-slate-500 text-sm font-medium">Refund Rate</p>
           <div className="flex items-center gap-2 mt-2">
-            <h3 className="text-2xl font-bold">0.4%</h3>
+            <h3 className="text-2xl font-bold">{refundRate}%</h3>
             <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-bold">Good</span>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <p className="text-slate-500 text-sm font-medium">Active Top-ups</p>
           <div className="flex items-center gap-2 mt-2">
-            <h3 className="text-2xl font-bold">142</h3>
-            <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">New</span>
+            <h3 className="text-2xl font-bold">{activeTopups}</h3>
+            <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">Total</span>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-          <p className="text-slate-500 text-sm font-medium">Gateway Fees</p>
+          <p className="text-slate-500 text-sm font-medium">Total Transactions</p>
           <div className="flex items-center gap-2 mt-2">
-            <h3 className="text-2xl font-bold">$842</h3>
-            <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full font-bold">Est.</span>
+            <h3 className="text-2xl font-bold">{transactions.length}</h3>
+            <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full font-bold">All Time</span>
           </div>
         </div>
       </div>
@@ -87,24 +112,37 @@ export const AdminTransactions: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {globalTransactions.map((tx) => (
-                <tr key={tx.id} className="hover:bg-slate-50/80 transition-all">
-                  <td className="px-6 py-4 font-mono text-xs font-bold text-indigo-600">{tx.id}</td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-bold text-slate-800">{tx.shop}</p>
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading Transactions...</p>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 capitalize text-xs font-medium text-slate-500">{tx.type.replace('_', ' ')}</td>
-                  <td className="px-6 py-4 font-bold text-slate-900">${tx.amount.toFixed(2)}</td>
+                </tr>
+              ) : transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-20 text-center text-slate-400 font-bold">No transactions found</td>
+                </tr>
+              ) : transactions.map((tx) => (
+                <tr key={tx._id} className="hover:bg-slate-50/80 transition-all">
+                  <td className="px-6 py-4 font-mono text-xs font-bold text-indigo-600">{tx._id.slice(-8)}</td>
                   <td className="px-6 py-4">
-                    <span className="text-xs bg-slate-100 px-2 py-1 rounded-md font-bold text-slate-600 uppercase tracking-tighter">{tx.gateway}</span>
+                    <p className="text-sm font-bold text-slate-800">{tx.userId?.name || 'User'}</p>
+                  </td>
+                  <td className="px-6 py-4 capitalize text-xs font-medium text-slate-500">{tx.transactionType?.replace('_', ' ')}</td>
+                  <td className="px-6 py-4 font-bold text-slate-900">${(tx.amount || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs bg-slate-100 px-2 py-1 rounded-md font-bold text-slate-600 uppercase tracking-tighter">{tx.paymentMethod}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center w-fit gap-1 ${tx.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${tx.status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center w-fit gap-1 ${tx.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : tx.status === 'failed' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${tx.status === 'completed' ? 'bg-emerald-500' : tx.status === 'failed' ? 'bg-rose-500' : 'bg-amber-500'}`} />
                       {tx.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs text-slate-400 font-medium whitespace-nowrap">{tx.date}</td>
+                  <td className="px-6 py-4 text-xs text-slate-400 font-medium whitespace-nowrap">{new Date(tx.createdAt).toLocaleString()}</td>
                   <td className="px-6 py-4 text-right">
                     <button className="text-slate-300 hover:text-indigo-600 transition-colors">
                       <ExternalLink size={18} />

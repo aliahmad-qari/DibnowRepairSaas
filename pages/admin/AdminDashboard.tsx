@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { db } from '../../api/db.ts';
+import { adminApi } from '../../api/adminApi';
 
 const HealthNode = ({ label, status, icon: Icon }: any) => (
   <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-all shadow-sm">
@@ -93,44 +94,66 @@ export const AdminDashboard: React.FC = () => {
   const [timeframe, setTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const [intelTimeframe, setIntelTimeframe] = useState<3 | 6 | 12>(12);
   const [plFilter, setPlFilter] = useState<3 | 6 | 12>(12);
+  const [aggregationData, setAggregationData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const syncData = () => {
-      setActivityLogs(db.activity.getAll());
-      setAdminAuditLogs(db.audit.getAll());
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await adminApi.getAggregation();
+        setAggregationData(data);
+        setActivityLogs(db.activity.getAll());
+        setAdminAuditLogs(db.audit.getAll());
+      } catch (error) {
+        console.error('Failed to fetch admin data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    syncData();
-    window.addEventListener('storage', syncData);
-    return () => window.removeEventListener('storage', syncData);
+    fetchData();
   }, []);
 
   // DASHBOARD AGGREGATION ENGINE
   const dashboardStats = useMemo(() => {
-    const inventory = db.inventory.getAll();
-    const sales = db.sales.getAll();
-    const repairs = db.repairs.getAll();
-    const team = db.userTeamV2.getAll();
-    const users = db.users.getAll();
-    const complaints = db.complaints.getAll();
+    if (!aggregationData) {
+      return {
+        stockProducts: 0,
+        salesProducts: 0,
+        repairProducts: 0,
+        totalTeam: 0,
+        pendingOrders: 0,
+        completedRepairs: 0,
+        stockTotalSales: 0,
+        allUsers: 0,
+        activeUsers: 0,
+        expiredUsers: 0,
+        freeTrialUsers: 0,
+        allComplaints: 0,
+        pendingComplaints: 0,
+        completedComplaints: 0,
+        planBoughtUsers: 0
+      };
+    }
 
     return {
-      stockProducts: inventory.length,
-      salesProducts: sales.length,
-      repairProducts: repairs.length,
-      totalTeam: team.length,
-      pendingOrders: repairs.filter(r => r.status.toLowerCase() === 'pending').length,
-      completedRepairs: repairs.filter(r => ['completed', 'delivered'].includes(r.status.toLowerCase())).length,
-      stockTotalSales: sales.reduce((acc, curr) => acc + curr.total, 0),
-      allUsers: users.length,
-      activeUsers: users.filter(u => u.status === 'active').length,
-      expiredUsers: users.filter(u => u.status === 'expired').length,
-      freeTrialUsers: users.filter(u => !u.planId || u.planId === 'starter').length,
-      allComplaints: complaints.length,
-      pendingComplaints: complaints.filter(c => c.status === 'pending').length,
-      completedComplaints: complaints.filter(c => c.status === 'resolved').length,
-      planBoughtUsers: users.filter(u => u.planId && u.planId !== 'starter').length
+      stockProducts: aggregationData.inventory?.total || 0,
+      salesProducts: aggregationData.sales?.total || 0,
+      repairProducts: aggregationData.repairs?.total || 0,
+      totalTeam: aggregationData.teams?.total || 0,
+      pendingOrders: aggregationData.repairs?.pending || 0,
+      completedRepairs: aggregationData.repairs?.completed || 0,
+      stockTotalSales: aggregationData.sales?.totalRevenue || 0,
+      allUsers: aggregationData.users?.total || 0,
+      activeUsers: aggregationData.users?.active || 0,
+      expiredUsers: aggregationData.users?.expired || 0,
+      freeTrialUsers: aggregationData.users?.freeTrial || 0,
+      allComplaints: aggregationData.complaints?.total || 0,
+      pendingComplaints: aggregationData.complaints?.pending || 0,
+      completedComplaints: aggregationData.complaints?.completed || 0,
+      planBoughtUsers: aggregationData.users?.planBought || 0
     };
-  }, [activityLogs]);
+  }, [aggregationData]);
 
   // RISK FORENSIC MONITOR ENGINE
   const userRiskAudit = useMemo(() => {
@@ -382,6 +405,15 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-10 pb-24 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Loading Platform Data...</p>
+          </div>
+        </div>
+      ) : (
+        <>
       
       {/* 1. RESPONSIVE COMPREHENSIVE OPERATIONAL STAT GRID */}
       <div className="space-y-4">
@@ -1028,6 +1060,8 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
+        </>
+      )}
     </div>
   );
 };

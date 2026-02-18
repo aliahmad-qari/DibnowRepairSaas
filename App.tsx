@@ -12,6 +12,7 @@ import { Login } from './pages/auth/Login.tsx';
 import { Register } from './pages/auth/Register.tsx';
 import { VerifyOTP } from './pages/auth/VerifyOTP.tsx';
 import { TeamPortal } from './pages/auth/TeamPortal.tsx';
+import { ForgotPassword } from './pages/auth/ForgotPassword.tsx';
 
 // User Pages
 import { UserDashboard } from './pages/user/UserDashboard.tsx';
@@ -61,6 +62,7 @@ import { AllSales } from './pages/admin/AllSales.tsx';
 import { Plans } from './pages/admin/Plans.tsx';
 import { PlanRequests } from './pages/admin/PlanRequests.tsx';
 import { AdminWallet } from './pages/admin/Wallet.tsx';
+import { AdminTransactions } from './pages/admin/Transactions.tsx';
 import { CurrencySettings } from './pages/admin/CurrencySettings.tsx';
 import { SupportHub } from './pages/admin/SupportHub.tsx';
 import { Complaints } from './pages/admin/Complaints.tsx';
@@ -111,12 +113,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; role?: UserRole; per
   if (!isAuthenticated) return <Navigate to="/login" />;
 
   // ROLE VALIDATION
-  if (role && user?.role !== role && user?.role !== UserRole.TEAM_MEMBER && user?.role !== UserRole.SUPER_ADMIN) {
+  if (role && user?.role !== role && user?.role !== UserRole.SUPER_ADMIN) {
     return <Navigate to="/" />;
   }
 
-  // PERMISSION VALIDATION (Requirement 7)
-  if (permission && !hasPermission(permission)) {
+  // PERMISSION VALIDATION - ONLY FOR TEAM MEMBERS
+  // Owners (USER/ADMIN) and SUPER_ADMIN have full access without permission checks
+  if (permission && user?.role === UserRole.TEAM_MEMBER && !hasPermission(permission)) {
     return <Navigate to="/" />;
   }
 
@@ -133,6 +136,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
             <Route path="/auth/verify-otp" element={<VerifyOTP />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/team/login" element={<TeamPortal />} />
 
             {/* Super Admin Routes */}
@@ -200,9 +204,10 @@ const App: React.FC = () => {
             <Route path="/admin/all-repairs" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_repairs"><DashboardLayout><AllRepairs /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/all-inventory" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_inventory"><DashboardLayout><AllInventory /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/all-sales" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_sales"><DashboardLayout><AllSales /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/admin/plans" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_billing"><DashboardLayout><AdminPlans /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/admin/plans" element={<ProtectedRoute role={UserRole.ADMIN}><DashboardLayout><AdminPlans /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/plan-requests" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_billing"><DashboardLayout><PlanRequests /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/wallet" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_billing"><DashboardLayout><AdminWallet /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/admin/transactions" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_billing"><DashboardLayout><AdminTransactions /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/currencies" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_system"><DashboardLayout><CurrencySettings /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/tickets" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_support"><DashboardLayout><SupportHub /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/complaints" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_support"><DashboardLayout><Complaints /></DashboardLayout></ProtectedRoute>} />

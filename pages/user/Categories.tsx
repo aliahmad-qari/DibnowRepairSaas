@@ -51,9 +51,9 @@ export const Categories: React.FC = () => {
           callBackendAPI('/api/dashboard/overview', null, 'GET')
         ]);
 
-        setCategories(catsResp || []);
-        setInventory(invResp || []);
-        setSales(salesResp || []);
+        setCategories(Array.isArray(catsResp) ? catsResp : []);
+        setInventory(Array.isArray(invResp) ? invResp : []);
+        setSales(Array.isArray(salesResp) ? salesResp : []);
 
         if (dashResp) {
           const plan = dashResp.plans.find((p: any) =>
@@ -163,7 +163,7 @@ export const Categories: React.FC = () => {
         setShowForm(false);
         // Refresh data
         const catsResp = await callBackendAPI('/api/categories', null, 'GET');
-        setCategories(catsResp || []);
+        setCategories(Array.isArray(catsResp) ? catsResp : []);
 
         // Re-check limits
         if (activePlan && activePlan.limits && catsResp.length >= activePlan.limits.categories) {
@@ -208,7 +208,7 @@ export const Categories: React.FC = () => {
       try {
         await callBackendAPI(`/api/categories/${id}`, null, 'DELETE');
         const catsResp = await callBackendAPI('/api/categories', null, 'GET');
-        setCategories(catsResp || []);
+        setCategories(Array.isArray(catsResp) ? catsResp : []);
       } catch (error) {
         console.error('De-commissioning failed:', error);
         alert('Failed to de-commission category.');

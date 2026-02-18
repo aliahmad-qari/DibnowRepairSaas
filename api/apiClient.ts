@@ -25,6 +25,7 @@ export async function callBackendAPI(endpoint: string, data?: any, method: 'GET'
 
     try {
         const token = localStorage.getItem('dibnow_token');
+        console.log('🔑 [API Client] Token found:', !!token, token ? `${token.substring(0, 20)}...` : 'No token');
 
         const fetchOptions: RequestInit = {
             method: method,
@@ -40,7 +41,13 @@ export async function callBackendAPI(endpoint: string, data?: any, method: 'GET'
             fetchOptions.body = JSON.stringify(data);
         }
 
-        console.log('📤 [API Client] Sending request with options:', fetchOptions);
+        console.log('📤 [API Client] Sending request with options:', {
+            ...fetchOptions,
+            headers: {
+                ...fetchOptions.headers,
+                Authorization: token ? `Bearer ${token.substring(0, 20)}...` : 'No token'
+            }
+        });
 
         const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
 
@@ -62,6 +69,26 @@ export async function callBackendAPI(endpoint: string, data?: any, method: 'GET'
                 error: error,
                 timestamp: new Date().toISOString()
             });
+
+            // Handle authentication errors
+            if (response.status === 401) {
+                console.warn('🚨 [API Client] Authentication failed - clearing tokens');
+                localStorage.removeItem('fixit_user');
+                localStorage.removeItem('dibnow_token');
+                localStorage.removeItem('dibnow_refresh_token');
+                window.location.href = '/login';
+                throw new Error('Session expired. Please login again.');
+            }
+
+            // Handle blocked user scenario
+            if (response.status === 403 && error.blocked) {
+                // User has been blocked, force logout
+                localStorage.removeItem('fixit_user');
+                localStorage.removeItem('dibnow_token');
+                localStorage.removeItem('dibnow_refresh_token');
+                window.location.href = '/login';
+                throw new Error('You have been blocked. Please contact your account owner.');
+            }
 
             // If it's a specific limit error, throw an error that includes the data
             if (response.status === 403 && error.limitHit) {
@@ -122,3 +149,25 @@ export function getCurrentCurrency(): string {
     // Try to get from CurrencyContext if available, otherwise default to GBP
     return 'GBP'; // This will be overridden by the actual currency from context
 }
+
+/**
+ * Axios-like API client for admin endpoints
+ */
+export const apiClient = {
+    get: async (endpoint: string) => {
+        const data = await callBackendAPI(`/api${endpoint}`, undefined, 'GET');
+        return { data };
+    },
+    post: async (endpoint: string, body?: any) => {
+        const data = await callBackendAPI(`/api${endpoint}`, body, 'POST');
+        return { data };
+    },
+    put: async (endpoint: string, body?: any) => {
+        const data = await callBackendAPI(`/api${endpoint}`, body, 'PUT');
+        return { data };
+    },
+    delete: async (endpoint: string) => {
+        const data = await callBackendAPI(`/api${endpoint}`, undefined, 'DELETE');
+        return { data };
+    }
+};

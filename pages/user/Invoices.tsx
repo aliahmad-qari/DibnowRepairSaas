@@ -24,9 +24,13 @@ export const UserInvoices: React.FC = () => {
       setIsLoading(true);
       try {
         const userId = user._id || user.id;
-        const data = await callBackendAPI(`/wallet/${userId}/transactions`, null, 'GET');
+        const data = await callBackendAPI(`/api/wallet/${userId}/transactions`, null, 'GET');
+        // Ensure we always have an array
+        const transArray = Array.isArray(data) ? data : (data?.data || []);
         // Filter for billing related items (Subscriptions, Top-ups)
-        const filtered = (data || []).filter((t: any) =>
+        const filtered = transArray.filter((t: any) =>
+          t.transactionType === 'subscription' ||
+          t.transactionType === 'wallet_topup' ||
           (t.description || '').toLowerCase().includes('refill') ||
           (t.description || '').toLowerCase().includes('subscription') ||
           (t.description || '').toLowerCase().includes('upgrade')
@@ -34,6 +38,7 @@ export const UserInvoices: React.FC = () => {
         setInvoices(filtered);
       } catch (error) {
         console.error('Failed to load fiscal trace:', error);
+        setInvoices([]); // Set empty array on error
       } finally {
         setIsLoading(false);
       }
@@ -112,13 +117,13 @@ export const UserInvoices: React.FC = () => {
                   </td>
                   <td className="px-10 py-7 text-right">
                     <p className="text-base font-black text-slate-900 tracking-tighter">
-                      {currency.symbol}{inv.amount.toLocaleString()}
+                      {currency.symbol}{Math.abs(inv.amount).toLocaleString()}
                     </p>
                   </td>
                   <td className="px-10 py-7 text-center">
-                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase inline-flex items-center gap-2 border ${inv.status === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'
+                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase inline-flex items-center gap-2 border ${inv.status === 'completed' || inv.status === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'
                       }`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${inv.status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${inv.status === 'completed' || inv.status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                       {inv.status}
                     </span>
                   </td>

@@ -1,14 +1,34 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wallet as WalletIcon, TrendingUp, DollarSign, ArrowUpRight, ArrowDownLeft, Download, Filter, Search } from 'lucide-react';
 import { StatCard } from '../../components/common/StatCard';
+import { adminApi } from '../../api/adminApi';
 
 export const AdminWallet: React.FC = () => {
-  const adminTx = [
-    { id: 'ADM-TX-01', from: 'Elite Mobile Repair', type: 'subscription', amount: 299.00, status: 'completed', date: 'Today, 10:20 AM' },
-    { id: 'ADM-TX-02', from: 'System Payout', type: 'withdrawal', amount: -5000.00, status: 'completed', date: 'Yesterday' },
-    { id: 'ADM-TX-03', from: 'QuickFix Shop', type: 'wallet_topup', amount: 50.00, status: 'completed', date: 'Yesterday' },
-  ];
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        const data = await adminApi.getAllTransactions();
+        setTransactions(data);
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTransactions();
+  }, []);
+
+  const totalRevenue = transactions
+    .filter(t => t.status === 'completed')
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+  const availablePayout = totalRevenue * 0.85; // Assuming 15% platform fee
+  const pendingVerifications = transactions.filter(t => t.status === 'pending').length;
 
   return (
     <div className="space-y-8">
@@ -23,9 +43,9 @@ export const AdminWallet: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Total Platform Revenue" value="$452,120" icon={<DollarSign />} trend="14% this month" trendUp />
-        <StatCard title="Available for Payout" value="$128,450" icon={<WalletIcon />} />
-        <StatCard title="Pending Verifications" value="12" icon={<TrendingUp />} />
+        <StatCard title="Total Platform Revenue" value={`$${totalRevenue.toFixed(2)}`} icon={<DollarSign />} trend="All time" trendUp />
+        <StatCard title="Available for Payout" value={`$${availablePayout.toFixed(2)}`} icon={<WalletIcon />} />
+        <StatCard title="Pending Verifications" value={pendingVerifications.toString()} icon={<TrendingUp />} />
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
@@ -59,22 +79,35 @@ export const AdminWallet: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {adminTx.map(tx => (
-                <tr key={tx.id} className="hover:bg-slate-50/80 transition-all">
-                  <td className="px-6 py-4 font-mono text-xs text-indigo-600 font-bold">{tx.id}</td>
-                  <td className="px-6 py-4 font-bold text-slate-700 text-sm">{tx.from}</td>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading Wallet Data...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-bold">No transactions found</td>
+                </tr>
+              ) : transactions.slice(0, 20).map(tx => (
+                <tr key={tx._id} className="hover:bg-slate-50/80 transition-all">
+                  <td className="px-6 py-4 font-mono text-xs text-indigo-600 font-bold">{tx._id.slice(-8)}</td>
+                  <td className="px-6 py-4 font-bold text-slate-700 text-sm">{tx.userId?.name || 'User'}</td>
                   <td className="px-6 py-4">
-                    <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-bold text-slate-500 uppercase">{tx.type}</span>
+                    <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-bold text-slate-500 uppercase">{tx.transactionType}</span>
                   </td>
                   <td className={`px-6 py-4 font-bold ${tx.amount > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold uppercase">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${tx.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : tx.status === 'failed' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
                       {tx.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs text-slate-400">{tx.date}</td>
+                  <td className="px-6 py-4 text-xs text-slate-400">{new Date(tx.createdAt).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

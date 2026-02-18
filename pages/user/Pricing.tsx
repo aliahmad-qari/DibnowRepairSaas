@@ -106,18 +106,76 @@ export const UserPricing: React.FC = () => {
   }, [refreshUser]);
 
   const currentPlan = useMemo(() => {
-    return plans.find(p => p.id === user?.planId) || plans[0];
+    if (!user?.planId || !plans.length) return plans[0];
+    
+    console.log('🔍 [Pricing] Matching current plan:', {
+      userPlanId: user.planId,
+      userCurrentPlan: user.currentPlan,
+      availablePlans: plans.map(p => ({ id: p.id, name: p.name }))
+    });
+    
+    // Try to match by exact planId (MongoDB ObjectId)
+    const planById = plans.find(p => p.id === user.planId);
+    if (planById) {
+      console.log('✅ [Pricing] Matched by ID:', planById.name);
+      return planById;
+    }
+    
+    // Try to match by user.currentPlan name
+    if (user.currentPlan) {
+      const planByCurrentName = plans.find(p => p.name.toLowerCase() === user.currentPlan.toLowerCase());
+      if (planByCurrentName) {
+        console.log('✅ [Pricing] Matched by currentPlan name:', planByCurrentName.name);
+        return planByCurrentName;
+      }
+    }
+    
+    // Convert planId to string for comparison
+    const userPlanIdStr = String(user.planId).toLowerCase();
+    
+    // Try to match by name mapping
+    const planByName = plans.find(p => {
+      const planNameLower = p.name.toLowerCase();
+      return (
+        planNameLower === userPlanIdStr ||
+        (userPlanIdStr === 'starter' && planNameLower === 'free trial') ||
+        (userPlanIdStr === 'basic' && planNameLower === 'basic') ||
+        (userPlanIdStr === 'premium' && planNameLower === 'premium') ||
+        (userPlanIdStr === 'gold' && planNameLower === 'gold')
+      );
+    });
+    
+    if (planByName) {
+      console.log('✅ [Pricing] Matched by name:', planByName.name);
+      return planByName;
+    }
+    
+    console.warn('⚠️ [Pricing] No plan match found, using first plan');
+    return plans[0];
   }, [user, plans]);
 
-  const usageStats = useMemo(() => {
-    if (!user) return { repairs: 0, stock: 0, team: 0, brands: 0, categories: 0 };
-    return {
-      repairs: db.repairs.getAll().length,
-      stock: db.inventory.getAll().length,
-      team: db.userTeamV2.getByOwner(user.id).length,
-      brands: db.brands.getAll().length,
-      categories: db.categories.getAll().length,
+  const [usageStats, setUsageStats] = useState({ repairs: 0, stock: 0, team: 0, brands: 0, categories: 0 });
+
+  // Load usage stats from backend
+  useEffect(() => {
+    const loadUsageStats = async () => {
+      if (!user) return;
+      try {
+        const response = await callBackendAPI('/api/dashboard/overview', null, 'GET');
+        if (response) {
+          setUsageStats({
+            repairs: response.repairCount || 0,
+            stock: response.stockCount || 0,
+            team: response.teamCount || 0,
+            brands: response.brandCount || 0,
+            categories: response.categoryCount || 0
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load usage stats:', error);
+      }
     };
+    loadUsageStats();
   }, [user]);
 
   const getLocalizedPrice = (plan: any) => {
@@ -415,7 +473,7 @@ export const UserPricing: React.FC = () => {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">✅ Current Active Plan</p>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase mt-1">{currentPlan?.name || 'Starter'}</h2>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase mt-1"> {user?.currentPlan || currentPlan?.name || 'Free Trial'}</h2>
             <div className="flex items-center gap-3 mt-3">
               <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -432,8 +490,18 @@ export const UserPricing: React.FC = () => {
               <Calendar size={14} className="text-indigo-600" />
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">📅 Expiry / Renewal Date</p>
             </div>
-            <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">15 Feb 2026</p>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Next automated settlement</p>
+            <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">
+              {user?.planExpiryDate 
+                ? new Date(user.planExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                : (() => {
+                    const expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + 7);
+                    return expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  })()}
+            </p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              {user?.planExpiryDate ? 'Next automated settlement' : 'Free trial expires in 7 days'}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -678,8 +746,14 @@ export const UserPricing: React.FC = () => {
           {plans.map((plan) => {
             const isActive = plan.id === user?.planId;
             return (
-              <div key={plan.id} className={`p-10 rounded-[3.5rem] flex flex-col border-2 transition-all duration-500 hover:-translate-y-2 group ${isActive ? 'bg-indigo-600 text-white shadow-2xl scale-105 border-indigo-500' : 'bg-white border-slate-100 shadow-xl text-slate-900 hover:border-indigo-400'}`}>
+              <div key={plan.id} className={`p-10 rounded-[3.5rem] flex flex-col border-2 transition-all duration-500 hover:-translate-y-2 group ${isActive ? 'bg-indigo-600 text-white shadow-2xl scale-105 border-indigo-500 ring-4 ring-indigo-200' : 'bg-white border-slate-100 shadow-xl text-slate-900 hover:border-indigo-400'}`}>
                 <div className="mb-10">
+                  {isActive && (
+                    <div className="mb-4 px-4 py-2 bg-white/20 rounded-xl border border-white/30 backdrop-blur-sm inline-flex items-center gap-2">
+                      <CheckCircle2 size={14} className="text-white" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white">Active Plan</span>
+                    </div>
+                  )}
                   <h3 className={`text-2xl font-black uppercase tracking-tight ${isActive ? 'text-white' : 'text-slate-900'}`}>{plan.name}</h3>
                   <div className="text-4xl font-black mt-2 tracking-tighter">
                     <span className="text-xl font-bold">{currency.symbol}</span>
@@ -731,9 +805,9 @@ export const UserPricing: React.FC = () => {
                 <button
                   onClick={() => handleSelectPlan(plan)}
                   disabled={isActive}
-                  className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-2xl active:scale-95 ${isActive ? 'bg-white/10 text-white/50 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'}`}
+                  className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-2xl ${isActive ? 'bg-white/10 text-white/50 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100 active:scale-95'}`}
                 >
-                  {isActive ? '✓ Active Node' : 'Deploy Tier'}
+                  {isActive ? 'Active' : 'Deploy Tier'}
                 </button>
               </div>
             );

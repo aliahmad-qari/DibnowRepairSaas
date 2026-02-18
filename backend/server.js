@@ -27,6 +27,7 @@ const brandsRoutes = require('./routes/brands');
 const categoriesRoutes = require('./routes/categories');
 const teamRoutes = require('./routes/team');
 const dashboardRoutes = require('./routes/dashboard');
+const adminDashboardRoutes = require('./routes/adminDashboard');
 const clientRoutes = require('./routes/clients');
 const complaintRoutes = require('./routes/complaints');
 const activityRoutes = require('./routes/activities');
@@ -37,7 +38,8 @@ const planRequestsRoutes = require('./routes/planRequests');
 const { startRenewalScheduler } = require('./services/renewalService');
 
 // Import security middleware
-const { apiLimiter, securityHeaders } = require('./middleware/security');
+const { publicLimiter, securityHeaders } = require('./middleware/security');
+const checkPlanExpiry = require('./middleware/checkPlanExpiry');
 
 const app = express();
 
@@ -138,8 +140,14 @@ app.use(xss());
 // Security headers
 app.use(securityHeaders);
 
-// Apply rate limiter to all routes
-app.use('/api/', apiLimiter);
+// Check plan expiry on every authenticated request
+app.use(checkPlanExpiry);
+
+// Apply rate limiter ONLY to public routes (not authenticated CRUD)
+app.use('/api/users/login', publicLimiter);
+app.use('/api/users/register', publicLimiter);
+app.use('/api/users/forgot-password', publicLimiter);
+app.use('/api/public', publicLimiter);
 
 // Trust proxy (for rate limiting behind reverse proxy)
 app.set('trust proxy', 1);
@@ -181,6 +189,7 @@ app.use('/api/brands', brandsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/activities', activityRoutes);

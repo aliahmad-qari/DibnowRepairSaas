@@ -63,7 +63,7 @@ export const AddRepair: React.FC = () => {
 
           if (dashResp) {
             const plan = dashResp.plans.find((p: any) =>
-              p.name.toLowerCase() === user.planId.toLowerCase() ||
+              (user.planId && p.name.toLowerCase() === user.planId.toLowerCase()) ||
               (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
               (user.planId === 'basic' && p.name === 'BASIC') ||
               (user.planId === 'premium' && p.name === 'PREMIUM') ||
@@ -75,7 +75,7 @@ export const AddRepair: React.FC = () => {
               setIsLimitReached(true);
             }
           }
-          setTeamMembers(teamResp || []);
+          setTeamMembers(Array.isArray(teamResp) ? teamResp : teamResp?.data || []);
         } catch (error) {
           console.error('Failed to load repair prerequisites:', error);
         }

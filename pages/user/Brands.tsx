@@ -51,24 +51,42 @@ export const Brands: React.FC = () => {
           callBackendAPI('/api/dashboard/overview', null, 'GET')
         ]);
 
-        setBrands(brandsResp || []);
-        setInventory(invResp || []);
-        setSales(salesResp || []);
+        setBrands(Array.isArray(brandsResp) ? brandsResp : []);
+        setInventory(Array.isArray(invResp) ? invResp : []);
+        setSales(Array.isArray(salesResp) ? salesResp : []);
 
-        if (dashResp) {
-          // Normalize plan comparison
-          const plan = dashResp.plans.find((p: any) =>
-            p.name.toLowerCase() === user.planId.toLowerCase() ||
-            (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
-            (user.planId === 'basic' && p.name === 'BASIC') ||
-            (user.planId === 'premium' && p.name === 'PREMIUM') ||
-            (user.planId === 'gold' && p.name === 'GOLD')
-          ) || dashResp.plans[0];
+        // Set plan limits
+        if (dashResp && dashResp.plans && Array.isArray(dashResp.plans) && dashResp.plans.length > 0) {
+          // Find user's current plan or default to Free Trial
+          let plan = null;
+          
+          // Try to find by planName first (most reliable)
+          if (user.planName) {
+            plan = dashResp.plans.find((p: any) => 
+              p.name.toLowerCase() === user.planName.toLowerCase() ||
+              p.name.toLowerCase().includes(user.planName.toLowerCase())
+            );
+          }
+          
+          // If not found, use first plan (Free Trial)
+          if (!plan) {
+            plan = dashResp.plans[0];
+          }
 
           setActivePlan(plan);
-          if (plan && plan.limits) {
+          if (plan && plan.limits && plan.limits.brands) {
             setIsAtLimit(brandsResp?.length >= plan.limits.brands);
+          } else {
+            setIsAtLimit(false);
           }
+        } else {
+          // Fallback: Set default Free Trial plan limits
+          const defaultPlan = {
+            name: 'Free Trial',
+            limits: { brands: 5, inventory: 50, repairs: 20, sales: 100 }
+          };
+          setActivePlan(defaultPlan);
+          setIsAtLimit(brandsResp?.length >= defaultPlan.limits.brands);
         }
       } catch (error) {
         console.error('Failed to load brands data:', error);
@@ -177,7 +195,7 @@ export const Brands: React.FC = () => {
         setShowForm(false);
         // Refresh data
         const brandsResp = await callBackendAPI('/api/brands', null, 'GET');
-        setBrands(brandsResp || []);
+        setBrands(Array.isArray(brandsResp) ? brandsResp : []);
       }
     } catch (error: any) {
       if (error.limitHit) {
@@ -217,7 +235,7 @@ export const Brands: React.FC = () => {
       try {
         await callBackendAPI(`/api/brands/${id}`, null, 'DELETE');
         const brandsResp = await callBackendAPI('/api/brands', null, 'GET');
-        setBrands(brandsResp || []);
+        setBrands(Array.isArray(brandsResp) ? brandsResp : []);
       } catch (error) {
         console.error('Deletion failed:', error);
         alert('Failed to delete manufacturer.');

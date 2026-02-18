@@ -25,18 +25,21 @@ export const TopNavbar: React.FC = () => {
     const loadPlan = async () => {
       if (user?.planId) {
         try {
-          const response = await callBackendAPI('/api/plans/all', null, 'GET');
-          if (response.success && response.plans) {
-            const plan = response.plans.find((p: any) => p._id === user.planId);
-            setCurrentPlan(plan || null);
+          const response = await callBackendAPI('/api/dashboard/overview', null, 'GET');
+          if (response && response.plans) {
+            const planId = typeof user.planId === 'object' ? user.planId.toString() : user.planId;
+            const plan = response.plans.find((p: any) =>
+              p._id === planId || p.id === planId || 
+              (typeof planId === 'string' && p.name?.toLowerCase() === planId.toLowerCase())
+            ) || response.plans[0];
+            setCurrentPlan(plan || { name: 'Free Trial' });
           }
         } catch (error) {
           console.error('Failed to load plan:', error);
-          // Fallback to localStorage
-          setCurrentPlan(db.plans.getById(user.planId || 'starter'));
+          setCurrentPlan({ name: 'Free Trial' });
         }
       } else {
-        setCurrentPlan(null);
+        setCurrentPlan({ name: 'Free Trial' });
       }
     };
 
@@ -49,13 +52,11 @@ export const TopNavbar: React.FC = () => {
       if (user) {
         try {
           const response = await callBackendAPI('/api/notifications', null, 'GET');
-          if (response && Array.isArray(response)) {
-            setNotifications(response);
-          }
+          const notifArray = Array.isArray(response) ? response : (response?.data || []);
+          setNotifications(notifArray);
         } catch (error) {
           console.error('Failed to load notifications:', error);
-          // Fallback to localStorage
-          setNotifications(db.notifications.getByUser(user.id));
+          setNotifications([]);
         }
       }
     };
@@ -90,20 +91,16 @@ export const TopNavbar: React.FC = () => {
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
-      // Fallback to localStorage
-      db.notifications.markAsRead(id);
     }
   };
 
   const handleMarkAllRead = async () => {
     if (user) {
       try {
-        await callBackendAPI('/api/notifications/mark-all-read', null, 'PUT');
+        await callBackendAPI('/api/notifications/mark-all-read', {}, 'POST');
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       } catch (error) {
         console.error('Failed to mark all as read:', error);
-        // Fallback to localStorage
-        db.notifications.markAllAsRead(user.id);
       }
     }
   };
@@ -130,7 +127,7 @@ export const TopNavbar: React.FC = () => {
             <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">Active Ecosystem</span>
               <span className="text-slate-900 font-bold text-xl tracking-tight leading-none">
-                {currentPlan?.name || 'Free Trial'}
+                {user?.currentPlan || currentPlan?.name || 'Free Trial'}
               </span>
             </div>
             <button 
@@ -246,22 +243,22 @@ export const TopNavbar: React.FC = () => {
                
                <div className="p-3">
                   <button 
-                    onClick={() => { navigate(user?.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/dashboard'); setIsProfileOpen(false); }}
+                    onClick={() => { navigate(user?.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/profile'); setIsProfileOpen(false); }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
                   >
-                    <UserCircle size={18} /> My Registry Profile
+                    <UserCircle size={18} /> {user?.role === UserRole.ADMIN ? 'Admin Profile' : 'My Registry Profile'}
+                  </button>
+                  <button 
+                    onClick={() => { navigate(user?.role === UserRole.ADMIN ? '/admin/security-intel' : '/user/pricing'); setIsProfileOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                  >
+                    <Shield size={18} /> {user?.role === UserRole.ADMIN ? 'Security Intelligence' : 'Security & License'}
                   </button>
                   <button 
                     onClick={() => { navigate(user?.role === UserRole.ADMIN ? '/admin/settings' : '/user/utilities'); setIsProfileOpen(false); }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
                   >
                     <Settings size={18} /> {user?.role === UserRole.ADMIN ? 'System Settings' : 'Shop Configurations'}
-                  </button>
-                  <button 
-                    onClick={() => { navigate(user?.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/pricing'); setIsProfileOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
-                  >
-                    <Shield size={18} /> {user?.role === UserRole.ADMIN ? 'Security Center' : 'Security & License'}
                   </button>
                </div>
 

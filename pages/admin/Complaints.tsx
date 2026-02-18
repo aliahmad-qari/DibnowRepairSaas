@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // Added missing 'Shield' icon to imports
 import { MessageSquare, AlertCircle, CheckCircle, Search, MoreHorizontal, User, Filter, CheckCircle2, ChevronRight, X, LayoutGrid, Shield } from 'lucide-react';
-import { db } from '../../api/db';
+import { adminApi } from '../../api/adminApi';
 import { ComplaintStatusMetrics } from '../../components/support/ComplaintStatusMetrics.tsx';
 import { ComplaintLifecycleTimeline } from '../../components/support/ComplaintLifecycleTimeline.tsx';
 import { ComplaintSeverityBadge } from '../../components/support/ComplaintSeverityBadge.tsx';
@@ -17,15 +17,29 @@ export const Complaints: React.FC = () => {
   const [selectedComplaint, setSelectedComplaint] = useState<any | null>(null);
 
   useEffect(() => {
-    setComplaints(db.complaints.getAll());
+    const fetchComplaints = async () => {
+      try {
+        const data = await adminApi.getAllComplaints();
+        setComplaints(data);
+      } catch (error) {
+        console.error('Failed to fetch complaints:', error);
+      }
+    };
+    fetchComplaints();
   }, []);
 
-  const handleResolve = (id: string) => {
-    db.complaints.resolve(id);
-    const updated = db.complaints.getAll();
-    setComplaints(updated);
-    if (selectedComplaint?.id === id) {
-       setSelectedComplaint(updated.find((c: any) => c.id === id));
+  const handleResolve = async (id: string) => {
+    try {
+      // Update locally first for immediate feedback
+      setComplaints(prev => prev.map(c => 
+        c._id === id ? { ...c, status: 'resolved' } : c
+      ));
+      if (selectedComplaint?._id === id) {
+        setSelectedComplaint({ ...selectedComplaint, status: 'resolved' });
+      }
+      // TODO: Add API call to update complaint status
+    } catch (error) {
+      console.error('Failed to resolve complaint:', error);
     }
   };
 
@@ -79,9 +93,9 @@ export const Complaints: React.FC = () => {
              <div className="divide-y divide-slate-50">
                {filtered.map((c) => (
                  <div 
-                  key={c.id} 
+                  key={c._id} 
                   onClick={() => setSelectedComplaint(c)}
-                  className={`p-8 flex items-center justify-between hover:bg-indigo-50/30 cursor-pointer group transition-all ${selectedComplaint?.id === c.id ? 'bg-indigo-50/50' : ''}`}
+                  className={`p-8 flex items-center justify-between hover:bg-indigo-50/30 cursor-pointer group transition-all ${selectedComplaint?._id === c._id ? 'bg-indigo-50/50' : ''}`}
                  >
                    <div className="flex items-center gap-6">
                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${c.priority === 'high' ? 'bg-rose-100 text-rose-600 shadow-lg shadow-rose-100/50' : 'bg-slate-100 text-slate-400'}`}>
@@ -90,8 +104,8 @@ export const Complaints: React.FC = () => {
                      <div className="min-w-0">
                        <h4 className="font-black text-slate-800 tracking-tight text-lg uppercase truncate max-w-[250px]">{c.subject}</h4>
                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-[9px] bg-white px-2 py-0.5 rounded font-black text-indigo-500 uppercase tracking-widest border border-indigo-100 shadow-sm">{c.id}</span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">By {c.user} • {c.date}</span>
+                          <span className="text-[9px] bg-white px-2 py-0.5 rounded font-black text-indigo-500 uppercase tracking-widest border border-indigo-100 shadow-sm">{c._id.slice(-8)}</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">By {c.user || c.userId} • {new Date(c.date || c.createdAt).toLocaleDateString()}</span>
                        </div>
                        {/* ONLY ADD: Granular Severity and Priority Tags */}
                        <ComplaintSeverityBadge priority={c.priority} subject={c.subject} description={c.description || ''} />
@@ -106,14 +120,14 @@ export const Complaints: React.FC = () => {
                       <div className="flex gap-2">
                         {c.status === 'pending' && (
                           <button 
-                            onClick={(e) => { e.stopPropagation(); handleResolve(c.id); }}
+                            onClick={(e) => { e.stopPropagation(); handleResolve(c._id); }}
                             className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-emerald-100"
                             title="Mark as Resolved"
                           >
                             <CheckCircle2 size={20} />
                           </button>
                         )}
-                        <div className={`p-3 rounded-xl border transition-all ${selectedComplaint?.id === c.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white border-slate-100 text-slate-300 group-hover:text-indigo-600 group-hover:border-indigo-100 shadow-sm'}`}>
+                        <div className={`p-3 rounded-xl border transition-all ${selectedComplaint?._id === c._id ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white border-slate-100 text-slate-300 group-hover:text-indigo-600 group-hover:border-indigo-100 shadow-sm'}`}>
                           <ChevronRight size={20} />
                         </div>
                       </div>

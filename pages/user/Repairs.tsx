@@ -72,9 +72,13 @@ export const Repairs: React.FC = () => {
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [aiResult, setAiResult] = useState<any>(null);
 
-  // Status Dropdown State
-  const [activeStatusPicker, setActiveStatusPicker] = useState<string | null>(null);
-  const statusPickerRef = useRef<HTMLDivElement>(null);
+  // Protocol Status Dropdown State
+  const [activeProtocolPicker, setActiveProtocolPicker] = useState<string | null>(null);
+  const protocolPickerRef = useRef<HTMLDivElement>(null);
+
+  // Protocol Status Options
+  type ProtocolStatus = 'Pending' | 'In Progress' | 'Delivered' | 'Completed' | 'Returned' | 'Expired';
+  const protocolStatusOptions: ProtocolStatus[] = ['Pending', 'In Progress', 'Delivered', 'Completed', 'Returned', 'Expired'];
 
   // Advanced Filter State
   const [timeFilter, setTimeFilter] = useState('Last 30 Days');
@@ -116,17 +120,38 @@ export const Repairs: React.FC = () => {
       if (!user) return;
       setIsLoading(true);
       try {
-        const [repairsResp, brandsResp, teamResp, planResp] = await Promise.all([
+        const [repairsResp, brandsResp, teamResp, dashResp] = await Promise.all([
           callBackendAPI('/api/repairs', null, 'GET'),
           callBackendAPI('/api/brands', null, 'GET'),
           callBackendAPI('/api/team', null, 'GET'),
-          callBackendAPI('/api/pricing/plans/' + (user.planId || 'starter'), null, 'GET')
+          callBackendAPI('/api/dashboard/overview', null, 'GET')
         ]);
 
         setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
-        setBrands(brandsResp || []);
-        setTeamMembers(teamResp || []);
-        setActivePlan(planResp);
+        setBrands(Array.isArray(brandsResp) ? brandsResp : []);
+        setTeamMembers(Array.isArray(teamResp) ? teamResp : teamResp?.data || []);
+        
+        console.log('Repairs.tsx - Repairs loaded:', Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
+        console.log('Repairs.tsx - First repair:', (Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || [])[0]);
+        console.log('Repairs.tsx - User permissions:', { hasManageRepairs: hasPermission('manage_repairs'), hasRepairs: hasPermission('repairs') });
+        
+        console.log('Repairs.tsx - Brands loaded:', Array.isArray(brandsResp) ? brandsResp : []);
+        console.log('Repairs.tsx - Brands count:', (Array.isArray(brandsResp) ? brandsResp : []).length);
+        
+        if (dashResp) {
+          const plan = dashResp.plans.find((p: any) => {
+            const userPlanIdStr = user.planId ? String(user.planId) : '';
+            const planNameLower = p.name.toLowerCase();
+            return (
+              (userPlanIdStr && planNameLower === userPlanIdStr.toLowerCase()) ||
+              (userPlanIdStr === 'starter' && p.name === 'FREE TRIAL') ||
+              (userPlanIdStr === 'basic' && p.name === 'BASIC') ||
+              (userPlanIdStr === 'premium' && p.name === 'PREMIUM') ||
+              (userPlanIdStr === 'gold' && p.name === 'GOLD')
+            );
+          }) || dashResp.plans[0];
+          setActivePlan(plan);
+        }
       } catch (error) {
         console.error('Failed to load infrastructure data:', error);
       } finally {
@@ -136,8 +161,8 @@ export const Repairs: React.FC = () => {
     loadData();
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (statusPickerRef.current && !statusPickerRef.current.contains(e.target as Node)) {
-        setActiveStatusPicker(null);
+      if (protocolPickerRef.current && !protocolPickerRef.current.contains(e.target as Node)) {
+        setActiveProtocolPicker(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -270,13 +295,21 @@ export const Repairs: React.FC = () => {
     e.preventDefault();
     if (isSubmitting) return;
     if (parseFloat(formData.cost) <= 0) { alert("Estimated Repair Price must be greater than 0."); return; }
-    if (repairs.length >= (activePlan?.limits?.repairsPerMonth || 0)) { alert("Plan limit reached."); return; }
+    
+    // FIX ISSUE 3: Convert planId to string properly before comparison
+    const userPlanId = user?.planId ? String(user.planId) : '';
+    const planLimit = activePlan?.limits?.repairsPerMonth || 0;
+    
+    if (repairs.length >= planLimit) { 
+      alert("Plan limit reached."); 
+      return; 
+    }
 
     setIsSubmitting(true);
     try {
       const payload = {
         customerName: formData.customerName,
-        customerEmail: formData.email,
+        customerEmail: formData.email || `${formData.customerName.toLowerCase().replace(/\s+/g, '')}@temp.com`,
         customerPhone: formData.mobile,
         device: formData.device,
         brand: formData.brand,
@@ -297,11 +330,14 @@ export const Repairs: React.FC = () => {
         }
       };
 
-      await callBackendAPI('/api/repairs', payload, 'POST');
+      const createResp = await callBackendAPI('/api/repairs', payload, 'POST');
+      console.log('Repair created:', createResp);
 
       const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
+      console.log('Repairs fetched after create:', repairsResp);
       setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
 
+      alert('Repair created successfully!');
       setShowBookingForm(false);
       setAiResult(null);
       setFormData({ customerName: '', mobile: '', email: '', brand: '', device: '', description: '', cost: '', status: 'pending', date: new Date().toISOString().split('T')[0], assignedTo: '', deviceImage: null, symptoms: [], internalNotes: '', estimatedTime: 'Same Day', estimatedPickupDate: new Date().toISOString().split('T')[0], paymentStatus: 'unpaid', paymentMethod: 'cash', attachments: [], partsCost: '0', technicianCost: '0', aiDiagnosis: null, aiConfidence: null, aiEstimatedCost: null, aiEstimatedTime: null, serialNumber: '', deviceColor: '', storageVariant: '', fileError: null });
@@ -312,14 +348,20 @@ export const Repairs: React.FC = () => {
     }
   };
 
-  const handleUpdateStatus = async (id: string, nextStatus: string) => {
+const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: ProtocolStatus) => {
     try {
-      await callBackendAPI(`/api/repairs/${id}/status`, { status: nextStatus, note: `Protocol state migrated to ${nextStatus.toUpperCase()}` }, 'PUT');
+      console.log('Updating protocol status:', { id, newProtocolStatus });
+      const response = await callBackendAPI(`/api/repairs/${id}/protocol-status`, { protocolStatus: newProtocolStatus }, 'PATCH');
+      console.log('Protocol status update response:', response);
+      
       const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
       setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
-      setActiveStatusPicker(null);
-    } catch (error) {
-      console.error('Status migration failed:', error);
+      setActiveProtocolPicker(null);
+      
+      alert(`Protocol status updated to ${newProtocolStatus}`);
+    } catch (error: any) {
+      console.error('Protocol status update failed:', error);
+      alert(`Failed to update: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -457,7 +499,7 @@ export const Repairs: React.FC = () => {
                 <th className="px-10 py-6">Operational Entity</th>
                 <th className="px-10 py-6">Hardware model</th>
                 <th className="px-10 py-6 text-center">Technician</th>
-                <th className="px-10 py-6 text-center">Protocol Status</th>
+                <th className="px-10 py-6 text-center">Status</th>
                 <th className="px-10 py-6 text-right">Settlement value</th>
                 <th className="px-10 py-6 text-center">Protocol Date</th>
                 <th className="px-10 py-6 text-right">Actions</th>
@@ -465,7 +507,7 @@ export const Repairs: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filteredData.map(r => (
-                <tr key={r.id} className="hover:bg-indigo-50/20 transition-all group">
+                <tr key={r._id || r.id} className="hover:bg-indigo-50/20 transition-all group">
                   <td className="px-10 py-7">
                     <div className="flex items-center gap-5">
                       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-sm group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">{r.customerName.charAt(0)}</div>
@@ -493,14 +535,15 @@ export const Repairs: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-10 py-7 text-center relative">
-                    <div onClick={(e) => { e.stopPropagation(); if (hasPermission('manage_repairs')) setActiveStatusPicker(activeStatusPicker === r._id ? null : r._id); }} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 ${r.status === 'completed' || r.status === 'delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${r.status === 'completed' || r.status === 'delivered' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />{r.status}
-                      {hasPermission('manage_repairs') && <ChevronDown size={12} className={`transition-transform ${activeStatusPicker === r._id ? 'rotate-180' : ''}`} />}
+                    <div onClick={(e) => { e.stopPropagation(); setActiveProtocolPicker(activeProtocolPicker === r._id ? null : r._id); }} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 ${(r.protocolStatus === 'Completed' || r.protocolStatus === 'Delivered') ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : (r.protocolStatus === 'In Progress') ? 'bg-blue-50 text-blue-700 border-blue-100' : (r.protocolStatus === 'Expired' || r.protocolStatus === 'Returned') ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${(r.protocolStatus === 'Completed' || r.protocolStatus === 'Delivered') ? 'bg-emerald-500 animate-pulse' : (r.protocolStatus === 'In Progress') ? 'bg-blue-500' : (r.protocolStatus === 'Expired' || r.protocolStatus === 'Returned') ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                      {r.protocolStatus || 'Pending'}
+                      <ChevronDown size={12} className={`transition-transform ${activeProtocolPicker === r._id ? 'rotate-180' : ''}`} />
                     </div>
-                    {activeStatusPicker === r._id && (
-                      <div ref={statusPickerRef} className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] p-2 animate-in fade-in slide-in-from-top-2">
-                        {['pending', 'diagnosing', 'in_progress', 'parts_ordered', 'completed', 'ready', 'delivered', 'cancelled', 'refunded'].map(opt => (
-                          <button key={opt} onClick={(e) => { e.stopPropagation(); handleUpdateStatus(r._id, opt); }} className={`w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded-xl transition-all uppercase text-[10px] font-black ${r.status === opt ? 'bg-slate-50 text-indigo-600' : 'text-slate-600'}`}>{opt}</button>
+                    {activeProtocolPicker === r._id && (
+                      <div ref={protocolPickerRef} className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] p-2 animate-in fade-in slide-in-from-top-2">
+                        {protocolStatusOptions.map(opt => (
+                          <button key={opt} onClick={(e) => { e.stopPropagation(); handleUpdateProtocolStatus(r._id, opt); }} className={`w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded-xl transition-all uppercase text-[10px] font-black ${(r.protocolStatus || 'Pending') === opt ? 'bg-slate-50 text-indigo-600' : 'text-slate-600'}`}>{opt}</button>
                         ))}
                       </div>
                     )}
@@ -591,7 +634,7 @@ export const Repairs: React.FC = () => {
                   </div>
                   <div className="space-y-2 text-right">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Brand Mapping</p>
-                    <p className="text-base font-black text-slate-900 uppercase">{selectedInvoiceRepair.brand}</p>
+                    <p className="text-base font-black text-slate-900 uppercase">{selectedInvoiceRepair.brand || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -606,7 +649,7 @@ export const Repairs: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   <tr className="text-xs font-bold">
                     <td className="py-6 uppercase">Technical Labor & Circuit Forensics</td>
-                    <td className="py-6 text-right font-black">{currency.symbol}{selectedInvoiceRepair.cost.toLocaleString()}</td>
+                    <td className="py-6 text-right font-black">{currency.symbol}{(parseFloat(selectedInvoiceRepair.estimatedCost || selectedInvoiceRepair.cost) || 0).toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table>
@@ -614,7 +657,7 @@ export const Repairs: React.FC = () => {
               <div className="flex justify-end pt-10 border-t-2 border-dashed border-slate-100 mt-10">
                 <div className="text-right">
                   <span className="text-sm font-black uppercase tracking-widest">Authorized Total</span>
-                  <span className="text-4xl font-black text-slate-900 tracking-tighter block mt-2">{currency.symbol}{selectedInvoiceRepair.cost.toLocaleString()}</span>
+                  <span className="text-4xl font-black text-slate-900 tracking-tighter block mt-2">{currency.symbol}{(parseFloat(selectedInvoiceRepair.estimatedCost || selectedInvoiceRepair.cost) || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -671,8 +714,8 @@ export const Repairs: React.FC = () => {
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Brand Mapping *</label>
                             <select required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm appearance-none cursor-pointer" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })}>
-                              <option value="">Select Brand</option>
-                              {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                              <option value="">Select Brand ({brands.length} available)</option>
+                              {brands.map(b => <option key={b._id || b.id} value={b.name}>{b.name}</option>)}
                             </select>
                           </div>
                         </div>

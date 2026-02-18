@@ -7,12 +7,17 @@ const authenticateToken = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
+    return res.status(401).json({ message: 'Authentication required' });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    // Ensure we have the userId field for compatibility
+    req.user = {
+      ...decoded,
+      userId: decoded.userId || decoded.id,
+      id: decoded.userId || decoded.id
+    };
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {

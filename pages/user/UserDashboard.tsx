@@ -68,7 +68,14 @@ export const UserDashboard: React.FC = () => {
 
   // Refresh user data ONLY on mount - no polling
   useEffect(() => {
-    refreshUser();
+    let isMounted = true;
+    const refresh = async () => {
+      if (isMounted) {
+        await refreshUser();
+      }
+    };
+    refresh();
+    return () => { isMounted = false; };
   }, []); // Empty dependency array - runs only once on mount
 
   const [repairCompleteTimeframe, setRepairCompleteTimeframe] = useState('1year');
@@ -103,6 +110,8 @@ export const UserDashboard: React.FC = () => {
   });
 
   useEffect(() => {
+    let isMounted = true;
+    
     const isStaff = user?.role === UserRole.TEAM_MEMBER;
     const welcomed = sessionStorage.getItem('dibnow_staff_welcomed');
     if (isStaff && !welcomed) {
@@ -114,12 +123,12 @@ export const UserDashboard: React.FC = () => {
     }
 
     const loadData = async () => {
-      if (!user) return;
+      if (!user || !isMounted) return;
       setIsLoading(true);
       try {
         const response = await callBackendAPI('/api/dashboard/overview', null, 'GET');
-        if (response) {
-          const activePlan = response.plans.find((p: any) => p.id === user.planId) || response.plans[0];
+        if (response && isMounted) {
+          const activePlan = response.plans?.find((p: any) => p.id === user.planId) || response.plans?.[0];
           setData(prev => ({
             ...prev,
             repairs: response.repairs || [],
@@ -142,12 +151,16 @@ export const UserDashboard: React.FC = () => {
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadData();
-  }, [user]); // Only depends on user, not refreshUser
+    
+    return () => { isMounted = false; };
+  }, [user?.id]); // Only re-run if user ID changes
 
   // Filter data based on timeframe
   const filterDataByTimeframe = (items: any[], timeframe: string) => {
@@ -351,8 +364,8 @@ export const UserDashboard: React.FC = () => {
         <StatBox label="Total team" value={counts.teamCount} icon={Users} colorClass="bg-pink-600" bgColorClass="bg-pink-50/50" iconColorClass="text-pink-600" path="/user/team" />
         <StatBox label="Pending Orders" value={counts.pendingRepairs} icon={Clock} colorClass="bg-red-600" bgColorClass="bg-red-50/50" iconColorClass="text-red-600" path="/user/repairs" />
         <StatBox label="Completed Repair Products" value={counts.completedRepairs} icon={CheckCircle2} colorClass="bg-teal-600" bgColorClass="bg-teal-50/50" iconColorClass="text-teal-600" path="/user/reports" />
-        <StatBox label="Stock Total sales" value="6566" icon={TrendingUp} colorClass="bg-indigo-600" bgColorClass="bg-indigo-50/50" iconColorClass="text-indigo-600" path="/user/invoices" />
-        <StatBox label="Your Current Plan" value={data.activePlan?.name || 'Free Trial'} icon={Layers} colorClass="bg-purple-700" bgColorClass="bg-purple-50/50" iconColorClass="text-purple-700" path="/user/pricing" />
+        <StatBox label="Stock Total Value" value={`${currency.symbol}${totalStockValue.toLocaleString()}`} icon={TrendingUp} colorClass="bg-indigo-600" bgColorClass="bg-indigo-50/50" iconColorClass="text-indigo-600" path="/user/invoices" />
+        <StatBox label="Your Current Plan" value={user?.currentPlan || data.activePlan?.name || 'Free Trial'} icon={Layers} colorClass="bg-purple-700" bgColorClass="bg-purple-50/50" iconColorClass="text-purple-700" path="/user/pricing" />
       </div>
 
       {/* Analytics Graphs */}
@@ -538,10 +551,22 @@ export const UserDashboard: React.FC = () => {
               <History size={18} className="text-slate-300" />
             </div>
             <div className="flex-1 p-6 overflow-y-auto custom-scrollbar max-h-[400px]">
-              <ActivityItem title="Updated Repair #8821 Status" actor="Alia Khan" time="2 mins ago" icon={Wrench} color="bg-blue-600" />
-              <ActivityItem title="Refilled Virtual Treasury" actor="System Admin" time="14 mins ago" icon={Wallet} color="bg-emerald-600" />
-              <ActivityItem title="Liquidated iPhone 14 Pro Display" actor="Imran Ahmed" time="28 mins ago" icon={ShoppingCart} color="bg-orange-600" />
-              <ActivityItem title="Provisioned New Category Node" actor="Alia Khan" time="1 hour ago" icon={Layers} color="bg-indigo-600" />
+              {data.repairs.length > 0 ? (
+                data.repairs.slice(0, 4).map((repair, idx) => (
+                  <ActivityItem 
+                    key={idx}
+                    title={`Updated Repair ${repair.device} Status`} 
+                    actor={repair.customerName} 
+                    time={new Date(repair.createdAt || repair.date).toLocaleDateString()} 
+                    icon={Wrench} 
+                    color="bg-blue-600" 
+                  />
+                ))
+              ) : (
+                <div className="py-8 text-center text-slate-400">
+                  <p className="text-xs font-bold uppercase tracking-widest">No recent activity</p>
+                </div>
+              )}
             </div>
           </div>
 

@@ -76,6 +76,15 @@ const repairSchema = new mongoose.Schema({
     default: 'pending',
     index: true
   },
+  protocolStatus: {
+    type: String,
+    enum: {
+      values: ['Pending', 'In Progress', 'Delivered', 'Completed', 'Returned', 'Expired'],
+      message: 'Invalid protocol status'
+    },
+    default: 'Pending',
+    index: true
+  },
   priority: {
     type: String,
     enum: ['low', 'medium', 'high', 'urgent'],

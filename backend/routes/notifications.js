@@ -9,16 +9,24 @@ router.get('/', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const role = req.user.role;
     
-    // Admin gets 'global' notifications, users get their own
-    const query = role === 'admin' || role === 'superadmin' 
-      ? { $or: [{ userId: 'global' }, { userId: userId }] }
-      : { $or: [{ userId: userId }, { userId: 'global' }] };
+    // Users get their own notifications + global notifications
+    // Admin/Superadmin get global + their own
+    const query = { 
+      $or: [
+        { userId: userId }, 
+        { userId: 'global' },
+        { ownerId: userId }
+      ]
+    };
     
-    const notifications = await Notification.find(query).sort({ createdAt: -1 });
-    res.json(notifications);
+    const notifications = await Notification.find(query)
+      .sort({ createdAt: -1 })
+      .limit(100); // Limit to prevent overload
+    
+    res.json({ success: true, data: notifications });
   } catch (error) {
     console.error('Fetch notifications error:', error);
-    res.status(500).json({ message: 'Error fetching notifications' });
+    res.status(500).json({ success: false, message: 'Error fetching notifications' });
   }
 });
 
@@ -41,14 +49,18 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
 });
 
 // Mark all as read
-router.put('/mark-all-read', authenticateToken, async (req, res) => {
+router.post('/mark-all-read', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const role = req.user.role;
     
-    const query = role === 'admin' || role === 'superadmin'
-      ? { $or: [{ userId: 'global' }, { userId: userId }], read: false }
-      : { userId: userId, read: false };
+    const query = {
+      $or: [
+        { userId: userId },
+        { userId: 'global' },
+        { ownerId: userId }
+      ],
+      read: false
+    };
     
     await Notification.updateMany(query, { $set: { read: true } });
     res.json({ message: 'All notifications marked as read' });

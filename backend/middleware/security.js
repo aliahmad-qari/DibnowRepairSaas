@@ -71,20 +71,34 @@ const passwordResetLimiter = rateLimit({
   }
 });
 
-// General API rate limiter - 100 requests per 15 minutes
+// General API rate limiter - DISABLED for authenticated users
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 1000, // Increased limit
   message: { message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for all authenticated operations
+    const token = req.headers['authorization'];
+    return !!token; // Skip if authenticated
+  }
 });
 
 // Stricter rate limiter for sensitive operations
 const sensitiveOpsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: 50,
   message: { message: 'Rate limit exceeded for sensitive operation.' }
+});
+
+// Public routes rate limiter (stricter for unauthenticated)
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { message: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
 });
 
 // Track failed login attempts for brute force detection
@@ -185,6 +199,7 @@ module.exports = {
   passwordResetLimiter,
   apiLimiter,
   sensitiveOpsLimiter,
+  publicLimiter,
   trackFailedLogin,
   checkBruteForce,
   clearFailedLogins,

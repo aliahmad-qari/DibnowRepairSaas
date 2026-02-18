@@ -195,7 +195,11 @@ router.post('/register', registerLimiter, registerValidation, async (req, res) =
       address,
       postcode,
       emailVerified: true,
-      status: 'active'
+      status: 'active',
+      planName: 'Free Trial',
+      planStartDate: new Date(),
+      planExpireDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      planStatus: 'active'
     });
 
     console.log('[REGISTER] Saving user to database...');
@@ -251,6 +255,14 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     if (!user) {
       trackFailedLogin(email);
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if user is blocked/disabled (only for regular users, not admin/superadmin)
+    if (user.role === 'user' && (user.status === 'disabled' || user.status === 'cancelled')) {
+      return res.status(403).json({ 
+        message: 'You have been blocked. Please contact your account owner.',
+        blocked: true 
+      });
     }
 
     // Check if account is locked
@@ -368,7 +380,7 @@ router.post('/verify-email', otpValidation, async (req, res) => {
   }
 });
 
-// Forgot password
+// Forgot password - Send OTP
 router.post('/forgot-password', passwordResetLimiter, passwordResetRequestValidation, async (req, res) => {
   try {
     const { email } = req.body;
@@ -378,36 +390,77 @@ router.post('/forgot-password', passwordResetLimiter, passwordResetRequestValida
     if (!user) {
       // Don't reveal if user exists
       return res.json({
-        message: 'If an account with that email exists, a password reset link has been sent.'
+        message: 'If an account with that email exists, a verification code has been sent.'
       });
     }
 
-    // Generate reset token
-    const resetToken = generateSecureToken();
-    user.passwordResetToken = resetToken;
-    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    // Generate 6-digit OTP
+    const otp = generateOTP();
+    user.passwordResetToken = otp;
+    user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
 
-    // Send reset email (optional - comment out if no email configured)
-    const resetUrl = `${process.env.APP_BASE_URL}/auth/reset-password?token=${resetToken}&email=${email}`;
+    // Send OTP email
     await sendEmail(
       email,
-      'Password Reset Request',
-      `<h1>Password Reset Request</h1>
-       <p>Click the link below to reset your password:</p>
-       <a href="${resetUrl}">Reset Password</a>
-       <p>This link expires in 1 hour.</p>
-       <p>If you didn't request this, please ignore this email.</p>`
+      'Your Password Reset Code',
+      `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #4f46e5; text-align: center;">Password Reset Code</h1>
+        <p style="text-align: center; font-size: 16px;">Enter the following 6-digit code to reset your password:</p>
+        <div style="background: #f3f4f6; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #4f46e5;">${otp}</span>
+        </div>
+        <p style="text-align: center; color: #6b7280; font-size: 14px;">This code expires in 10 minutes.</p>
+        <p style="text-align: center; color: #6b7280; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+      </div>`
     );
 
-    console.log(`[AUTH] Password reset requested for: ${email}`);
+    console.log(`[AUTH] Password reset OTP generated for: ${email}, OTP: ${otp}`);
 
     res.json({
-      message: 'If an account with that email exists, a password reset link has been sent.'
+      message: 'If an account with that email exists, a verification code has been sent.',
+      otp: otp // Return OTP for auto-fill
     });
   } catch (error) {
     console.error('Password reset error:', error);
     res.status(500).json({ message: 'Error processing request' });
+  }
+});
+
+// Verify Reset OTP
+router.post('/verify-reset-otp', otpLimiter, async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required' });
+    }
+
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+      passwordResetToken: otp,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
+    }
+
+    // Generate a reset token for password reset
+    const resetToken = generateSecureToken();
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes for password reset
+    await user.save();
+
+    console.log(`[AUTH] OTP verified for: ${email}`);
+
+    res.json({
+      message: 'OTP verified successfully',
+      resetToken: resetToken
+    });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({ message: 'Error verifying OTP' });
   }
 });
 
@@ -560,16 +613,28 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password');
+    const user = await User.findById(req.user.userId)
+      .select('-password')
+      .populate('planId', 'name price features status expiresAt');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Return user with both 'id' and '_id' for frontend compatibility
+    // Return user with plan details and notifications count
+    const Notification = require('../models/Notification');
+    const unreadCount = await Notification.countDocuments({
+      $or: [{ userId: user._id.toString() }, { userId: 'global' }],
+      read: false
+    });
+
     res.json({
       ...user.toObject(),
-      id: user._id.toString()
+      id: user._id.toString(),
+      currentPlan: user.planId ? user.planId.name : 'Free Trial',
+      planStatus: user.status,
+      planExpiresAt: user.planId?.expiresAt,
+      unreadNotifications: unreadCount
     });
   } catch (error) {
     console.error('Get user error:', error);

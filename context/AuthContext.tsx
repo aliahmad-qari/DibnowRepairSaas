@@ -105,7 +105,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (response.ok) {
               const userData = await response.json();
-              setUser(userData);
+              // Merge backend data with stored user data, preserving permissions
+              const mergedUser = {
+                ...parsedUser,
+                ...userData,
+                id: userData.id || userData._id || parsedUser.id,
+                permissions: userData.permissions || parsedUser.permissions || []
+              };
+              setUser(mergedUser);
+              localStorage.setItem('fixit_user', JSON.stringify(mergedUser));
               resetSessionTimer();
             } else {
               // Token invalid, clear storage
@@ -223,6 +231,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle blocked user scenario
+        if (data.blocked) {
+          return { success: false, message: 'You have been blocked. Please contact your account owner.' };
+        }
         return { success: false, message: data.message || 'Login failed' };
       }
 
@@ -355,7 +367,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: backendData.id || backendData._id || currentUser.id,
           role: currentUser.role || UserRole.USER,
           subRole: currentUser.subRole || 'Owner',
-          permissions: currentUser.permissions || ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports']
+          // Use backend permissions if available, otherwise keep current permissions
+          permissions: backendData.permissions || currentUser.permissions || ['manage_repairs', 'manage_inventory', 'manage_sales', 'manage_billing', 'manage_team', 'view_reports']
         };
         
         setUser(userData);

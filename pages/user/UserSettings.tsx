@@ -20,7 +20,7 @@ export const UserSettings: React.FC = () => {
     const loadProfile = async () => {
       setIsLoading(true);
       try {
-        const profile = await callBackendAPI('/users/profile', null, 'GET');
+        const profile = await callBackendAPI('/api/users/profile', null, 'GET');
         if (profile) {
           setFormData({
             company: profile.company || '',
@@ -43,7 +43,7 @@ export const UserSettings: React.FC = () => {
     setIsSubmitting(true);
     try {
       const userId = user._id || user.id;
-      await callBackendAPI(`/users/${userId}`, formData, 'PUT');
+      await callBackendAPI(`/api/users/${userId}`, formData, 'PUT');
       alert("Protocol Success: Shop infrastructure synchronized.");
     } catch (error) {
       console.error('Commit failed:', error);

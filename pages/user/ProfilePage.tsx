@@ -5,7 +5,7 @@ import {
   User, ShieldCheck, Mail, Globe, BadgeCheck, 
   MapPin, Phone, Settings, LogOut, Camera,
   Shield, Key, Bell, CreditCard, ChevronRight,
-  Fingerprint, Smartphone, Activity, Info, Users, Zap, Wallet, Receipt
+  Fingerprint, Smartphone, Activity, Info, Users, Zap, Wallet, Receipt, Wrench
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useCurrency } from '../../context/CurrencyContext.tsx';

@@ -23,8 +23,7 @@ const USER_PANEL_MODULES = [
   { id: 'categories', label: 'Product Categories', icon: Layers },
   { id: 'brands', label: 'Manufacturer Brands', icon: Tag },
   { id: 'clients', label: 'Customer Database', icon: ShieldCheck },
-  { id: 'advanced-team', label: 'Advanced Team Control', icon: ShieldHalf },
-  { id: 'team', label: 'Standard Team Roster', icon: Users },
+  { id: 'team', label: 'Team Management', icon: Users },
   { id: 'wallet', label: 'Financial Wallet', icon: Landmark },
   { id: 'utilities', label: 'Utility Console', icon: Globe },
   { id: 'tickets', label: 'Support Desk', icon: LifeBuoy },
@@ -47,7 +46,8 @@ export const TeamMembers: React.FC = () => {
     password: '',
     role: 'Technician',
     department: 'General',
-    status: 'active'
+    status: 'active',
+    permissions: [] as string[]
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +63,9 @@ export const TeamMembers: React.FC = () => {
           callBackendAPI('/api/dashboard/overview', null, 'GET')
         ]);
 
-        setMembers(teamResp || []);
+        // Ensure we always have arrays
+        const teamArray = Array.isArray(teamResp) ? teamResp : (teamResp?.data || []);
+        setMembers(teamArray);
 
         if (dashResp) {
           const plan = dashResp.plans.find((p: any) =>
@@ -98,26 +100,21 @@ export const TeamMembers: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Initialize with default permissions for all modules
-      const initialPermissions: any = {};
-      USER_PANEL_MODULES.forEach(mod => {
-        initialPermissions[mod.id] = { read: true, create: false };
-      });
-
       const response = await callBackendAPI('/api/team', {
         ...formData,
-        permissions: initialPermissions
+        permissions: formData.permissions
       }, 'POST');
 
       if (response) {
         setShowAddModal(false);
-        setFormData({ name: '', email: '', phone: '', password: '', role: 'Technician', department: 'General', status: 'active' });
-        // Refresh
+        setFormData({ name: '', email: '', phone: '', password: '', role: 'Technician', department: 'General', status: 'active', permissions: [] });
+        // Refresh team data
         const teamResp = await callBackendAPI('/api/team', null, 'GET');
-        setMembers(teamResp || []);
+        const teamArray = Array.isArray(teamResp) ? teamResp : (teamResp?.data || []);
+        setMembers(teamArray);
 
         // Re-check limits
-        if (activePlan && activePlan.limits && teamResp.length >= activePlan.limits.teamMembers) {
+        if (activePlan && activePlan.limits && teamArray.length >= activePlan.limits.teamMembers) {
           setIsAtLimit(true);
         }
       }
@@ -158,36 +155,27 @@ export const TeamMembers: React.FC = () => {
     const nextStatus = currentStatus === 'active' ? 'disabled' : 'active';
     try {
       await callBackendAPI(`/api/team/${id}`, { status: nextStatus }, 'PUT');
+      // Refresh team data
       const teamResp = await callBackendAPI('/api/team', null, 'GET');
-      setMembers(teamResp || []);
+      setMembers(Array.isArray(teamResp) ? teamResp : (teamResp?.data || []));
     } catch (error) {
       console.error('Failed to toggle status:', error);
+      alert('Failed to update team member status. Please try again.');
     }
   };
 
-  const updatePermissions = async (memberId: string, moduleId: string, action: string) => {
-    const member = members.find(m => m._id === memberId);
-    if (!member) return;
-
-    const currentPerms = member.permissions || {};
-    const modulePerms = currentPerms[moduleId] || { read: false, create: false };
-
-    const newPerms = {
-      ...currentPerms,
-      [moduleId]: {
-        ...modulePerms,
-        [action]: !modulePerms[action]
-      }
-    };
-
+  const updatePermissions = async (memberId: string, permissions: string[]) => {
     try {
-      await callBackendAPI(`/api/team/${memberId}`, { permissions: newPerms }, 'PUT');
+      await callBackendAPI(`/api/team/${memberId}`, { permissions }, 'PUT');
+      // Refresh team data
       const teamResp = await callBackendAPI('/api/team', null, 'GET');
-      setMembers(teamResp || []);
-      const updatedMember = teamResp.find((m: any) => m._id === memberId);
+      const teamArray = Array.isArray(teamResp) ? teamResp : (teamResp?.data || []);
+      setMembers(teamArray);
+      const updatedMember = teamArray.find((m: any) => m._id === memberId);
       if (updatedMember) setShowPermissionModal(updatedMember);
     } catch (error) {
       console.error('Failed to update permissions:', error);
+      alert('Failed to update permissions. Please try again.');
     }
   };
 
@@ -252,9 +240,14 @@ export const TeamMembers: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 md:px-10 py-7 text-center">
-                    <button onClick={() => setShowPermissionModal(member)} className="bg-cyan-50 text-cyan-600 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-cyan-100 hover:bg-cyan-600 hover:text-white transition-all whitespace-nowrap">
-                      Grant Access
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="bg-cyan-50 text-cyan-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-cyan-100">
+                        {(member.permissions || []).length} / {USER_PANEL_MODULES.length}
+                      </span>
+                      <button onClick={() => setShowPermissionModal(member)} className="bg-cyan-50 text-cyan-600 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-cyan-100 hover:bg-cyan-600 hover:text-white transition-all whitespace-nowrap">
+                        Configure
+                      </button>
+                    </div>
                   </td>
                   <td className="px-6 md:px-10 py-7 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -337,6 +330,20 @@ export const TeamMembers: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="bg-slate-50 p-5 rounded-2xl md:rounded-3xl border border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Page Access Permissions</label>
+                    <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-1 rounded-lg">{formData.permissions.length} Selected</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPermissionModal({ _id: 'new', name: formData.name || 'New Member', permissions: formData.permissions })}
+                    className="w-full bg-indigo-50 text-indigo-600 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all"
+                  >
+                    Configure Role & Permissions
+                  </button>
+                </div>
+
                 <div className="pt-4 pb-2">
                   <button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 text-white font-black py-5 rounded-[1.2rem] md:rounded-[1.5rem] shadow-xl hover:bg-indigo-700 transition-all uppercase tracking-[0.2em] text-[10px] md:text-[11px] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
                     {isSubmitting ? <Rocket className="animate-spin" size={18} /> : null}
@@ -369,7 +376,25 @@ export const TeamMembers: React.FC = () => {
             <div className="p-5 md:p-8 space-y-3 overflow-y-auto custom-scrollbar flex-1">
               <div className="grid grid-cols-1 gap-3">
                 {USER_PANEL_MODULES.map(mod => {
-                  const modPerms = showPermissionModal.permissions?.[mod.id] || { read: false, create: false };
+                  const isSelected = showPermissionModal._id === 'new' 
+                    ? formData.permissions.includes(mod.id)
+                    : (showPermissionModal.permissions || []).includes(mod.id);
+                  
+                  const togglePermission = () => {
+                    if (showPermissionModal._id === 'new') {
+                      const newPerms = isSelected 
+                        ? formData.permissions.filter(p => p !== mod.id)
+                        : [...formData.permissions, mod.id];
+                      setFormData({ ...formData, permissions: newPerms });
+                    } else {
+                      const currentPerms = showPermissionModal.permissions || [];
+                      const newPerms = isSelected 
+                        ? currentPerms.filter(p => p !== mod.id)
+                        : [...currentPerms, mod.id];
+                      updatePermissions(showPermissionModal._id, newPerms);
+                    }
+                  };
+                  
                   return (
                     <div key={mod.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all gap-4">
                       <div className="flex items-center gap-3 md:gap-4">
@@ -383,18 +408,11 @@ export const TeamMembers: React.FC = () => {
                       </div>
                       <div className="flex gap-2 sm:gap-4">
                         <button
-                          onClick={() => updatePermissions(showPermissionModal._id, mod.id, 'read')}
-                          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${modPerms.read ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}
+                          onClick={togglePermission}
+                          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${isSelected ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}
                         >
-                          {modPerms.read ? <CheckSquare size={14} /> : <Square size={14} />}
-                          Read
-                        </button>
-                        <button
-                          onClick={() => updatePermissions(showPermissionModal._id, mod.id, 'create')}
-                          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${modPerms.create ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}
-                        >
-                          {modPerms.create ? <CheckSquare size={14} /> : <Square size={14} />}
-                          Create
+                          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                          {isSelected ? 'Granted' : 'Denied'}
                         </button>
                       </div>
                     </div>

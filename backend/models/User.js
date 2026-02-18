@@ -77,7 +77,7 @@ const userSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: ['active', 'pending', 'expired', 'cancelled'],
+      values: ['active', 'pending', 'expired', 'cancelled', 'disabled'],
       message: 'Invalid status'
     },
     default: 'pending'
@@ -86,6 +86,25 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Plan',
     default: null
+  },
+  planName: {
+    type: String,
+    default: 'Free Trial'
+  },
+  planStartDate: {
+    type: Date,
+    default: Date.now
+  },
+  planExpireDate: {
+    type: Date,
+    default: function() {
+      return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    }
+  },
+  planStatus: {
+    type: String,
+    enum: ['active', 'expired'],
+    default: 'active'
   },
   walletBalance: {
     type: Number,

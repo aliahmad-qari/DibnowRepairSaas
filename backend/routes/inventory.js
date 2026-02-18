@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Inventory = require('../models/Inventory');
 const { authenticateToken } = require('../middleware/auth');
+const { checkPermission, checkUserStatus } = require('../middleware/permissions');
 const checkLimits = require('../middleware/checkLimits');
 
+// Apply user status check to all routes
+router.use(authenticateToken, checkUserStatus);
+
 // Get all inventory items for current user
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', checkPermission('inventory'), async (req, res) => {
   try {
     const items = await Inventory.find({ ownerId: req.user.userId }).sort({ createdAt: -1 });
     res.json(items);
@@ -15,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Add new inventory item
-router.post('/', authenticateToken, checkLimits('inventoryItems'), async (req, res) => {
+router.post('/', checkPermission('inventory'), checkLimits('inventoryItems'), async (req, res) => {
   try {
     const newItem = new Inventory({
       ...req.body,
@@ -29,7 +33,7 @@ router.post('/', authenticateToken, checkLimits('inventoryItems'), async (req, r
 });
 
 // Update inventory item
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', checkPermission('inventory'), async (req, res) => {
   try {
     const updatedItem = await Inventory.findOneAndUpdate(
       { _id: req.params.id, ownerId: req.user.userId },
@@ -44,7 +48,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Delete inventory item
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', checkPermission('inventory'), async (req, res) => {
   try {
     const deletedItem = await Inventory.findOneAndDelete({ _id: req.params.id, ownerId: req.user.userId });
     if (!deletedItem) return res.status(404).json({ message: 'Item not found' });

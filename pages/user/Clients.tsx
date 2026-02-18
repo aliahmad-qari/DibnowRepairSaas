@@ -43,16 +43,19 @@ export const Clients: React.FC = () => {
           callBackendAPI('/api/clients', null, 'GET'),
           callBackendAPI('/api/repairs', null, 'GET'),
           callBackendAPI('/api/sales', null, 'GET'),
-          callBackendAPI('/api/complaints', null, 'GET') // Assuming this exists or returns []
+          callBackendAPI('/api/complaints', null, 'GET').catch(() => [])
         ]);
 
-        setClients(clientsResp || []);
-        setRepairs(repairsResp || []);
-        setSales(salesResp || []);
-        // Handle if complaints endpoint doesn't exist yet
+        setClients(Array.isArray(clientsResp) ? clientsResp : []);
+        setRepairs(Array.isArray(repairsResp) ? repairsResp : []);
+        setSales(Array.isArray(salesResp) ? salesResp : []);
         setComplaints(Array.isArray(complaintsResp) ? complaintsResp : []);
       } catch (error) {
         console.error('Failed to load CRM data:', error);
+        setClients([]);
+        setRepairs([]);
+        setSales([]);
+        setComplaints([]);
       } finally {
         setIsLoading(false);
       }
@@ -64,6 +67,10 @@ export const Clients: React.FC = () => {
 
   // CUSTOMER INTELLIGENCE ENGINE (Tasks 1, 2, 4, 5, 6, 8)
   const intel = useMemo(() => {
+    if (!Array.isArray(clients) || !Array.isArray(repairs) || !Array.isArray(sales) || !Array.isArray(complaints)) {
+      return { stats: [], filtered: [], total: 0, active: 0, returning: 0, inactive: 0 };
+    }
+
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -80,8 +87,11 @@ export const Clients: React.FC = () => {
       const allDates = [
         ...clientRepairs.map(r => new Date(r.date)),
         ...clientSales.map(s => {
-          const [d, m, y] = s.date.split('/');
-          return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+          if (s.date && typeof s.date === 'string' && s.date.includes('/')) {
+            const [d, m, y] = s.date.split('/');
+            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+          }
+          return new Date(s.date || Date.now());
         })
       ].filter(d => !isNaN(d.getTime()));
 
@@ -115,9 +125,9 @@ export const Clients: React.FC = () => {
         sources,
         isNew: new Date(client.createdAt || Date.now()) >= sevenDaysAgo,
         // Detailed data for timeline
-        rawRepairs: clientRepairs,
-        rawSales: clientSales,
-        rawComplaints: clientComplaints
+        rawRepairs: clientRepairs || [],
+        rawSales: clientSales || [],
+        rawComplaints: clientComplaints || []
       };
     });
 
@@ -156,30 +166,32 @@ export const Clients: React.FC = () => {
     if (!selectedClientForTimeline) return [];
 
     const events = [
-      ...selectedClientForTimeline.rawRepairs.map((r: any) => ({
+      ...(selectedClientForTimeline.rawRepairs || []).map((r: any) => ({
         type: 'REPAIR',
-        title: `Repair Created: ${r.device}`,
-        date: new Date(r.date),
-        displayDate: r.date,
-        val: `${currency.symbol}${r.cost}`,
+        title: `Repair Created: ${r.device || 'Unknown Device'}`,
+        date: new Date(r.date || Date.now()),
+        displayDate: r.date || 'N/A',
+        val: `${currency.symbol}${r.cost || 0}`,
         icon: Smartphone,
         color: 'bg-blue-500'
       })),
-      ...selectedClientForTimeline.rawSales.map((s: any) => ({
+      ...(selectedClientForTimeline.rawSales || []).map((s: any) => ({
         type: 'POS',
-        title: `POS Purchase: ${s.productName}`,
-        date: new Date(s.date.split('/').reverse().join('-')),
-        displayDate: s.date,
-        val: `${currency.symbol}${s.total}`,
+        title: `POS Purchase: ${s.productName || 'Unknown Product'}`,
+        date: s.date && typeof s.date === 'string' && s.date.includes('/') 
+          ? new Date(s.date.split('/').reverse().join('-')) 
+          : new Date(s.date || Date.now()),
+        displayDate: s.date || 'N/A',
+        val: `${currency.symbol}${s.total || 0}`,
         icon: ShoppingBag,
         color: 'bg-emerald-500'
       })),
-      ...selectedClientForTimeline.rawComplaints.map((c: any) => ({
+      ...(selectedClientForTimeline.rawComplaints || []).map((c: any) => ({
         type: 'COMPLAINT',
-        title: `Issue Logged: ${c.subject}`,
-        date: new Date(c.date),
-        displayDate: c.date,
-        val: c.status.toUpperCase(),
+        title: `Issue Logged: ${c.subject || 'Unknown Issue'}`,
+        date: new Date(c.date || Date.now()),
+        displayDate: c.date || 'N/A',
+        val: (c.status || 'pending').toUpperCase(),
         icon: MessageSquare,
         color: 'bg-rose-500'
       }))

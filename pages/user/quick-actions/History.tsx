@@ -198,14 +198,18 @@ export const HistoryPage: React.FC = () => {
   });
 
   const loadUnifiedLogs = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
+      const userId = user._id || user.id;
       const [repairs, sales, walletTx, activities] = await Promise.all([
-        callBackendAPI('/repairs', null, 'GET'),
-        callBackendAPI('/sales', null, 'GET'),
-        callBackendAPI(`/wallet/${user._id || user.id}/transactions`, null, 'GET'),
-        callBackendAPI('/activities', null, 'GET')
+        callBackendAPI('/api/repairs', null, 'GET').catch(() => []),
+        callBackendAPI('/api/sales', null, 'GET').catch(() => []),
+        callBackendAPI(`/api/wallet/${userId}/transactions`, null, 'GET').catch(() => []),
+        callBackendAPI('/api/activities', null, 'GET').catch(() => [])
       ]);
 
       const mappedRepairs = (repairs || []).map((r: any) => ({

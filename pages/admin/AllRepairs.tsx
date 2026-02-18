@@ -1,14 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { ClipboardList, Search, Filter, MoreVertical, CheckCircle2, Clock, Smartphone, User, DollarSign, Calendar } from 'lucide-react';
-import { db } from '../../api/db';
+import { adminApi } from '../../api/adminApi';
 
 export const AllRepairs: React.FC = () => {
   const [repairs, setRepairs] = useState<any[]>([]);
 
   useEffect(() => {
-    // Pulls from the global database
-    setRepairs(db.repairs.getAll());
+    const fetchRepairs = async () => {
+      try {
+        const data = await adminApi.getAllRepairs();
+        setRepairs(data);
+      } catch (error) {
+        console.error('Failed to fetch repairs:', error);
+      }
+    };
+    fetchRepairs();
   }, []);
 
   return (
@@ -51,10 +58,14 @@ export const AllRepairs: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {repairs.map((rep) => (
-                <tr key={rep.id} className="hover:bg-indigo-50/30 transition-all group">
+              {repairs.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-8 py-20 text-center text-slate-400 font-bold">No repairs found</td>
+                </tr>
+              ) : repairs.map((rep) => (
+                <tr key={rep._id} className="hover:bg-indigo-50/30 transition-all group">
                   <td className="px-8 py-6">
-                    <span className="font-mono text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-100">{rep.id}</span>
+                    <span className="font-mono text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-100">{rep._id.slice(-8)}</span>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">
@@ -78,7 +89,7 @@ export const AllRepairs: React.FC = () => {
                     £{parseFloat(rep.cost).toLocaleString()}
                   </td>
                   <td className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    {rep.date}
+                    {new Date(rep.date || rep.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-8 py-6 text-right">
                     <button className="text-slate-300 hover:text-indigo-600 p-2">

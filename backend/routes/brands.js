@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Brand = require('../models/Brand');
 const { authenticateToken } = require('../middleware/auth');
+const { checkPermission, checkUserStatus } = require('../middleware/permissions');
 const checkLimits = require('../middleware/checkLimits');
 
+// Apply user status check to all routes
+router.use(authenticateToken, checkUserStatus);
+
 // Get all brands
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, checkUserStatus, async (req, res) => {
   try {
     const brands = await Brand.find({ ownerId: req.user.userId }).sort({ name: 1 });
     res.json(brands);
@@ -15,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Add brand
-router.post('/', authenticateToken, checkLimits('brands'), async (req, res) => {
+router.post('/', checkLimits('brands'), async (req, res) => {
   try {
     const newBrand = new Brand({
       ...req.body,
@@ -29,7 +33,7 @@ router.post('/', authenticateToken, checkLimits('brands'), async (req, res) => {
 });
 
 // Delete brand
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const deleted = await Brand.findOneAndDelete({ _id: req.params.id, ownerId: req.user.userId });
     if (!deleted) return res.status(404).json({ message: 'Brand not found' });

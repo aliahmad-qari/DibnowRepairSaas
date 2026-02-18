@@ -38,8 +38,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     { name: 'Invoices', path: '/user/invoices', icon: Receipt, permission: 'manage_billing' },
     { name: 'Categories', path: '/user/categories', icon: Layers },
     { name: 'Brands', path: '/user/brands', icon: Tag },
-    { name: 'Clients', path: '/user/clients', icon: ShieldCheck, permission: 'manage_team' },
-    { name: 'Team V2', path: '/user/advanced-team', icon: ShieldHalf, permission: 'manage_team' },
+    { name: 'Clients', path: '/user/clients', icon: ShieldCheck },
     { name: 'Team', path: '/user/team', icon: UsersRound, permission: 'manage_team' },
     { name: 'Wallet', path: '/user/wallet', icon: Wallet, permission: 'manage_billing' },
     { name: 'Notifications', path: '/user/notifications', icon: Bell },
@@ -76,7 +75,45 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   // GRANULAR PERMISSION FILTERING (Requirement 3)
   const filteredItems = items.filter(item => {
-    if (user?.role === UserRole.SUPER_ADMIN) return true;
+    if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN) return true;
+    
+    // For regular users (owners), show all items unless they have specific permissions array (team members)
+    if (user?.role === UserRole.USER) {
+      // If user has permissions array, they are a team member - filter by permissions
+      if (user?.permissions && Array.isArray(user.permissions) && user.permissions.length > 0) {
+        const pathToPermissionMap = {
+          '/user/dashboard': 'dashboard',
+          '/user/pricing': 'pricing',
+          '/user/repairs': 'repairs',
+          '/user/inventory': 'inventory',
+          '/user/all-stock': 'all-stock',
+          '/user/pos': 'pos',
+          '/user/sold-items': 'sold-items',
+          '/user/reports': 'reports',
+          '/user/invoices': 'invoices',
+          '/user/categories': 'categories',
+          '/user/brands': 'brands',
+          '/user/clients': 'clients',
+          '/user/team': 'team',
+          '/user/wallet': 'wallet',
+          '/user/notifications': 'notifications',
+          '/user/activity': 'activity',
+          '/user/utilities': 'utilities',
+          '/user/profile': 'profile',
+          '/user/tickets': 'tickets',
+          '/user/complaints': 'complaints'
+        };
+        
+        const requiredPermission = pathToPermissionMap[item.path];
+        if (requiredPermission) {
+          return user.permissions.includes(requiredPermission);
+        }
+      }
+      // If no permissions array or empty, user is owner - show all items
+      return true;
+    }
+    
+    // Default permission check for other cases
     if (!item.permission) return true;
     return hasPermission(item.permission);
   });

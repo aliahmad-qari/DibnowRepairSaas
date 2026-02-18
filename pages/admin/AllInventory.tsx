@@ -1,14 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { Package, Search, Filter, Layers, DollarSign, Store, Tag } from 'lucide-react';
-import { db } from '../../api/db';
+import { adminApi } from '../../api/adminApi';
 
 export const AllInventory: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
-    setItems(db.inventory.getAll());
+    const fetchInventory = async () => {
+      try {
+        const data = await adminApi.getAllInventory();
+        setItems(data);
+      } catch (error) {
+        console.error('Failed to fetch inventory:', error);
+      }
+    };
+    fetchInventory();
   }, []);
+
+  const totalAssetValue = items.reduce((sum, item) => sum + (item.price * item.stock), 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -28,7 +38,7 @@ export const AllInventory: React.FC = () => {
           <div className="flex gap-4">
              <div className="text-right">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Global Asset Value</p>
-                <p className="text-lg font-black text-indigo-600">£142,850.00</p>
+                <p className="text-lg font-black text-indigo-600">£{totalAssetValue.toFixed(2)}</p>
              </div>
           </div>
         </div>
@@ -46,8 +56,12 @@ export const AllInventory: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {items.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-all">
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-8 py-20 text-center text-slate-400 font-bold">No inventory found</td>
+                </tr>
+              ) : items.map((item) => (
+                <tr key={item._id} className="hover:bg-slate-50 transition-all">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black">
@@ -55,14 +69,14 @@ export const AllInventory: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-black text-slate-800 text-sm tracking-tight">{item.name}</p>
-                        <p className="text-[10px] text-slate-400 font-black uppercase mt-1 tracking-widest">{item.sku}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase mt-1 tracking-widest">{item.sku || item._id.slice(-8)}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2 text-slate-600 font-bold text-xs uppercase tracking-tight">
                        <Store size={14} className="text-slate-400" />
-                       Elite Mobile
+                       Shop #{item.ownerId?.slice(-6) || 'N/A'}
                     </div>
                   </td>
                   <td className="px-8 py-6 text-center">

@@ -41,10 +41,14 @@ export const AllStock: React.FC = () => {
       const loadItems = async () => {
          setIsLoading(true);
          try {
-            const data = await callBackendAPI('/inventory', null, 'GET');
-            setItems(data || []);
-         } catch (error) {
+            const data = await callBackendAPI('/api/inventory', null, 'GET');
+            setItems(Array.isArray(data) ? data : []);
+         } catch (error: any) {
             console.error('Failed to load inventory:', error);
+            if (error.message?.includes('404') || error.message?.includes('not found')) {
+               console.error('Inventory API route not found. Check backend /api/inventory endpoint.');
+            }
+            setItems([]);
          } finally {
             setIsLoading(false);
          }
@@ -68,9 +72,11 @@ export const AllStock: React.FC = () => {
    const handleDelete = async (id: string) => {
       if (window.confirm("Remove this item permanently from the stock ledger?")) {
          try {
-            await callBackendAPI(`/inventory/${id}`, null, 'DELETE');
-            const data = await callBackendAPI('/inventory', null, 'GET');
-            setItems(data || []);
+            await callBackendAPI(`/api/inventory/${id}`, null, 'DELETE');
+            const data = await callBackendAPI('/api/inventory', null, 'GET');
+            setItems(Array.isArray(data) ? data : []);
+            // Dispatch inventory update event
+            window.dispatchEvent(new CustomEvent('inventoryUpdated'));
          } catch (error) {
             console.error('Failed to delete item:', error);
          }
@@ -81,10 +87,12 @@ export const AllStock: React.FC = () => {
       e.preventDefault();
       if (!editingItem) return;
       try {
-         await callBackendAPI(`/inventory/${editingItem._id}`, editingItem, 'PUT');
+         await callBackendAPI(`/api/inventory/${editingItem._id}`, editingItem, 'PUT');
          setEditingItem(null);
-         const data = await callBackendAPI('/inventory', null, 'GET');
-         setItems(data || []);
+         const data = await callBackendAPI('/api/inventory', null, 'GET');
+         setItems(Array.isArray(data) ? data : []);
+         // Dispatch inventory update event
+         window.dispatchEvent(new CustomEvent('inventoryUpdated'));
       } catch (error) {
          console.error('Failed to update asset node:', error);
       }
@@ -106,13 +114,15 @@ export const AllStock: React.FC = () => {
             date: new Date().toISOString()
          };
 
-         const response = await callBackendAPI('/sales', saleData, 'POST');
+         const response = await callBackendAPI('/api/sales', saleData, 'POST');
          if (response) {
             setIsSelling(null);
             setSellForm({ qty: 1, price: 0, customer: '' });
             // Refresh items
-            const data = await callBackendAPI('/inventory', null, 'GET');
-            setItems(data || []);
+            const data = await callBackendAPI('/api/inventory', null, 'GET');
+            setItems(Array.isArray(data) ? data : []);
+            // Dispatch inventory update event
+            window.dispatchEvent(new CustomEvent('inventoryUpdated'));
          }
       } catch (error) {
          console.error('Transaction failed:', error);

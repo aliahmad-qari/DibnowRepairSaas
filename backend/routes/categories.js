@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
 const { authenticateToken } = require('../middleware/auth');
+const { checkPermission, checkUserStatus } = require('../middleware/permissions');
 const checkLimits = require('../middleware/checkLimits');
 
+// Apply user status check to all routes
+router.use(authenticateToken, checkUserStatus);
+
 // Get all categories
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', checkPermission('categories'), async (req, res) => {
   try {
     const categories = await Category.find({ ownerId: req.user.userId }).sort({ name: 1 });
     res.json(categories);
@@ -15,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Add category
-router.post('/', authenticateToken, checkLimits('categories'), async (req, res) => {
+router.post('/', checkPermission('categories'), checkLimits('categories'), async (req, res) => {
   try {
     const newCategory = new Category({
       ...req.body,
@@ -29,7 +33,7 @@ router.post('/', authenticateToken, checkLimits('categories'), async (req, res) 
 });
 
 // Delete category
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', checkPermission('categories'), async (req, res) => {
   try {
     const deleted = await Category.findOneAndDelete({ _id: req.params.id, ownerId: req.user.userId });
     if (!deleted) return res.status(404).json({ message: 'Category not found' });
