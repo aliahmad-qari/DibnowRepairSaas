@@ -160,8 +160,24 @@ router.post('/verify-payment', async (req, res) => {
 
       // UPDATE USER'S PLANID
       const User = require('../models/User');
-      await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
-      console.log(`[STRIPE] Updated user ${userId} planId to ${planId}`);
+      const plan = await Plan.findById(planId);
+      if (plan) {
+        const planDurationDays = plan.planDuration || 30;
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + planDurationDays);
+        
+        await User.findByIdAndUpdate(userId, { 
+          planId: planId, 
+          planName: plan.name,
+          status: 'active',
+          planStartDate: new Date(),
+          planExpireDate: expiryDate
+        });
+        console.log(`[STRIPE] Updated user ${userId} planId to ${planId} with expiry: ${expiryDate}`);
+      } else {
+        await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
+        console.log(`[STRIPE] Updated user ${userId} planId to ${planId}`);
+      }
 
       res.json({
         success: true,
@@ -570,10 +586,20 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                 
                 // UPDATE USER'S PLANID
                 const User = require('../models/User');
-                await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
+                const planDurationDays = plan.planDuration || 30;
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + planDurationDays);
+                
+                await User.findByIdAndUpdate(userId, { 
+                  planId: planId, 
+                  planName: plan.name,
+                  status: 'active',
+                  planStartDate: new Date(),
+                  planExpireDate: expiryDate
+                });
                 
                 console.log(`[STRIPE WEBHOOK] Auto-activated subscription ${subscription._id} for user ${userId}`);
-                console.log(`[STRIPE WEBHOOK] Updated user ${userId} planId to ${planId}`);
+                console.log(`[STRIPE WEBHOOK] Updated user ${userId} planId to ${planId} with expiry: ${expiryDate}`);
               } else {
                 console.error('[STRIPE WEBHOOK] Plan not found:', planId);
               }

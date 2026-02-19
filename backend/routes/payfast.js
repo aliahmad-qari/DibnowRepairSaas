@@ -289,8 +289,18 @@ router.post('/verify-payment', async (req, res) => {
     await transaction.save();
 
     // Update user's planId
-    await User.findByIdAndUpdate(userId, { planId: planId });
-    console.log(`[PAYFAST] Updated user ${userId} to plan ${planId}`);
+    const planDurationDays = plan.planDuration || 30;
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + planDurationDays);
+    
+    await User.findByIdAndUpdate(userId, { 
+      planId: planId, 
+      planName: plan.name,
+      status: 'active',
+      planStartDate: new Date(),
+      planExpireDate: expiryDate
+    });
+    console.log(`[PAYFAST] Updated user ${userId} to plan ${planId} with expiry: ${expiryDate}`);
 
     res.json({
       success: true,
@@ -616,8 +626,18 @@ router.post('/webhook', async (req, res) => {
       await transaction.save();
 
       // Update user's planId
-      await User.findByIdAndUpdate(userId, { planId: planId });
-      console.log(`[PAYFAST WEBHOOK] Updated user ${userId} to plan ${planId}`);
+      const planDurationDays = plan.planDuration || 30;
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + planDurationDays);
+      
+      await User.findByIdAndUpdate(userId, { 
+        planId: planId, 
+        planName: plan.name,
+        status: 'active',
+        planStartDate: new Date(),
+        planExpireDate: expiryDate
+      });
+      console.log(`[PAYFAST WEBHOOK] Updated user ${userId} to plan ${planId} with expiry: ${expiryDate}`);
 
     } else if (type === 'wallet_topup') {
       const amount = parseFloat(amountGross);

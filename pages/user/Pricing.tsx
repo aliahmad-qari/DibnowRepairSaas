@@ -102,8 +102,18 @@ export const UserPricing: React.FC = () => {
 
   // Refresh user data on mount to get updated plan info
   useEffect(() => {
-    refreshUser();
-  }, [refreshUser]);
+    const fetchUserData = async () => {
+      try {
+        const response = await callBackendAPI('/api/users/profile', null, 'GET');
+        if (response) {
+          console.log('User data refreshed:', response);
+        }
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   const currentPlan = useMemo(() => {
     if (!user?.planId || !plans.length) return plans[0];
@@ -284,8 +294,12 @@ export const UserPricing: React.FC = () => {
             });
 
             console.log('✅ [Payment] Wallet payment successful, plan auto-activated');
-            await refreshUser();
             setSuccessState(true);
+            
+            // Reload page to fetch updated user data
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000);
           } else {
             throw new Error(response.message || 'Wallet deduction failed');
           }
@@ -491,8 +505,8 @@ export const UserPricing: React.FC = () => {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">📅 Expiry / Renewal Date</p>
             </div>
             <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">
-              {user?.planExpiryDate 
-                ? new Date(user.planExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+              {user?.planExpireDate 
+                ? new Date(user.planExpireDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                 : (() => {
                     const expiryDate = new Date();
                     expiryDate.setDate(expiryDate.getDate() + 7);
@@ -500,7 +514,12 @@ export const UserPricing: React.FC = () => {
                   })()}
             </p>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-              {user?.planExpiryDate ? 'Next automated settlement' : 'Free trial expires in 7 days'}
+              {user?.planExpireDate 
+                ? (() => {
+                    const daysLeft = Math.ceil((new Date(user.planExpireDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                    return daysLeft > 0 ? `Expires in ${daysLeft} days` : 'Plan expired';
+                  })()
+                : 'Free trial expires in 7 days'}
             </p>
           </div>
 

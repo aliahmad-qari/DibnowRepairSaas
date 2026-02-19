@@ -59,7 +59,7 @@ router.get('/:id', async (req, res) => {
 // Add plan
 router.post('/add', authenticateToken, adminOnly, async (req, res) => {
   try {
-    const { name, description, price, currency, duration, features, stripePriceId, limits } = req.body;
+    const { name, description, price, currency, duration, planDuration, features, stripePriceId, limits } = req.body;
 
     const plan = new Plan({
       name,
@@ -67,6 +67,7 @@ router.post('/add', authenticateToken, adminOnly, async (req, res) => {
       price,
       currency: currency || 'GBP',
       duration: duration || 30,
+      planDuration: planDuration || 30,
       features: features || [],
       stripePriceId,
       limits: limits || {}
@@ -91,7 +92,7 @@ router.post('/add', authenticateToken, adminOnly, async (req, res) => {
 // Update plan
 router.put('/:id', authenticateToken, adminOnly, async (req, res) => {
   try {
-    const { name, description, price, currency, duration, features, stripePriceId, isActive, limits } = req.body;
+    const { name, description, price, currency, duration, planDuration, features, stripePriceId, isActive, limits } = req.body;
 
     const plan = await Plan.findByIdAndUpdate(
       req.params.id,
@@ -101,6 +102,7 @@ router.put('/:id', authenticateToken, adminOnly, async (req, res) => {
         price,
         currency,
         duration,
+        planDuration,
         features,
         stripePriceId,
         isActive,

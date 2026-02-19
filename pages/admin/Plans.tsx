@@ -14,6 +14,7 @@ export const Plans: React.FC = () => {
     price: '',
     baseCurrency: 'GBP',
     duration: 'monthly' as 'monthly' | 'yearly',
+    planDuration: 30,
     features: [''],
     limits: {
       repairsPerMonth: 0,
@@ -38,6 +39,7 @@ export const Plans: React.FC = () => {
             price: p.price,
             baseCurrency: p.currency,
             duration: p.duration === 365 ? 'yearly' : 'monthly',
+            planDuration: p.planDuration || 30,
             features: p.features || [],
             limits: p.limits || initialPlanState.limits
           }));
@@ -79,6 +81,7 @@ export const Plans: React.FC = () => {
         price: parseFloat(newPlan.price),
         currency: newPlan.baseCurrency,
         duration: newPlan.duration === 'yearly' ? 365 : 30,
+        planDuration: parseInt(newPlan.planDuration.toString()) || 30,
         features: newPlan.features.filter(f => f.trim() !== ''),
         limits: newPlan.limits
       });
@@ -93,6 +96,7 @@ export const Plans: React.FC = () => {
             price: p.price,
             baseCurrency: p.currency,
             duration: p.duration === 365 ? 'yearly' : 'monthly',
+            planDuration: p.planDuration || 30,
             features: p.features || [],
             limits: p.limits || initialPlanState.limits
           })));
@@ -115,6 +119,7 @@ export const Plans: React.FC = () => {
         currency: editingPlan.baseCurrency,
         price: parseFloat(editingPlan.price.toString()),
         duration: editingPlan.duration === 'yearly' ? 365 : 30,
+        planDuration: parseInt(editingPlan.planDuration.toString()) || 30,
         features: editingPlan.features.filter((f: string) => f.trim() !== '')
       }, 'PUT');
 
@@ -127,6 +132,7 @@ export const Plans: React.FC = () => {
             price: p.price,
             baseCurrency: p.currency,
             duration: p.duration === 365 ? 'yearly' : 'monthly',
+            planDuration: p.planDuration || 30,
             features: p.features || [],
             limits: p.limits || initialPlanState.limits
           })));
@@ -152,6 +158,7 @@ export const Plans: React.FC = () => {
               price: p.price,
               baseCurrency: p.currency,
               duration: p.duration === 365 ? 'yearly' : 'monthly',
+              planDuration: p.planDuration || 30,
               features: p.features || [],
               limits: p.limits || initialPlanState.limits
             })));
@@ -209,6 +216,21 @@ export const Plans: React.FC = () => {
                       onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, name: e.target.value }) : setNewPlan({ ...newPlan, name: e.target.value })}
                     />
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Plan Duration (Days)</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm font-bold"
+                      placeholder="30"
+                      value={editingPlan ? editingPlan.planDuration : newPlan.planDuration}
+                      onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, planDuration: parseInt(e.target.value) || 30 }) : setNewPlan({ ...newPlan, planDuration: parseInt(e.target.value) || 30 })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Price</label>

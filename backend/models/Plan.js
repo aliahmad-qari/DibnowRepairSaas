@@ -22,6 +22,10 @@ const planSchema = new mongoose.Schema({
     type: Number,
     required: true // in days
   },
+  planDuration: {
+    type: Number,
+    default: 30 // Plan validity in days (e.g., 30, 60, 90, 365)
+  },
   features: [{
     type: String
   }],

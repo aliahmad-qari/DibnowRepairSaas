@@ -187,8 +187,18 @@ router.post('/capture-payment', async (req, res) => {
 
       // UPDATE USER'S PLANID
       const User = require('../models/User');
-      await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
-      console.log(`[PAYPAL] Updated user ${userId} planId to ${planId}`);
+      const planDurationDays = plan.planDuration || 30;
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + planDurationDays);
+      
+      await User.findByIdAndUpdate(userId, { 
+        planId: planId, 
+        planName: plan.name,
+        status: 'active',
+        planStartDate: new Date(),
+        planExpireDate: expiryDate
+      });
+      console.log(`[PAYPAL] Updated user ${userId} planId to ${planId} with expiry: ${expiryDate}`);
 
       res.json({
         success: true,
@@ -673,10 +683,20 @@ router.post('/webhook', async (req, res) => {
 
           // UPDATE USER'S PLANID
           const User = require('../models/User');
-          await User.findByIdAndUpdate(userId, { planId: planId, status: 'active' });
+          const planDurationDays = plan.planDuration || 30;
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + planDurationDays);
+          
+          await User.findByIdAndUpdate(userId, { 
+            planId: planId, 
+            planName: plan.name,
+            status: 'active',
+            planStartDate: new Date(),
+            planExpireDate: expiryDate
+          });
 
           console.log(`[PAYPAL WEBHOOK] Subscription created: ${subscription._id}`);
-          console.log(`[PAYPAL WEBHOOK] Updated user ${userId} planId to ${planId}`);
+          console.log(`[PAYPAL WEBHOOK] Updated user ${userId} planId to ${planId} with expiry: ${expiryDate}`);
 
         } else if (type === 'renewal') {
           const sub = await Subscription.findById(subscriptionId);

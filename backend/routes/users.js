@@ -290,6 +290,13 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
 
     // All users are auto-verified - skip check
     
+    // Check plan expiry and auto-expire if needed
+    if (user.planExpireDate && new Date(user.planExpireDate) < new Date() && user.status === 'active') {
+      user.status = 'expired';
+      await user.save();
+      console.log(`[AUTH] Plan expired for user: ${email}`);
+    }
+    
     // Clear failed login attempts
     clearFailedLogins(email);
 

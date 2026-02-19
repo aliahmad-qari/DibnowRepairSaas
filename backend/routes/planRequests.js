@@ -125,18 +125,36 @@ router.put('/:id/status', authenticateToken, adminOnly, async (req, res) => {
         
         if (user) {
           const oldPlanId = user.planId;
-          user.planId = request.requestedPlanId;
-          user.status = 'active';
-          await user.save();
-          console.log(`[PlanRequest] ✅ Successfully updated user ${user._id} from plan "${oldPlanId}" to plan "${request.requestedPlanId}"`);
+          
+          // Get plan details to set expiry date
+          const Plan = require('../models/Plan');
+          const plan = await Plan.findById(request.requestedPlanId);
+          
+          if (plan) {
+            const planDurationDays = plan.planDuration || 30;
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + planDurationDays);
+            
+            user.planId = request.requestedPlanId;
+            user.planName = request.requestedPlanName;
+            user.status = 'active';
+            user.planStartDate = new Date();
+            user.planExpireDate = expiryDate;
+            await user.save();
+            
+            console.log(`[PlanRequest] ✅ Successfully updated user ${user._id} from plan "${oldPlanId}" to plan "${request.requestedPlanId}" with expiry: ${expiryDate}`);
+          } else {
+            user.planId = request.requestedPlanId;
+            user.status = 'active';
+            await user.save();
+            console.log(`[PlanRequest] ✅ Successfully updated user ${user._id} from plan "${oldPlanId}" to plan "${request.requestedPlanId}" (plan not found, no expiry set)`);
+          }
           
           // Create subscription record
           const Subscription = require('../models/Subscription');
-          const Plan = require('../models/Plan');
-          const plan = await Plan.findById(request.requestedPlanId);
           if (plan) {
             const endDate = new Date();
-            endDate.setDate(endDate.getDate() + (plan.duration || 30));
+            endDate.setDate(endDate.getDate() + (plan.planDuration || 30));
             const subscription = new Subscription({
               userId: user._id,
               planId: request.requestedPlanId,
