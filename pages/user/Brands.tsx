@@ -263,6 +263,15 @@ export const Brands: React.FC = () => {
               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${isAtLimit ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
                 {brands.length} / {activePlan?.limits.brands >= 999 ? '∞' : activePlan?.limits.brands} Quota
               </span>
+              {isAtLimit && (
+                <button
+                  onClick={() => navigate('/user/pricing')}
+                  className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md flex items-center gap-1"
+                >
+                  <ArrowUpRight size={12} />
+                  Upgrade Tier
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -55,14 +55,22 @@ export const Categories: React.FC = () => {
         setInventory(Array.isArray(invResp) ? invResp : []);
         setSales(Array.isArray(salesResp) ? salesResp : []);
 
-        if (dashResp) {
-          const plan = dashResp.plans.find((p: any) =>
-            p.name.toLowerCase() === user.planId.toLowerCase() ||
-            (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
-            (user.planId === 'basic' && p.name === 'BASIC') ||
-            (user.planId === 'premium' && p.name === 'PREMIUM') ||
-            (user.planId === 'gold' && p.name === 'GOLD')
-          ) || dashResp.plans[0];
+        if (dashResp && dashResp.plans && Array.isArray(dashResp.plans) && dashResp.plans.length > 0) {
+          // Find user's current plan or default to Free Trial
+          let plan = null;
+          
+          // Try to find by planName first (most reliable)
+          if (user.planName) {
+            plan = dashResp.plans.find((p: any) => 
+              p.name.toLowerCase() === user.planName.toLowerCase() ||
+              p.name.toLowerCase().includes(user.planName.toLowerCase())
+            );
+          }
+          
+          // If not found, use first plan (Free Trial)
+          if (!plan) {
+            plan = dashResp.plans[0];
+          }
 
           setActivePlan(plan);
           if (plan && plan.limits && catsResp?.length >= plan.limits.categories) {
@@ -70,6 +78,14 @@ export const Categories: React.FC = () => {
           } else {
             setIsAtLimit(false);
           }
+        } else {
+          // Fallback: Set default Free Trial plan limits
+          const defaultPlan = {
+            name: 'Free Trial',
+            limits: { categories: 5, inventory: 50, repairs: 20, sales: 100 }
+          };
+          setActivePlan(defaultPlan);
+          setIsAtLimit(catsResp?.length >= defaultPlan.limits.categories);
         }
       } catch (error) {
         console.error('Failed to load categories data:', error);
@@ -236,6 +252,15 @@ export const Categories: React.FC = () => {
               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${isAtLimit ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
                 {categories.length} / {activePlan?.limits.categories >= 999 ? '∞' : activePlan?.limits.categories} Quota
               </span>
+              {isAtLimit && (
+                <button
+                  onClick={() => navigate('/user/pricing')}
+                  className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md flex items-center gap-1"
+                >
+                  <ArrowUpCircle size={12} />
+                  Upgrade Tier
+                </button>
+              )}
             </div>
           </div>
         </div>
