@@ -219,10 +219,10 @@ export const UserActivity: React.FC = () => {
                     <td className="px-10 py-7 text-right">
                       <div className="flex flex-col items-end">
                         <span className="text-[10px] font-black text-slate-800 uppercase">
-                          {new Date(activity.createdAt).toLocaleDateString()}
+                          {new Date(activity.timestamp || activity.createdAt).toLocaleDateString()}
                         </span>
                         <span className="text-[9px] font-bold text-slate-400 uppercase mt-1">
-                          {new Date(activity.createdAt).toLocaleTimeString([], { 
+                          {new Date(activity.timestamp || activity.createdAt).toLocaleTimeString([], { 
                             hour: '2-digit', 
                             minute: '2-digit' 
                           })}

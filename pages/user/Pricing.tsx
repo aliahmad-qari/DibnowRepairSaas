@@ -565,16 +565,16 @@ export const UserPricing: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10 relative z-10">
           {[
-            { label: 'Repairs', used: usageStats.repairs, limit: currentPlan?.limits?.repairsPerMonth || 1, icon: Wrench },
-            { label: 'Stock items', used: usageStats.stock, limit: currentPlan?.limits?.inventoryItems || 1, icon: Boxes },
-            { label: 'Team members', used: usageStats.team, limit: currentPlan?.limits?.teamMembers || 1, icon: Users },
-            { label: 'Brand registry', used: usageStats.brands, limit: currentPlan?.limits?.brands || 1, icon: Tag },
-            { label: 'Categories', used: usageStats.categories, limit: currentPlan?.limits?.categories || 1, icon: Layers },
+            { label: 'Repairs', used: usageStats.repairs, limit: currentPlan?.limits?.repairsPerMonth || 0, icon: Wrench },
+            { label: 'Stock items', used: usageStats.stock, limit: currentPlan?.limits?.inventoryItems || 0, icon: Boxes },
+            { label: 'Team members', used: usageStats.team, limit: currentPlan?.limits?.teamMembers || 0, icon: Users },
+            { label: 'Brand registry', used: usageStats.brands, limit: currentPlan?.limits?.brands || 0, icon: Tag },
+            { label: 'Categories', used: usageStats.categories, limit: currentPlan?.limits?.categories || 0, icon: Layers },
             { label: 'AI Diagnostic usage', used: currentPlan?.limits?.aiDiagnostics ? 'Active' : 'Locked', limit: 'Authorized', icon: BrainCircuit, isStatus: true }
           ].map((stat, i) => {
             const usedVal = typeof stat.used === 'number' ? stat.used : 0;
             const limitVal = typeof stat.limit === 'number' ? stat.limit : 1;
-            const percent = Math.min(100, Math.floor((usedVal / limitVal) * 100));
+            const percent = limitVal >= 999 ? 0 : Math.min(100, Math.floor((usedVal / limitVal) * 100));
 
             return (
               <div key={i} className="space-y-4">
@@ -593,7 +593,7 @@ export const UserPricing: React.FC = () => {
                 ) : (
                   <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
                     <div
-                      className={`h-full transition-all duration-1000 rounded-full ${percent >= 100 ? 'bg-rose-500' : percent >= 80 ? 'bg-amber-500' : 'bg-indigo-50'}`}
+                      className={`h-full transition-all duration-1000 rounded-full ${percent >= 100 ? 'bg-rose-500' : percent >= 80 ? 'bg-amber-500' : 'bg-indigo-500'}`}
                       style={{ width: `${percent}%` }}
                     />
                   </div>

@@ -166,13 +166,20 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
     const { planId, transactionId, amount, currency, method, notes } = req.body;
     const userId = req.user.userId;
 
+    console.log('[MANUAL PAYMENT] Request received:', { planId, transactionId, amount, currency, method, userId });
+
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      console.error('[MANUAL PAYMENT] User not found:', userId);
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
     const plan = await Plan.findById(planId);
-    if (!plan) return res.status(404).json({ message: 'Plan not found' });
+    if (!plan) {
+      console.error('[MANUAL PAYMENT] Plan not found:', planId);
+      return res.status(404).json({ success: false, message: 'Plan not found' });
+    }
 
-    // DO NOT activate plan immediately - wait for admin approval
     // Create plan request for admin approval
     const planRequest = new PlanRequest({
       userId,
@@ -186,27 +193,32 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
       currency: currency || 'PKR',
       manualMethod: method || 'Bank Transfer',
       notes,
-      status: 'pending', // Changed from 'approved' to 'pending'
-      invoiceStatus: 'pending' // Changed from 'paid' to 'pending'
+      status: 'pending',
+      invoiceStatus: 'pending'
     });
     await planRequest.save();
+    console.log('[MANUAL PAYMENT] Plan request created:', planRequest._id);
 
-    // Notify user that request is pending
-    await Notification.create({
-      userId: userId.toString(),
-      ownerId: userId,
-      title: 'Payment Request Submitted',
-      message: `Your payment request for ${plan.name} plan has been submitted. Admin will review and activate your plan within 2-4 hours.`,
-      type: 'info'
-    });
+    // Try to create notifications (non-blocking)
+    try {
+      await Notification.create({
+        userId: userId.toString(),
+        ownerId: userId,
+        title: 'Payment Request Submitted',
+        message: `Your payment request for ${plan.name} plan has been submitted. Admin will review and activate your plan within 2-4 hours.`,
+        type: 'info'
+      });
 
-    // Notify admin about new payment request
-    await Notification.create({
-      userId: 'global',
-      title: 'New Manual Payment Request',
-      message: `${user.name} submitted a manual payment request for ${plan.name} plan. Transaction ID: ${transactionId}`,
-      type: 'info'
-    });
+      await Notification.create({
+        userId: 'global',
+        title: 'New Manual Payment Request',
+        message: `${user.name} submitted a manual payment request for ${plan.name} plan. Transaction ID: ${transactionId}`,
+        type: 'info'
+      });
+      console.log('[MANUAL PAYMENT] Notifications created');
+    } catch (notifError) {
+      console.warn('[MANUAL PAYMENT] Notification creation failed (non-critical):', notifError.message);
+    }
 
     res.json({
       success: true,
@@ -215,7 +227,7 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('[MANUAL PAYMENT] Error:', error);
-    res.status(500).json({ message: 'Error submitting payment request' });
+    res.status(500).json({ success: false, message: error.message || 'Error submitting payment request' });
   }
 });
 

@@ -28,4 +28,24 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Helper function to log activity (can be called from other routes)
+const logActivity = async (ownerId, actionType, moduleName, refId = null, status = 'Success', userName = 'System') => {
+  try {
+    const activity = new Activity({
+      ownerId,
+      userId: ownerId,
+      userName: userName,
+      actionType,
+      moduleName,
+      refId,
+      status,
+      timestamp: new Date()
+    });
+    await activity.save();
+  } catch (error) {
+    console.error('Activity logging failed:', error);
+  }
+};
+
 module.exports = router;
+module.exports.logActivity = logActivity;

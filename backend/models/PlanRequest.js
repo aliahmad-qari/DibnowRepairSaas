@@ -50,8 +50,8 @@ const planRequestSchema = new mongoose.Schema({
   },
   invoiceStatus: {
     type: String,
-    enum: ['paid', 'unpaid', 'void'],
-    default: 'unpaid'
+    enum: ['pending', 'paid', 'unpaid', 'void'],
+    default: 'pending'
   },
   adminComment: String,
   processedBy: {

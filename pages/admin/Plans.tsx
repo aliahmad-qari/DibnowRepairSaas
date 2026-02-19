@@ -253,7 +253,7 @@ export const Plans: React.FC = () => {
                         type="number"
                         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                         value={editingPlan ? editingPlan.limits.repairsPerMonth : newPlan.limits.repairsPerMonth}
-                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, repairsPerMonth: parseInt(e.target.value) } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, repairsPerMonth: parseInt(e.target.value) } })}
+                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, repairsPerMonth: parseInt(e.target.value) || 0 } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, repairsPerMonth: parseInt(e.target.value) || 0 } })}
                       />
                     </div>
                     <div className="space-y-1">
@@ -262,7 +262,7 @@ export const Plans: React.FC = () => {
                         type="number"
                         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                         value={editingPlan ? editingPlan.limits.inventoryItems : newPlan.limits.inventoryItems}
-                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, inventoryItems: parseInt(e.target.value) } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, inventoryItems: parseInt(e.target.value) } })}
+                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, inventoryItems: parseInt(e.target.value) || 0 } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, inventoryItems: parseInt(e.target.value) || 0 } })}
                       />
                     </div>
                     <div className="space-y-1">
@@ -271,7 +271,7 @@ export const Plans: React.FC = () => {
                         type="number"
                         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                         value={editingPlan ? editingPlan.limits.teamMembers : newPlan.limits.teamMembers}
-                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, teamMembers: parseInt(e.target.value) } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, teamMembers: parseInt(e.target.value) } })}
+                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, teamMembers: parseInt(e.target.value) || 0 } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, teamMembers: parseInt(e.target.value) || 0 } })}
                       />
                     </div>
                     <div className="space-y-1">
@@ -280,7 +280,7 @@ export const Plans: React.FC = () => {
                         type="number"
                         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                         value={editingPlan ? editingPlan.limits.categories : newPlan.limits.categories}
-                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, categories: parseInt(e.target.value) } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, categories: parseInt(e.target.value) } })}
+                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, categories: parseInt(e.target.value) || 0 } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, categories: parseInt(e.target.value) || 0 } })}
                       />
                     </div>
                     <div className="space-y-1">
@@ -289,7 +289,7 @@ export const Plans: React.FC = () => {
                         type="number"
                         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                         value={editingPlan ? editingPlan.limits.brands : newPlan.limits.brands}
-                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, brands: parseInt(e.target.value) } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, brands: parseInt(e.target.value) } })}
+                        onChange={e => editingPlan ? setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits, brands: parseInt(e.target.value) || 0 } }) : setNewPlan({ ...newPlan, limits: { ...newPlan.limits, brands: parseInt(e.target.value) || 0 } })}
                       />
                     </div>
                   </div>

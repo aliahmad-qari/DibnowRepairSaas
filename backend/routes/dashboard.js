@@ -37,6 +37,8 @@ router.get('/overview', authenticateToken, async (req, res) => {
       stockCount,
       salesCount,
       teamCount,
+      brandCount,
+      categoryCount,
       pendingRepairs,
       completedRepairs
     ] = await Promise.all([
@@ -44,6 +46,8 @@ router.get('/overview', authenticateToken, async (req, res) => {
       Inventory.countDocuments({ ownerId }),
       Sale.countDocuments({ ownerId }),
       TeamMember.countDocuments({ ownerId }),
+      Brand.countDocuments({ ownerId }),
+      Category.countDocuments({ ownerId }),
       Repair.countDocuments({ ownerId, status: 'pending' }),
       Repair.countDocuments({ ownerId, status: { $in: ['completed', 'delivered'] } })
     ]);
@@ -59,6 +63,8 @@ router.get('/overview', authenticateToken, async (req, res) => {
       stockCount,
       salesCount,
       teamCount,
+      brandCount,
+      categoryCount,
       pendingRepairs,
       completedRepairs,
       plans
