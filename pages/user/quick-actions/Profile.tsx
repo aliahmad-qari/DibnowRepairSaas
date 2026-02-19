@@ -94,15 +94,26 @@ export const ProfilePage: React.FC = () => {
    // 3. SUBSCRIPTION USAGE SNAPSHOT
    const usage = useMemo(() => {
       if (!user || !dashboardData) return null;
-      const plan = dashboardData.plans?.find((p: any) => p._id === user.planId) || { name: 'Starter', limits: { repairsPerMonth: 50, inventoryItems: 100, teamMembers: 3 } };
+      
+      // Find plan by planName (database-driven)
+      let plan = null;
+      if (user.planName && dashboardData.plans) {
+         plan = dashboardData.plans.find((p: any) => 
+            p.name.toLowerCase() === user.planName.toLowerCase() ||
+            p.name.toLowerCase().includes(user.planName.toLowerCase())
+         );
+      }
+      if (!plan && dashboardData.plans?.length > 0) {
+         plan = dashboardData.plans[0];
+      }
 
       return {
-         planName: plan.name,
+         planName: user.planName || plan?.name || 'Free Trial',
          metrics: [
-            { label: 'Repairs Used', used: dashboardData.repairCount || 0, limit: plan.limits?.repairsPerMonth },
-            { label: 'Stock Used', used: dashboardData.stockCount || 0, limit: plan.limits?.inventoryItems },
-            { label: 'Team Members', used: dashboardData.teamCount || 0, limit: plan.limits?.teamMembers },
-            { label: 'AI Diagnostics', used: plan.limits?.aiDiagnostics ? 'Enabled' : 'Disabled', isToggle: true }
+            { label: 'Repairs Used', used: dashboardData.repairCount || 0, limit: plan?.limits?.repairsPerMonth },
+            { label: 'Stock Used', used: dashboardData.stockCount || 0, limit: plan?.limits?.inventoryItems },
+            { label: 'Team Members', used: dashboardData.teamCount || 0, limit: plan?.limits?.teamMembers },
+            { label: 'AI Diagnostics', used: plan?.limits?.aiDiagnostics ? 'Enabled' : 'Disabled', isToggle: true }
          ]
       };
    }, [user, dashboardData]);
@@ -111,14 +122,37 @@ export const ProfilePage: React.FC = () => {
 
    const accountInfo = useMemo(() => {
       if (!user || !dashboardData) return null;
-      const plan = dashboardData.plans?.find((p: any) => p._id === user.planId) || { name: 'Starter' };
+      
+      // Find plan by planName (database-driven)
+      let plan = null;
+      if (user.planName && dashboardData.plans) {
+         plan = dashboardData.plans.find((p: any) => 
+            p.name.toLowerCase() === user.planName.toLowerCase() ||
+            p.name.toLowerCase().includes(user.planName.toLowerCase())
+         );
+      }
+      if (!plan && dashboardData.plans?.length > 0) {
+         plan = dashboardData.plans[0];
+      }
+      
       const isLimited = user.status !== 'active';
+      
+      // Calculate days remaining
+      let expiryDisplay = 'N/A';
+      if (user.planExpireDate) {
+         const daysRemaining = Math.ceil((new Date(user.planExpireDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+         if (daysRemaining > 0) {
+            expiryDisplay = `${daysRemaining} Days Remaining`;
+         } else {
+            expiryDisplay = 'Expired';
+         }
+      }
 
       return {
-         planName: plan.name?.toUpperCase() || 'STARTER',
+         planName: (user.planName || plan?.name || 'Free Trial').toUpperCase(),
          status: user.status === 'active' ? 'Fully Authorized' : 'Limited Access',
-         expiry: 'Standard Node',
-         autoRenew: true,
+         expiry: expiryDisplay,
+         autoRenew: false,
          shopStatus: isLimited ? 'Paused' : 'Operational',
          isLimited
       };

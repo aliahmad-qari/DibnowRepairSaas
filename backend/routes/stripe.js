@@ -160,15 +160,15 @@ router.post('/verify-payment', async (req, res) => {
 
       // UPDATE USER'S PLANID
       const User = require('../models/User');
-      const plan = await Plan.findById(planId);
-      if (plan) {
-        const planDurationDays = plan.planDuration || 30;
+      const userPlan = await Plan.findById(planId);
+      if (userPlan) {
+        const planDurationDays = userPlan.planDuration || 30;
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + planDurationDays);
         
         await User.findByIdAndUpdate(userId, { 
           planId: planId, 
-          planName: plan.name,
+          planName: userPlan.name,
           status: 'active',
           planStartDate: new Date(),
           planExpireDate: expiryDate
