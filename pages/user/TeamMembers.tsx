@@ -1,0 +1,432 @@
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Users, UserPlus, Mail, Phone, MoreHorizontal, ShieldCheck,
+  AlertCircle, X, Shield, Trash2, Lock, Unlock, Eye,
+  Settings2, Briefcase, CheckSquare, Square,
+  Package, Wrench, ShoppingCart, Landmark, LayoutDashboard, Rocket, Boxes, History, Layers, Tag, Globe, LifeBuoy, MessageSquare, ShieldHalf
+} from 'lucide-react';
+import Swal from 'sweetalert2';
+import { callBackendAPI } from '../../api/apiClient.ts';
+import { useAuth } from '../../context/AuthContext';
+
+// Define the comprehensive list of user panel modules/files for access control
+const USER_PANEL_MODULES = [
+  { id: 'dashboard', label: 'Dashboard Page', icon: LayoutDashboard },
+  { id: 'pricing', label: 'Subscription & Plans', icon: Rocket },
+  { id: 'repairs', label: 'Repair Management', icon: Wrench },
+  { id: 'inventory', label: 'Stock Entry', icon: Package },
+  { id: 'all-stock', label: 'Inventory Ledger', icon: Boxes },
+  { id: 'pos', label: 'Point of Sale (Sell)', icon: ShoppingCart },
+  { id: 'sold-items', label: 'Sales History', icon: History },
+  { id: 'categories', label: 'Product Categories', icon: Layers },
+  { id: 'brands', label: 'Manufacturer Brands', icon: Tag },
+  { id: 'clients', label: 'Customer Database', icon: ShieldCheck },
+  { id: 'team', label: 'Team Management', icon: Users },
+  { id: 'wallet', label: 'Financial Wallet', icon: Landmark },
+  { id: 'utilities', label: 'Utility Console', icon: Globe },
+  { id: 'tickets', label: 'Support Desk', icon: LifeBuoy },
+  { id: 'complaints', label: 'Complaints Center', icon: MessageSquare },
+];
+
+export const TeamMembers: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [members, setMembers] = useState<any[]>([]);
+  const [activePlan, setActivePlan] = useState<any>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState<any>(null);
+  const [isAtLimit, setIsAtLimit] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'Technician',
+    department: 'General',
+    status: 'active',
+    permissions: [] as string[]
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const [teamResp, dashResp] = await Promise.all([
+          callBackendAPI('/api/team', null, 'GET'),
+          callBackendAPI('/api/dashboard/overview', null, 'GET')
+        ]);
+
+        // Ensure we always have arrays
+        const teamArray = Array.isArray(teamResp) ? teamResp : (teamResp?.data || []);
+        setMembers(teamArray);
+
+        if (dashResp) {
+          const plan = dashResp.plans.find((p: any) =>
+            p.name.toLowerCase() === user.planId.toLowerCase() ||
+            (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
+            (user.planId === 'basic' && p.name === 'BASIC') ||
+            (user.planId === 'premium' && p.name === 'PREMIUM') ||
+            (user.planId === 'gold' && p.name === 'GOLD')
+          ) || dashResp.plans[0];
+
+          setActivePlan(plan);
+          if (plan && plan.limits && teamResp?.length >= plan.limits.teamMembers) {
+            setIsAtLimit(true);
+          } else {
+            setIsAtLimit(false);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load team data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+    window.addEventListener('storage', loadData);
+    return () => window.removeEventListener('storage', loadData);
+  }, [user]);
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || isAtLimit || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await callBackendAPI('/api/team', {
+        ...formData,
+        permissions: formData.permissions
+      }, 'POST');
+
+      if (response) {
+        setShowAddModal(false);
+        setFormData({ name: '', email: '', phone: '', password: '', role: 'Technician', department: 'General', status: 'active', permissions: [] });
+        // Refresh team data
+        const teamResp = await callBackendAPI('/api/team', null, 'GET');
+        const teamArray = Array.isArray(teamResp) ? teamResp : (teamResp?.data || []);
+        setMembers(teamArray);
+
+        // Re-check limits
+        if (activePlan && activePlan.limits && teamArray.length >= activePlan.limits.teamMembers) {
+          setIsAtLimit(true);
+        }
+      }
+    } catch (error: any) {
+      if (error.limitHit) {
+        Swal.fire({
+          title: 'Limit Reached',
+          text: error.upgradeMessage || 'You have reached the team member limit for your current plan.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Upgrade Tier',
+          cancelButtonText: 'Review Roster',
+          confirmButtonColor: '#0052FF',
+          cancelButtonColor: '#94a3b8',
+          background: '#ffffff',
+          customClass: {
+            popup: 'rounded-[1.5rem] border-2 border-blue-50 shadow-2xl',
+            title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+            htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
+            confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-blue-100',
+            cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/user/pricing');
+          }
+        });
+      } else {
+        console.error('Failed to provision associate:', error);
+        alert(error.message || 'Failed to provision associate.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleMemberStatus = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'active' ? 'disabled' : 'active';
+    try {
+      await callBackendAPI(`/api/team/${id}`, { status: nextStatus }, 'PUT');
+      // Refresh team data
+      const teamResp = await callBackendAPI('/api/team', null, 'GET');
+      setMembers(Array.isArray(teamResp) ? teamResp : (teamResp?.data || []));
+    } catch (error) {
+      console.error('Failed to toggle status:', error);
+      alert('Failed to update team member status. Please try again.');
+    }
+  };
+
+  const updatePermissions = async (memberId: string, permissions: string[]) => {
+    try {
+      await callBackendAPI(`/api/team/${memberId}`, { permissions }, 'PUT');
+      // Refresh team data
+      const teamResp = await callBackendAPI('/api/team', null, 'GET');
+      const teamArray = Array.isArray(teamResp) ? teamResp : (teamResp?.data || []);
+      setMembers(teamArray);
+      const updatedMember = teamArray.find((m: any) => m._id === memberId);
+      if (updatedMember) setShowPermissionModal(updatedMember);
+    } catch (error) {
+      console.error('Failed to update permissions:', error);
+      alert('Failed to update permissions. Please try again.');
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20 relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+          <Users className="w-12 h-12 text-indigo-600 animate-spin" />
+        </div>
+      )}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight uppercase">Advanced Team Matrix</h2>
+          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Authorized Personnel Registry & RBAC Node</p>
+        </div>
+        <button
+          onClick={() => isAtLimit ? navigate('/user/pricing') : setShowAddModal(true)}
+          className={`w-full sm:w-auto px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl transition-all text-[11px] uppercase tracking-widest ${isAtLimit ? "bg-slate-800 text-slate-400" : "bg-indigo-600 text-white hover:scale-105"}`}
+        >
+          <UserPlus size={18} /> Provision V2 Associate
+        </button>
+      </div>
+
+      <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left min-w-[1000px]">
+            <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+              <tr>
+                <th className="px-6 md:px-10 py-6">Name</th>
+                <th className="px-6 md:px-10 py-6">Email</th>
+                <th className="px-6 md:px-10 py-6">Phone</th>
+                <th className="px-6 md:px-10 py-6">Role</th>
+                <th className="px-6 md:px-10 py-6">Department</th>
+                <th className="px-6 md:px-10 py-6 text-center">Status</th>
+                <th className="px-6 md:px-10 py-6 text-center">Permissions</th>
+                <th className="px-6 md:px-10 py-6 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {members.map((member) => (
+                <tr key={member._id} className="hover:bg-slate-50 transition-all group">
+                  <td className="px-6 md:px-10 py-7">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs shadow-sm shrink-0">
+                        {member.name.charAt(0)}
+                      </div>
+                      <span className="font-black text-slate-800 text-sm whitespace-nowrap">{member.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 md:px-10 py-7 text-xs font-bold text-slate-500 uppercase">{member.email}</td>
+                  <td className="px-6 md:px-10 py-7 text-xs font-bold text-slate-400 whitespace-nowrap">{member.phone || 'N/A'}</td>
+                  <td className="px-6 md:px-10 py-7">
+                    <span className="bg-amber-50 text-amber-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-amber-100 whitespace-nowrap">
+                      {member.role}
+                    </span>
+                  </td>
+                  <td className="px-6 md:px-10 py-7 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{member.department}</td>
+                  <td className="px-6 md:px-10 py-7 text-center">
+                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase inline-flex items-center gap-2 border whitespace-nowrap ${member.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${member.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      {member.status === 'active' ? 'Active' : 'Disabled'}
+                    </span>
+                  </td>
+                  <td className="px-6 md:px-10 py-7 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="bg-cyan-50 text-cyan-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-cyan-100">
+                        {(member.permissions || []).length} / {USER_PANEL_MODULES.length}
+                      </span>
+                      <button onClick={() => setShowPermissionModal(member)} className="bg-cyan-50 text-cyan-600 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-cyan-100 hover:bg-cyan-600 hover:text-white transition-all whitespace-nowrap">
+                        Configure
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-6 md:px-10 py-7 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => toggleMemberStatus(member._id, member.status)}
+                        className={`p-2.5 rounded-xl transition-all shadow-sm ${member.status === 'active' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}
+                      >
+                        {member.status === 'active' ? <Lock size={16} /> : <Unlock size={16} />}
+                      </button>
+                      <button onClick={() => setShowPermissionModal(member)} className="bg-rose-600 text-white p-2.5 rounded-xl shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 whitespace-nowrap">
+                        Permissions
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add Member Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-[2rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-indigo-600 p-6 md:p-8 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center border border-white/20">
+                  <UserPlus size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg md:text-xl font-black uppercase tracking-widest leading-none">Add Team Member</h3>
+                  <p className="text-[9px] md:text-[10px] font-bold text-indigo-100 uppercase mt-1.5 tracking-tighter opacity-80">Create a new team member account with role-based access</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-white/20 rounded-full transition-all"><X size={20} /></button>
+            </div>
+
+            <div className="p-6 md:p-10 overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleAddSubmit} className="space-y-6 md:space-y-8">
+                <div className="bg-slate-50 p-5 rounded-2xl md:rounded-3xl border border-slate-100">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Plan Entitlement</label>
+                  <p className="text-xs md:text-sm font-bold text-slate-700">{activePlan?.name} – You can add up to {activePlan?.limits.teamMembers} team members</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Full Name *</label>
+                    <input required type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm font-bold" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Legal Name" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Email Address *</label>
+                    <input required type="email" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm font-bold" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Login Identifier" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Access PIN (Password) *</label>
+                    <input required type="password" placeholder="••••••••" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm font-bold" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Phone Number</label>
+                    <input type="tel" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm font-bold" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="+44 ..." />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Team Role *</label>
+                    <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none font-bold text-sm appearance-none cursor-pointer" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })}>
+                      <option>Technician</option>
+                      <option>Sales Associate</option>
+                      <option>Manager</option>
+                      <option>Inventory Control</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Department</label>
+                    <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none font-bold text-sm appearance-none cursor-pointer" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })}>
+                      <option>General</option>
+                      <option>Technical</option>
+                      <option>Sales</option>
+                      <option>Management</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-2xl md:rounded-3xl border border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Page Access Permissions</label>
+                    <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-1 rounded-lg">{formData.permissions.length} Selected</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPermissionModal({ _id: 'new', name: formData.name || 'New Member', permissions: formData.permissions })}
+                    className="w-full bg-indigo-50 text-indigo-600 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all"
+                  >
+                    Configure Role & Permissions
+                  </button>
+                </div>
+
+                <div className="pt-4 pb-2">
+                  <button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 text-white font-black py-5 rounded-[1.2rem] md:rounded-[1.5rem] shadow-xl hover:bg-indigo-700 transition-all uppercase tracking-[0.2em] text-[10px] md:text-[11px] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+                    {isSubmitting ? <Rocket className="animate-spin" size={18} /> : null}
+                    {isSubmitting ? 'Deploying...' : 'Deploy Associate Node'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permission Modal - DYNAMICALLY SHOWING ALL PANEL FILES/MODULES */}
+      {showPermissionModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in zoom-in-95 duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-[2rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-slate-900 p-6 md:p-8 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center border border-white/10 shrink-0">
+                  <Settings2 size={20} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg md:text-xl font-black uppercase tracking-widest leading-none truncate">User Panel Access Matrix</h3>
+                  <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mt-1.5 tracking-tighter opacity-80 truncate">Configuring Authority for {showPermissionModal.name}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowPermissionModal(null)} className="p-2 hover:bg-rose-500 rounded-full transition-all shrink-0"><X size={20} /></button>
+            </div>
+
+            <div className="p-5 md:p-8 space-y-3 overflow-y-auto custom-scrollbar flex-1">
+              <div className="grid grid-cols-1 gap-3">
+                {USER_PANEL_MODULES.map(mod => {
+                  const isSelected = showPermissionModal._id === 'new' 
+                    ? formData.permissions.includes(mod.id)
+                    : (showPermissionModal.permissions || []).includes(mod.id);
+                  
+                  const togglePermission = () => {
+                    if (showPermissionModal._id === 'new') {
+                      const newPerms = isSelected 
+                        ? formData.permissions.filter(p => p !== mod.id)
+                        : [...formData.permissions, mod.id];
+                      setFormData({ ...formData, permissions: newPerms });
+                    } else {
+                      const currentPerms = showPermissionModal.permissions || [];
+                      const newPerms = isSelected 
+                        ? currentPerms.filter(p => p !== mod.id)
+                        : [...currentPerms, mod.id];
+                      updatePermissions(showPermissionModal._id, newPerms);
+                    }
+                  };
+                  
+                  return (
+                    <div key={mod.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all gap-4">
+                      <div className="flex items-center gap-3 md:gap-4">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                          <mod.icon size={18} className="text-indigo-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[10px] md:text-[11px] font-black uppercase text-slate-700 tracking-widest block">{mod.label}</span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Module ID: {mod.id}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 sm:gap-4">
+                        <button
+                          onClick={togglePermission}
+                          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${isSelected ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}
+                        >
+                          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                          {isSelected ? 'Granted' : 'Denied'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-6 md:pt-8 bg-slate-50 border-t border-slate-100 p-5 md:p-8 shrink-0">
+              <button onClick={() => setShowPermissionModal(null)} className="w-full bg-slate-900 text-white font-black py-4 rounded-xl md:rounded-2xl uppercase tracking-widest text-[10px] md:text-[11px] shadow-xl hover:bg-slate-800 transition-all active:scale-[0.98]">Commit Access Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
