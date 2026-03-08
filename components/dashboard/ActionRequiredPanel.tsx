@@ -10,7 +10,6 @@ import {
   ShieldAlert,
   ArrowUpCircle
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,9 +19,9 @@ export const ActionRequiredPanel: React.FC = () => {
 
   const alerts = useMemo(() => {
     const list = [];
-    const inventory = db.inventory.getAll();
-    const repairs = db.repairs.getAll();
-    const tickets = db.supportTickets.getByUser(user?.id || '');
+    const inventory: any[] = [];
+    const repairs: any[] = [];
+    const tickets: any[] = [];
     
     // 1. Low Stock Logic
     const lowStockCount = inventory.filter(i => i.stock < 5).length;

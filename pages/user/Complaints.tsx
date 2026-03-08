@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Send, AlertCircle, Clock, CheckCircle2, X, ChevronRight, Hash, ShieldCheck, History, Info } from 'lucide-react';
-import { db } from '../../api/db';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { Loader2, Activity } from 'lucide-react';

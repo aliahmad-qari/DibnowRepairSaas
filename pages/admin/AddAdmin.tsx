@@ -11,9 +11,32 @@ export const AddAdmin: React.FC = () => {
     role: 'ADMIN'
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Admin account created successfully! (Mock)');
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords don't match");
+      return;
+    }
+
+    try {
+      await adminApi.createAdmin({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role.toLowerCase()
+      });
+      alert('Admin account created successfully!');
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'ADMIN'
+      });
+    } catch (error: any) {
+      console.error('Failed to create admin:', error);
+      alert(error.message || 'Failed to create admin account');
+    }
   };
 
   return (

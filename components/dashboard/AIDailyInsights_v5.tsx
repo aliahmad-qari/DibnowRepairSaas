@@ -6,7 +6,6 @@ import {
    Wrench, ShoppingCart, Info, BarChart3,
    Terminal, BadgeCheck, Cpu
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 
 export const AIDailyInsightsV5: React.FC = () => {
@@ -16,10 +15,10 @@ export const AIDailyInsightsV5: React.FC = () => {
 
    // 1. DATA HARVESTING (READ-ONLY) - Auditing personnel activity nodes
    const teamNodes = useMemo(() => {
-      const team = db.userTeamV2.getByOwner(user?.id || '');
-      const activity = db.activity.getAll();
-      const repairs = db.repairs.getAll();
-      const sales = db.sales.getAll();
+      const team: any[] = [];
+      const activity: any[] = [];
+      const repairs: any[] = [];
+      const sales: any[] = [];
 
       const now = new Date();
       const todayStr = now.toLocaleDateString();

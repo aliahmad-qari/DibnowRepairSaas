@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { BrainCircuit, Sparkles, ShieldCheck, Zap, Activity, ShieldAlert, Fingerprint, Loader2, Info, Terminal, AlertTriangle, Target, Search, Filter, Eye } from 'lucide-react';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient';
 import { aiService } from '../../api/aiService';
 
 export const AIMonitor: React.FC = () => {
@@ -11,10 +11,17 @@ export const AIMonitor: React.FC = () => {
    const invokeAIAudit = async () => {
       setIsAuditing(true);
       try {
-         const users = db.users.getAll();
-         const activity = db.activity.getAll();
-         const audit = db.audit.getAll();
-         const sales = db.sales.getAll();
+         const [usersData, activityData, auditData, salesData] = await Promise.all([
+            callBackendAPI('/api/users', null, 'GET').catch(() => []),
+            callBackendAPI('/api/activities', null, 'GET').catch(() => []),
+            callBackendAPI('/api/superadmin/audit-logs', null, 'GET').catch(() => []),
+            callBackendAPI('/api/sales', null, 'GET').catch(() => [])
+         ]);
+
+         const users = Array.isArray(usersData) ? usersData : usersData?.users || [];
+         const activity = Array.isArray(activityData) ? activityData : activityData?.activities || [];
+         const audit = Array.isArray(auditData) ? auditData : auditData?.auditLogs || [];
+         const sales = Array.isArray(salesData) ? salesData : salesData?.sales || [];
 
          const prompt = `
         As a Platform Security AI, analyze this SaaS environment snapshot:

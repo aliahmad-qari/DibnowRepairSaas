@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   CreditCard, ShieldCheck, Zap, Settings, RefreshCw, 
   Search, Filter, Clock, AlertTriangle, XCircle, 
@@ -7,7 +7,7 @@ import {
   ArrowRight, ShieldAlert, CheckCircle2, MoreVertical,
   History
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 
 export const PaymentControl: React.FC = () => {
@@ -15,9 +15,23 @@ export const PaymentControl: React.FC = () => {
   const [activeTab, setActiveTab] = useState('logs');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const transactions = useMemo(() => {
-    return db.wallet.getTransactions().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const [dbTransactions, setDbTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await callBackendAPI('/api/wallet/transactions', null, 'GET');
+        setDbTransactions(Array.isArray(data) ? data : data?.transactions || []);
+      } catch(err) {
+        console.error(err);
+      }
+    };
+    load();
   }, []);
+
+  const transactions = useMemo(() => {
+    return [...dbTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [dbTransactions]);
 
   const failedPayments = useMemo(() => {
     return transactions.filter(t => t.status === 'failed');

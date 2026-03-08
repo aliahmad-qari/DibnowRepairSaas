@@ -14,7 +14,6 @@ import {
    ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
    BarChart, Bar, Cell, PieChart, Pie
 } from 'recharts';
-import { db } from '../../api/db';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { useNavigate } from 'react-router-dom';

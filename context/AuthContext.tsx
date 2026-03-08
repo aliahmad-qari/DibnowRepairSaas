@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User, UserRole, Permission } from '../types';
-import { db } from '../api/db';
+// Removed mock db import
 import { API_BASE_URL } from '../api/apiClient';
 
 // Session timeout configuration (30 minutes)
@@ -208,13 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         window.dispatchEvent(new Event('storage'));
         resetSessionTimer();
 
-        // Log activity
-        db.activity.log({
-          actionType: 'User Login',
-          moduleName: 'Authentication',
-          refId: email,
-          status: 'Success'
-        });
+        // Activity logging is handled by backend or not needed on UI side
 
         return { success: true };
       }
@@ -265,13 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.dispatchEvent(new Event('storage'));
       resetSessionTimer();
 
-      // Log activity
-      db.activity.log({
-        actionType: 'User Login',
-        moduleName: 'Authentication',
-        refId: email,
-        status: 'Success'
-      });
+      // Activity logging handled backend side
 
       return { success: true };
     } catch (error) {

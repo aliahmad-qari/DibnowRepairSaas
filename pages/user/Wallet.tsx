@@ -47,7 +47,6 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell
 } from 'recharts';
-import { db } from '../../api/db';
 import { callBackendAPI, getBackendUserId } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -71,12 +70,16 @@ export const Wallet: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const loadTransactions = () => {
-      setTransactions(db.wallet.getTransactions());
+    const loadTransactions = async () => {
+      try {
+        const data = await callBackendAPI('/api/wallet/transactions', null, 'GET');
+        setTransactions(Array.isArray(data) ? data : (data?.transactions || []));
+      } catch (err) {
+        console.error('Failed to load wallet transactions:', err);
+        setTransactions([]);
+      }
     };
     loadTransactions();
-    window.addEventListener('storage', loadTransactions);
-    return () => window.removeEventListener('storage', loadTransactions);
   }, []);
 
   // TASK 3: INTELLIGENCE TAGGING HELPER
@@ -276,17 +279,19 @@ export const Wallet: React.FC = () => {
         return; // Don't set loading to false - user is being redirected
       }
 
-      // ========== MANUAL TOP-UP (Preserved Original Logic) ==========
+      // ========== MANUAL TOP-UP (Simulated for now) ==========
       if (formData.method === 'Manual') {
-        // Use existing dummy logic for manual top-ups
         await new Promise(resolve => setTimeout(resolve, 2000));
-        db.wallet.addTransaction({
+        // Add transaction locally to update the UI (backend would handle this after payment gateway)
+        const newTx = {
+          id: `TX-${Date.now()}`,
           amount: amount,
           type: 'credit',
-          status: 'success',
+          status: 'pending',
           date: new Date().toLocaleDateString(),
           description: `Refill: ${formData.method} Gateway Entry`
-        });
+        };
+        setTransactions(prev => [newTx, ...prev]);
         setIsProcessing(false);
         setSuccess(true);
         setTimeout(() => {

@@ -9,7 +9,6 @@ import {
   BarChart3,
   Zap
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { UserRole } from '../../types.ts';
 
@@ -17,9 +16,7 @@ export const SupportStatusMetrics: React.FC = () => {
   const { user } = useAuth();
   
   const metrics = useMemo(() => {
-    const allTickets = user?.role === UserRole.ADMIN 
-      ? db.supportTickets.getAll() 
-      : db.supportTickets.getByUser(user?.id || '');
+    const allTickets: any[] = [];
 
     const open = allTickets.filter(t => t.status === 'pending').length;
     const progress = allTickets.filter(t => t.status === 'investigating').length;

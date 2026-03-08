@@ -9,7 +9,6 @@ import {
   /* FIX: Imported missing 'Wrench' and 'ShoppingCart' icons */
   Wrench, ShoppingCart
 } from 'lucide-react';
-import { db } from '../../api/db';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../context/CurrencyContext';

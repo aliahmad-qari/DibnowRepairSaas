@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 /* FIX: Comprehensive icon set for all tabs including restored and new features */
 import { Settings as SettingsIcon, Globe, Shield, Bell, CreditCard, Code, Server, Database, Save, AlertTriangle, CheckCircle2, Lock, ShieldCheck, LogOut, ShieldAlert, Clock, Eye, EyeOff, CheckCircle, Zap, Landmark, MessageSquare, Mail, Smartphone, BellRing, Package, Key, Copy, RefreshCw, Link, Info, Cpu, HardDrive, Terminal, Activity, Trash2, Loader2, ChevronRight, ScrollText, User, Fingerprint, Clock4, SearchCode, BrainCircuit, Sparkles, Target, ShieldPlus } from 'lucide-react';
-import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient';
 import { aiService } from '../../api/aiService';
 
 export const AdminSettings: React.FC = () => {
@@ -99,7 +99,15 @@ export const AdminSettings: React.FC = () => {
     ]);
 
     // Load Audit Logs
-    setAuditLogs(db.audit.getAll());
+    const fetchAudit = async () => {
+      try {
+        const response = await callBackendAPI('/api/activities', null, 'GET');
+        setAuditLogs(Array.isArray(response) ? response : (response?.activities || []));
+      } catch (err) {
+        console.error('Audit fetch failing:', err);
+      }
+    };
+    fetchAudit();
   }, []);
 
   const handleSave = async () => {
@@ -113,13 +121,15 @@ export const AdminSettings: React.FC = () => {
     localStorage.setItem('dibnow_notification_config', JSON.stringify(notifConfig));
     localStorage.setItem('dibnow_api_config', JSON.stringify(apiConfig));
 
-    db.audit.log({
+    callBackendAPI('/api/activities', {
       actionType: 'Infrastructure Protocol Update',
-      resource: 'Global Settings',
+      moduleName: 'Global Settings',
       details: `Config Synchronized across ${activeTab.toUpperCase()} node.`
-    });
+    }, 'POST');
 
-    setAuditLogs(db.audit.getAll());
+    // Refresh logs
+    const response = await callBackendAPI('/api/activities', null, 'GET');
+    setAuditLogs(Array.isArray(response) ? response : (response?.activities || []));
     setIsSaving(false);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
@@ -129,8 +139,16 @@ export const AdminSettings: React.FC = () => {
   const invokeAiAudit = async () => {
     setIsAiAnalyzing(true);
     try {
-      const currentAudit = db.audit.getAll().slice(0, 10);
-      const currentActivity = db.activity.getAll().slice(0, 10);
+      let currentAudit = [];
+      try {
+        const auditData = await callBackendAPI('/api/activities', null, 'GET');
+        currentAudit = (Array.isArray(auditData) ? auditData : auditData?.activities || []).slice(0, 10);
+      } catch(err) {}
+      let currentActivity = [];
+      try {
+        const activityData = await callBackendAPI('/api/activities', null, 'GET');
+        currentActivity = (Array.isArray(activityData) ? activityData : activityData?.activities || []).slice(0, 10);
+      } catch(err) {}
 
       const prompt = `
         You are a Senior SaaS Infrastructure AI Auditor. Analyze the following read-only system snapshots:
@@ -182,8 +200,10 @@ export const AdminSettings: React.FC = () => {
     await new Promise(r => setTimeout(r, 2000));
     setWafLogs(prev => [`[${new Date().toISOString()}] DB: Optimization complete. Nodes vacuumed.`, ...prev]);
     setIsOptimizing(false);
-    db.audit.log({ actionType: 'DB_OPTIMIZE', resource: 'Database', details: 'Manual database vacuum executed.' });
-    setAuditLogs(db.audit.getAll());
+    callBackendAPI('/api/activities', { actionType: 'DB_OPTIMIZE', moduleName: 'Database', details: 'Manual database vacuum executed.' }, 'POST').then(async () => {
+      const response = await callBackendAPI('/api/activities', null, 'GET');
+      setAuditLogs(Array.isArray(response) ? response : (response?.activities || []));
+    });
   };
 
   const clearCache = async () => {
@@ -191,8 +211,10 @@ export const AdminSettings: React.FC = () => {
     await new Promise(r => setTimeout(r, 1500));
     setWafLogs(prev => [`[${new Date().toISOString()}] Cache: Global CDN nodes invalidated.`, ...prev]);
     setIsClearingCache(false);
-    db.audit.log({ actionType: 'CACHE_FLUSH', resource: 'Redis/CDN', details: 'Global cache invalidation triggered.' });
-    setAuditLogs(db.audit.getAll());
+    callBackendAPI('/api/activities', { actionType: 'CACHE_FLUSH', moduleName: 'Redis/CDN', details: 'Global cache invalidation triggered.' }, 'POST').then(async () => {
+      const response = await callBackendAPI('/api/activities', null, 'GET');
+      setAuditLogs(Array.isArray(response) ? response : (response?.activities || []));
+    });
   };
 
   const runCleanup = async () => {
@@ -200,16 +222,20 @@ export const AdminSettings: React.FC = () => {
     await new Promise(r => setTimeout(r, 3000));
     setWafLogs(prev => [`[${new Date().toISOString()}] System: Reclaimed storage nodes.`, ...prev]);
     setIsCleaning(false);
-    db.audit.log({ actionType: 'SYSTEM_CLEANUP', resource: 'Storage', details: 'Purged temporary storage nodes.' });
-    setAuditLogs(db.audit.getAll());
+    callBackendAPI('/api/activities', { actionType: 'SYSTEM_CLEANUP', moduleName: 'Storage', details: 'Purged temporary storage nodes.' }, 'POST').then(async () => {
+      const response = await callBackendAPI('/api/activities', null, 'GET');
+      setAuditLogs(Array.isArray(response) ? response : (response?.activities || []));
+    });
   };
 
   const regenerateKey = () => {
     if (window.confirm("CRITICAL: Regenerating the API Key will immediately invalidate the current node. Proceed?")) {
       const newKey = `fixit_live_${Math.random().toString(36).substr(2, 9)}_${Date.now().toString().slice(-4)}`;
       setApiConfig({ ...apiConfig, apiKey: newKey });
-      db.audit.log({ actionType: 'API_KEY_REGEN', resource: 'Security', details: 'Master API Key regenerated.' });
-      setAuditLogs(db.audit.getAll());
+      callBackendAPI('/api/activities', { actionType: 'API_KEY_REGEN', moduleName: 'Security', details: 'Master API Key regenerated.' }, 'POST').then(async () => {
+        const response = await callBackendAPI('/api/activities', null, 'GET');
+        setAuditLogs(Array.isArray(response) ? response : (response?.activities || []));
+      });
     }
   };
 
@@ -220,16 +246,18 @@ export const AdminSettings: React.FC = () => {
   const forceLogoutAll = () => {
     if (window.confirm("CRITICAL: Authorize global session invalidation?")) {
       localStorage.setItem('dibnow_global_logout_event', Date.now().toString());
-      db.audit.log({ actionType: 'Force Logout All', resource: 'Identity Server', details: 'Revoked all active tokens.' });
-      setAuditLogs(db.audit.getAll());
+      callBackendAPI('/api/activities', { actionType: 'Force Logout All', moduleName: 'Identity Server', details: 'Revoked all active tokens.' }, 'POST').then(async () => {
+        const response = await callBackendAPI('/api/activities', null, 'GET');
+        setAuditLogs(Array.isArray(response) ? response : (response?.activities || []));
+      });
     }
   };
 
-  const filteredAuditLogs = auditLogs.filter(log =>
-    log.actionType.toLowerCase().includes(auditSearch.toLowerCase()) ||
-    log.resource.toLowerCase().includes(auditSearch.toLowerCase()) ||
-    log.details.toLowerCase().includes(auditSearch.toLowerCase())
-  );
+  const filteredAuditLogs = useMemo(() => auditLogs.filter(log =>
+    (log.actionType || '').toLowerCase().includes(auditSearch.toLowerCase()) ||
+    (log.moduleName || '').toLowerCase().includes(auditSearch.toLowerCase()) ||
+    (typeof log.details === 'string' ? log.details : JSON.stringify(log.details) || '').toLowerCase().includes(auditSearch.toLowerCase())
+  ), [auditLogs, auditSearch]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
@@ -641,21 +669,21 @@ export const AdminSettings: React.FC = () => {
                     <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all group">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm text-indigo-600 font-black text-[10px]">{log.adminRole?.charAt(0)}</div>
+                          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm text-indigo-600 font-black text-[10px]">{log.userName?.charAt(0) || 'S'}</div>
                           <div>
-                            <p className="text-[10px] font-black text-slate-800 uppercase tracking-tight">{log.adminRole}</p>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase">ID: {log.id}</p>
+                            <p className="text-[10px] font-black text-slate-800 uppercase tracking-tight">{log.userName || 'System'}</p>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase">ID: {log._id}</p>
                           </div>
                         </div>
                         <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest bg-white border border-slate-100 text-indigo-600">{log.actionType}</span>
                       </div>
-                      <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter italic">"{log.details}"</p>
+                      <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter italic">"{log.details || log.moduleName}"</p>
                       <div className="flex items-center justify-between pt-3 border-t border-slate-200/50 mt-3">
                         <div className="flex items-center gap-4">
                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">IP: 192.168.1.{Math.floor(Math.random() * 255)}</span>
                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">{new Date(log.timestamp).toLocaleString()}</span>
                         </div>
-                        <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{log.resource}</span>
+                        <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{log.moduleName}</span>
                       </div>
                     </div>
                   ))}

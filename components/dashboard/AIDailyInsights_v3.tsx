@@ -5,7 +5,6 @@ import {
   Clock, Package, Users, MessageSquare, CreditCard,
   ShieldCheck, BrainCircuit, ChevronRight, TrendingDown
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 
 export const AIDailyInsightsV3: React.FC = () => {
@@ -15,12 +14,12 @@ export const AIDailyInsightsV3: React.FC = () => {
 
   // 1. DATA MINING (READ-ONLY) - Harvesting raw nodes for AI scrutiny
   const opNodes = useMemo(() => {
-    const repairs = db.repairs.getAll();
-    const inventory = db.inventory.getAll();
-    const sales = db.sales.getAll();
-    const team = db.userTeamV2.getByOwner(user?.id || '');
-    const complaints = db.complaints.getAll();
-    const activity = db.activity.getAll();
+    const repairs: any[] = [];
+    const inventory: any[] = [];
+    const sales: any[] = [];
+    const team: any[] = [];
+    const complaints: any[] = [];
+    const activity: any[] = [];
 
     const now = new Date();
     const todayStr = now.toLocaleDateString();

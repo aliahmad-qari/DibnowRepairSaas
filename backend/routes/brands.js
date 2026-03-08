@@ -3,7 +3,7 @@ const router = express.Router();
 const Brand = require('../models/Brand');
 const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
-const { checkPermission, checkUserStatus } = require('../middleware/permissions');
+const { checkPermission, checkUserStatus, getEffectiveOwnerId } = require('../middleware/permissions');
 const checkLimits = require('../middleware/checkLimits');
 const { logActivity } = require('./activities');
 
@@ -13,7 +13,8 @@ router.use(authenticateToken, checkUserStatus);
 // Get all brands
 router.get('/', authenticateToken, checkUserStatus, async (req, res) => {
   try {
-    const brands = await Brand.find({ ownerId: req.user.userId }).sort({ name: 1 });
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
+    const brands = await Brand.find({ ownerId }).sort({ name: 1 });
     res.json(brands);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching brands' });
@@ -23,15 +24,16 @@ router.get('/', authenticateToken, checkUserStatus, async (req, res) => {
 // Add brand
 router.post('/', checkLimits('brands'), async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const newBrand = new Brand({
       ...req.body,
-      ownerId: req.user.userId
+      ownerId
     });
     await newBrand.save();
     
     // Get user name for activity log
     const user = await User.findById(req.user.userId);
-    await logActivity(req.user.userId, 'Brand Created', 'Brands', newBrand._id, 'Success', user?.name || 'User');
+    await logActivity(ownerId, 'Brand Created', 'Brands', newBrand._id, 'Success', user?.name || 'User');
     
     res.status(201).json(newBrand);
   } catch (error) {
@@ -42,12 +44,13 @@ router.post('/', checkLimits('brands'), async (req, res) => {
 // Delete brand
 router.delete('/:id', async (req, res) => {
   try {
-    const deleted = await Brand.findOneAndDelete({ _id: req.params.id, ownerId: req.user.userId });
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
+    const deleted = await Brand.findOneAndDelete({ _id: req.params.id, ownerId });
     if (!deleted) return res.status(404).json({ message: 'Brand not found' });
     
     // Get user name for activity log
     const user = await User.findById(req.user.userId);
-    await logActivity(req.user.userId, 'Brand Deleted', 'Brands', req.params.id, 'Success', user?.name || 'User');
+    await logActivity(ownerId, 'Brand Deleted', 'Brands', req.params.id, 'Success', user?.name || 'User');
     
     res.json({ message: 'Brand deleted' });
   } catch (error) {

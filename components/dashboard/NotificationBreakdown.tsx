@@ -4,7 +4,6 @@ import {
   Bell, CreditCard, Wrench, Package, Shield, 
   ChevronRight, Filter, Inbox, Search
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 
 type NotificationCategory = 'all' | 'system' | 'payment' | 'repair' | 'inventory';
@@ -14,7 +13,7 @@ export const NotificationBreakdown: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<NotificationCategory>('all');
 
   const notifications = useMemo(() => {
-    return db.notifications.getByUser(user?.id || '');
+    return [];
   }, [user]);
 
   // Categorization Logic

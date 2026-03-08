@@ -7,7 +7,6 @@ import {
   Lock, Bug, LayoutGrid, BarChart3,
   ShieldCheck, Info
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { UserRole } from '../../types.ts';
 
@@ -17,9 +16,7 @@ export const SupportCategoryAnalysis: React.FC = () => {
   const { user } = useAuth();
 
   const analysis = useMemo(() => {
-    const allTickets = user?.role === UserRole.ADMIN 
-      ? db.supportTickets.getAll() 
-      : db.supportTickets.getByUser(user?.id || '');
+    const allTickets: any[] = [];
 
     const categories = [
       { id: 'Billing', label: 'Billing / Payment', icon: CreditCard, count: 0 },

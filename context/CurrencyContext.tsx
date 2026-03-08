@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db } from '../api/db.ts';
+// Removed mock db import
 import { callBackendAPI } from '../api/apiClient';
 
 interface Currency {
@@ -15,6 +15,17 @@ interface CurrencyContextType {
   availableCurrencies: any[];
 }
 
+const AVAILABLE_CURRENCIES = [
+  { symbol: '$', currencyCode: 'USD', countryCode: 'US', name: 'US Dollar' },
+  { symbol: '£', currencyCode: 'GBP', countryCode: 'GB', name: 'British Pound' },
+  { symbol: '€', currencyCode: 'EUR', countryCode: 'EU', name: 'Euro' },
+  { symbol: 'A$', currencyCode: 'AUD', countryCode: 'AU', name: 'Australian Dollar' },
+  { symbol: 'C$', currencyCode: 'CAD', countryCode: 'CA', name: 'Canadian Dollar' },
+  { symbol: '¥', currencyCode: 'JPY', countryCode: 'JP', name: 'Japanese Yen' },
+  { symbol: '₹', currencyCode: 'INR', countryCode: 'IN', name: 'Indian Rupee' },
+  { symbol: 'R', currencyCode: 'ZAR', countryCode: 'ZA', name: 'South African Rand' }
+];
+
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,13 +34,13 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [availableCurrencies, setAvailableCurrencies] = useState<any[]>([]);
 
   const loadAvailable = () => {
-    const all = db.currencies.getAll();
+    const all = AVAILABLE_CURRENCIES;
     setAvailableCurrencies(all);
     return all;
   };
 
   const setManualCurrency = (currencyCode: string) => {
-    const all = db.currencies.getAll();
+    const all = AVAILABLE_CURRENCIES;
     const selected = all.find(c => c.currencyCode === currencyCode);
     if (selected) {
       const newCurrency = {
@@ -60,7 +71,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Function to map country code to currency
       const applyMapping = (countryCode: string) => {
-        const mapping = db.currencies.getByCountry(countryCode);
+        const mapping = AVAILABLE_CURRENCIES.find(c => c.countryCode === countryCode);
         if (mapping) {
           const newCurrency = {
             symbol: mapping.symbol,

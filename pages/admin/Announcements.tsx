@@ -6,7 +6,7 @@ import {
   X, Send, Info, ShieldCheck, Zap,
   LayoutGrid, Calendar, Hash, Mail, Loader2
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient.ts';
 
 export const AdminAnnouncements: React.FC = () => {
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -20,28 +20,31 @@ export const AdminAnnouncements: React.FC = () => {
   });
 
   useEffect(() => {
-    // Initial static mock as we don't have a specific db node for this yet in the provided db structure
-    const initial = [
-      { id: '1', title: 'System Maintenance: Node Q3', message: 'The primary commerce node will be offline for 10 minutes on Sunday.', type: 'warning', date: '14 Jan 2025', target: 'all' },
-      { id: '2', title: 'New Plan: Gold Tier Active', message: 'We have deployed the high-capacity Gold Tier for multi-shop nodes.', type: 'success', date: '10 Jan 2025', target: 'all' }
-    ];
-    setAnnouncements(initial);
+    const fetchAnnouncements = async () => {
+      try {
+        const data = await callBackendAPI('/api/admin/announcements', null, 'GET');
+        setAnnouncements(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to fetch announcements:', error);
+      }
+    };
+    fetchAnnouncements();
   }, []);
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsPublishing(true);
     
-    // Simulations
-    await new Promise(r => setTimeout(r, 1500));
-    
-    // Broadcast notification to all users globally using existing db API
-    db.notifications.add({
-      userId: 'global',
-      title: formData.title,
-      message: formData.message,
-      type: formData.type as any
-    });
+    try {
+      await callBackendAPI('/api/superadmin/announcements', {
+        title: formData.title,
+        message: formData.message,
+        type: formData.type,
+        target: formData.target
+      }, 'POST');
+    } catch (error) {
+      console.error('Failed to broadcast announcement:', error);
+    }
 
     const newEntry = {
       ...formData,
@@ -53,12 +56,6 @@ export const AdminAnnouncements: React.FC = () => {
     setIsPublishing(false);
     setShowModal(false);
     setFormData({ title: '', message: '', type: 'info', target: 'all' });
-    
-    db.audit.log({
-      actionType: 'Broadcast Published',
-      resource: 'Communications',
-      details: `Published Global Announcement: ${formData.title}`
-    });
   };
 
   const getStatusColor = (type: string) => {

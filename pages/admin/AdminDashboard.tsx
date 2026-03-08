@@ -19,7 +19,7 @@ import {
   Tooltip, BarChart as ReBarChart, Bar, ComposedChart, Legend, LineChart as ReLineChart, Line, ReferenceLine, Cell
 } from 'recharts';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient';
 import { adminApi } from '../../api/adminApi';
 
 const HealthNode = ({ label, status, icon: Icon }: any) => (
@@ -91,6 +91,15 @@ export const AdminDashboard: React.FC = () => {
   const { currency } = useCurrency();
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [adminAuditLogs, setAdminAuditLogs] = useState<any[]>([]);
+  const [usersData, setUsersData] = useState<any[]>([]);
+  const [repairsData, setRepairsData] = useState<any[]>([]);
+  const [salesData, setSalesData] = useState<any[]>([]);
+  const [inventoryData, setInventoryData] = useState<any[]>([]);
+  const [complaintsData, setComplaintsData] = useState<any[]>([]);
+  const [planRequestsData, setPlanRequestsData] = useState<any[]>([]);
+  const [plansData, setPlansData] = useState<any[]>([]);
+  const [brandsData, setBrandsData] = useState<any[]>([]);
+  const [categoriesData, setCategoriesData] = useState<any[]>([]);
   const [timeframe, setTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const [intelTimeframe, setIntelTimeframe] = useState<3 | 6 | 12>(12);
   const [plFilter, setPlFilter] = useState<3 | 6 | 12>(12);
@@ -101,10 +110,46 @@ export const AdminDashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await adminApi.getAggregation();
-        setAggregationData(data);
-        setActivityLogs(db.activity.getAll());
-        setAdminAuditLogs(db.audit.getAll());
+        const [
+          aggr,
+          acts,
+          audits,
+          uData,
+          rData,
+          sData,
+          iData,
+          cData,
+          prData,
+          pData,
+          bData,
+          catData
+        ] = await Promise.all([
+          adminApi.getAggregation().catch(() => null),
+          callBackendAPI('/api/activities', null, 'GET').catch(() => []),
+          callBackendAPI('/api/admin/audit-logs', null, 'GET').catch(() => []),
+          adminApi.getAllUsers().catch(() => []),
+          adminApi.getAllRepairs().catch(() => []),
+          adminApi.getAllSales().catch(() => []),
+          adminApi.getAllInventory().catch(() => []),
+          adminApi.getAllComplaints().catch(() => []),
+          callBackendAPI('/api/plan-requests', null, 'GET').catch(() => []),
+          callBackendAPI('/api/plans', null, 'GET').catch(() => []),
+          callBackendAPI('/api/brands', null, 'GET').catch(() => []),
+          callBackendAPI('/api/categories', null, 'GET').catch(() => [])
+        ]);
+        
+        setAggregationData(aggr);
+        setActivityLogs(Array.isArray(acts) ? acts : []);
+        setAdminAuditLogs(Array.isArray(audits) ? audits : (audits?.logs || []));
+        setUsersData(Array.isArray(uData) ? uData : []);
+        setRepairsData(Array.isArray(rData) ? rData : []);
+        setSalesData(Array.isArray(sData) ? sData : []);
+        setInventoryData(Array.isArray(iData) ? iData : []);
+        setComplaintsData(Array.isArray(cData) ? cData : []);
+        setPlanRequestsData(Array.isArray(prData) ? prData : []);
+        setPlansData(Array.isArray(pData) ? pData : []);
+        setBrandsData(Array.isArray(bData) ? bData : []);
+        setCategoriesData(Array.isArray(catData) ? catData : []);
       } catch (error) {
         console.error('Failed to fetch admin data:', error);
       } finally {
@@ -157,32 +202,26 @@ export const AdminDashboard: React.FC = () => {
 
   // RISK FORENSIC MONITOR ENGINE
   const userRiskAudit = useMemo(() => {
-    const users = db.users.getAll();
-    const activity = db.activity.getAll();
-    const complaints = db.complaints.getAll();
-    const planRequests = db.planRequests.getAll();
-    const repairs = db.repairs.getAll();
-    
-    return users.map(user => {
+    return usersData.map(user => {
       const risks: string[] = [];
       let score = 0;
 
       // Rule 1: Login Volatility (More than 10 logins in logs)
-      const userLogins = activity.filter(a => a.userId === user.id && a.actionType === 'User Login').length;
+      const userLogins = activityLogs.filter(a => a.userId === user._id && a.actionType === 'User Login').length;
       if (userLogins > 10) {
         risks.push('Login Volatility Detected');
         score += 20;
       }
 
       // Rule 2: Payment Failures (Denied plan requests > 2)
-      const deniedRequests = planRequests.filter(r => r.shopId === user.id && r.status === 'denied').length;
+      const deniedRequests = planRequestsData.filter(r => (r.shopId === user._id || r.userId === user._id) && r.status === 'denied').length;
       if (deniedRequests > 2) {
         risks.push('Chronic Payment Friction');
         score += 40;
       }
 
       // Rule 3: Support Saturation (Complaints > 2)
-      const userComplaints = complaints.filter(c => (c.userId === user.id || c.user === user.name)).length;
+      const userComplaints = complaintsData.filter(c => (c.userId === user._id || c.user === user.name)).length;
       if (userComplaints > 2) {
         risks.push('Support Desk Saturation');
         score += 30;
@@ -190,7 +229,7 @@ export const AdminDashboard: React.FC = () => {
 
       // Rule 4: Paid but Stagnant (Has plan but zero repairs)
       const hasPlan = user.planId && user.planId !== 'starter';
-      const userRepairs = repairs.filter(r => r.customerName === user.name).length; // Simplified check
+      const userRepairs = repairsData.filter(r => r.customerName === user.name).length; // Simplified check
       if (hasPlan && userRepairs === 0) {
         risks.push('Paid Account Stagnancy');
         score += 15;
@@ -198,7 +237,7 @@ export const AdminDashboard: React.FC = () => {
 
       // Rule 5: Activity on Expired Nodes
       if (user.status === 'expired') {
-        const recentActivity = activity.filter(a => a.userId === user.id).length;
+        const recentActivity = activityLogs.filter(a => a.userId === user._id).length;
         if (recentActivity > 0) {
           risks.push('Expired Node Activity');
           score += 25;
@@ -213,64 +252,26 @@ export const AdminDashboard: React.FC = () => {
         level: score > 60 ? 'HIGH' : score > 30 ? 'MEDIUM' : 'LOW',
         trigger: risks[0],
         secondaryTriggers: risks.slice(1),
-        lastSeen: activity.filter(a => a.userId === user.id)[0]?.timestamp || 'Unknown'
+        lastSeen: activityLogs.filter((a: any) => a.userId === user._id)[0]?.timestamp || 'Unknown'
       };
     }).filter(Boolean);
-  }, [activityLogs]);
+  }, [usersData, activityLogs, complaintsData, planRequestsData, repairsData]);
 
   // SYSTEM CONFIGURATION SNAPSHOT ENGINE
   const systemConfig = useMemo(() => {
-    const plansCount = db.plans.getAll().length;
+    const plansCount = plansData.length;
     return {
       plansCount,
       gateways: ['Stripe', 'PayPal', 'Manual Bank'],
       geoDetection: 'Active (v2.0)',
       maintenance: 'Operational'
     };
-  }, []);
+  }, [plansData]);
 
   // FINANCIAL INTELLIGENCE: TEMPORAL AGGREGATOR
   const annualIntelligence = useMemo(() => {
-    const sales = db.sales.getAll();
-    const inventory = db.inventory.getAll();
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    const rawData = months.map((m, idx) => {
-      const monthSales = sales.filter(s => {
-        const d = new Date(s.date);
-        return !isNaN(d.getTime()) ? d.getMonth() === idx : false;
-      });
-
-      const totalSales = monthSales.reduce((acc, s) => acc + s.total, 0);
-      
-      const totalProfit = monthSales.reduce((acc, s) => {
-        const product = inventory.find(p => p.id === s.productId);
-        const cost = product ? (product.actualCost || (s.price * 0.7)) : (s.price * 0.7);
-        return acc + ((s.price - cost) * s.qty);
-      }, 0);
-
-      const simulationOverhead = totalSales * 0.15;
-      const netPL = totalProfit - simulationOverhead;
-
-      return {
-        name: m,
-        sales: totalSales || (Math.floor(Math.random() * 5000) + 1000),
-        profit: totalProfit || (Math.floor(Math.random() * 2000) + 500),
-        netPL: netPL || (Math.floor(Math.random() * 1500) - 200),
-        monthIndex: idx
-      };
-    });
-
-    // Handle rolling filter
-    const currentMonth = new Date().getMonth();
-    const sorted = [...rawData].sort((a, b) => {
-      const aAdjusted = (a.monthIndex - currentMonth + 12) % 12;
-      const bAdjusted = (b.monthIndex - currentMonth + 12) % 12;
-      return aAdjusted - bAdjusted;
-    });
-
-    return sorted;
-  }, [activityLogs]);
+    return aggregationData?.annualIntelligence || [];
+  }, [aggregationData]);
 
   const filteredIntel = useMemo(() => {
     return annualIntelligence.slice(-intelTimeframe);
@@ -282,54 +283,46 @@ export const AdminDashboard: React.FC = () => {
 
   // SECURITY & RISK ANALYSIS ENGINE
   const securityRisk = useMemo(() => {
-    const activity = db.activity.getAll();
-    const complaints = db.complaints.getAll();
-    const users = db.users.getAll();
-
-    const failedLogins = activity.filter(a => a.actionType === 'User Login' && a.status === 'Failed').length;
-    const suspiciousPayments = db.planRequests.getAll().filter(r => r.status === 'denied').length;
+    const failedLogins = activityLogs.filter((a: any) => a.actionType === 'User Login' && a.status === 'Failed').length;
+    const suspiciousPayments = planRequestsData.filter((r: any) => r.status === 'denied').length;
     
     const userComplaintCounts: Record<string, number> = {};
-    complaints.forEach(c => {
+    complaintsData.forEach((c: any) => {
       const key = c.userId || c.user;
       userComplaintCounts[key] = (userComplaintCounts[key] || 0) + 1;
     });
     const multiComplainants = Object.values(userComplaintCounts).filter(count => count > 1).length;
     
-    const recentlyBlocked = users.filter(u => u.status === 'pending' || u.status === 'expired').length;
+    const recentlyBlocked = usersData.filter((u: any) => u.status === 'pending' || u.status === 'expired').length;
 
     return { failedLogins, suspiciousPayments, multiComplainants, recentlyBlocked };
-  }, [activityLogs]);
+  }, [activityLogs, planRequestsData, complaintsData, usersData]);
 
   // USER LIFECYCLE AUDIT ENGINE
   const userLifecycle = useMemo(() => {
-    const users = db.users.getAll();
-    const activity = db.activity.getAll();
     const now = new Date();
     const startOfToday = new Date(now.setHours(0,0,0,0)).getTime();
     const startOfWeek = new Date(now.setDate(now.getDate() - 7)).getTime();
 
-    const signupsToday = users.filter(u => new Date(u.createdAt || Date.now()).getTime() >= startOfToday).length;
-    const signupsWeek = users.filter(u => new Date(u.createdAt || Date.now()).getTime() >= startOfWeek).length;
-    const active = users.filter(u => u.status === 'active').length;
-    const expired = users.filter(u => u.status === 'expired').length;
-    const hvu = users.filter(u => u.planId === 'gold' || u.walletBalance > 100).length;
-    const atRisk = users.filter(u => {
-      const userActivity = activity.filter(a => a.userId === u.id).length;
+    const signupsToday = usersData.filter((u: any) => new Date(u.createdAt || Date.now()).getTime() >= startOfToday).length;
+    const signupsWeek = usersData.filter((u: any) => new Date(u.createdAt || Date.now()).getTime() >= startOfWeek).length;
+    const active = usersData.filter((u: any) => u.status === 'active').length;
+    const expired = usersData.filter((u: any) => u.status === 'expired').length;
+    const hvu = usersData.filter((u: any) => u.planId === 'gold' || u.walletBalance > 100).length;
+    const atRisk = usersData.filter((u: any) => {
+      const userActivity = activityLogs.filter((a: any) => a.userId === u._id).length;
       return userActivity < 3 && u.status === 'active';
     }).length;
 
     return { signupsToday, signupsWeek, active, expired, hvu, atRisk };
-  }, [activityLogs]);
+  }, [usersData, activityLogs]);
 
   // REVENUE INTELLIGENCE CALCULATION ENGINE
   const revenueIntel = useMemo(() => {
-    const users = db.users.getAll();
-    const plans = db.plans.getAll();
-    const activeUsers = users.filter(u => u.status === 'active');
+    const activeUsers = usersData.filter((u: any) => u.status === 'active');
     
     const mrr = activeUsers.reduce((acc, user) => {
-      const plan = plans.find(p => p.id === user.planId) || { price: 0 };
+      const plan = plansData.find((p: any) => p.id === user.planId || p._id === user.planId) || { price: 0 };
       return acc + (plan.price || 0);
     }, 0);
 
@@ -343,16 +336,14 @@ export const AdminDashboard: React.FC = () => {
       growth: "12.4%",
       churn: "0.8%"
     };
-  }, [activityLogs]);
+  }, [usersData, plansData]);
 
   // SUBSCRIPTION FUNNEL CALCULATION ENGINE
   const funnelData = useMemo(() => {
-    const users = db.users.getAll();
-    const requests = db.planRequests.getAll();
-    const converted = users.filter(u => u.planId && u.planId !== 'starter').length;
-    const expired = users.filter(u => u.status === 'expired').length;
-    const renewed = users.filter(u => u.status === 'active' && requests.some(r => r.shopId === u.id && r.status === 'approved')).length;
-    const cancelled = users.filter(u => u.status === 'pending' || u.status === 'expired').length;
+    const converted = usersData.filter((u: any) => u.planId && u.planId !== 'starter').length;
+    const expired = usersData.filter((u: any) => u.status === 'expired').length;
+    const renewed = usersData.filter((u: any) => u.status === 'active' && planRequestsData.some((r: any) => (r.shopId === u._id || r.userId === u._id) && r.status === 'approved')).length;
+    const cancelled = usersData.filter((u: any) => u.status === 'pending' || u.status === 'expired').length;
 
     return [
       { label: 'Trial → Paid', count: converted || 0, icon: Zap, color: 'from-blue-500 to-indigo-600' },
@@ -360,35 +351,55 @@ export const AdminDashboard: React.FC = () => {
       { label: 'Expired → Renewed', count: renewed || 0, icon: RefreshCw, color: 'from-emerald-400 to-teal-500' },
       { label: 'Cancelled', count: cancelled || 0, icon: UserX, color: 'from-rose-400 to-pink-600' }
     ];
-  }, [activityLogs]);
+  }, [usersData, planRequestsData]);
 
   const chartData = useMemo(() => {
-    const sales = db.sales.getAll();
-    const inventory = db.inventory.getAll();
     const calculateProfit = (sale: any) => {
-      const product = inventory.find(i => i.id === sale.productId);
+      const product = inventoryData.find((i: any) => i._id === sale.productId);
       const cost = product ? (product.actualCost || (sale.price * 0.7)) : (sale.price * 0.7);
-      return (sale.price - cost) * sale.qty;
+      return (sale.price - cost) * (sale.qty || 1);
     };
     if (timeframe === 'weekly') {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      return days.map((day, i) => ({
-        name: day, sales: Math.floor(Math.random() * 2000) + 100, profit: Math.floor(Math.random() * 800) + 50
-      }));
+      return days.map((day, i) => {
+        const daySales = salesData.filter(s => {
+          const d = new Date(s.date || s.timestamp);
+          return d.getDay() === (i + 1) % 7;
+        });
+        const totalSales = daySales.reduce((acc, s) => acc + s.total, 0);
+        return {
+          name: day, 
+          sales: totalSales, 
+          profit: totalSales * 0.3
+        };
+      });
     }
     if (timeframe === 'monthly') {
-      return ['Week 1', 'Week 2', 'Week 3', 'Week 4'].map(w => ({
-        name: w, sales: Math.floor(Math.random() * 5000) + 1000, profit: Math.floor(Math.random() * 1500) + 300
-      }));
+      return ['Week 1', 'Week 2', 'Week 3', 'Week 4'].map((w, i) => {
+        const weekSales = salesData.filter(s => {
+          const d = new Date(s.date || s.timestamp);
+          return Math.floor(d.getDate() / 7) === i;
+        });
+        const totalSales = weekSales.reduce((acc, s) => acc + s.total, 0);
+        return {
+          name: w, 
+          sales: totalSales, 
+          profit: totalSales * 0.3
+        };
+      });
     }
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return months.map((m, idx) => {
-      const monthSales = sales.filter(s => new Date(s.date).getMonth() === idx);
-      const totalSales = monthSales.reduce((acc, s) => acc + s.total, 0);
-      const totalProfit = monthSales.reduce((acc, s) => acc + calculateProfit(s), 0);
-      return { name: m, sales: totalSales || (Math.floor(Math.random() * 8000) + 2000), profit: totalProfit || (Math.floor(Math.random() * 2500) + 800) };
+      const monthSales = salesData.filter((s: any) => new Date(s.date || s.timestamp).getMonth() === idx);
+      const totalSales = monthSales.reduce((acc: number, s: any) => acc + s.total, 0);
+      const totalProfit = monthSales.reduce((acc: number, s: any) => acc + calculateProfit(s), 0);
+      return { 
+        name: m, 
+        sales: totalSales, 
+        profit: totalProfit 
+      };
     });
-  }, [timeframe, activityLogs]);
+  }, [timeframe, salesData, inventoryData]);
 
   const TableCard = ({ title, icon: Icon, children, gradient = "from-slate-900 to-slate-800" }: any) => (
     <div className={`bg-gradient-to-br ${gradient} rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden flex flex-col h-full transition-transform hover:scale-[1.01]`}>
@@ -1012,19 +1023,19 @@ export const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
         <TableCard title="Recent Repairs" icon={Wrench} gradient="from-blue-900 to-indigo-950">
            <thead className="text-[10px] font-black uppercase text-indigo-200 border-b border-white/10"><tr><th className="px-6 py-4">Client</th><th className="px-6 py-4">Device</th><th className="px-6 py-4">Status</th></tr></thead>
-           <tbody className="text-[11px] text-white/70 divide-y divide-white/5">{db.repairs.getAll().slice(0, 5).map((r, i) => (<tr key={i} className="hover:bg-white/5 transition-colors"><td className="px-6 py-4 font-black text-white uppercase">{r.customerName}</td><td className="px-6 py-4 truncate max-w-[100px]">{r.device}</td><td className="px-6 py-4 uppercase font-black text-[9px] text-indigo-400">{r.status}</td></tr>))}</tbody>
+           <tbody className="text-[11px] text-white/70 divide-y divide-white/5">{repairsData.slice(0, 5).map((r, i) => (<tr key={i} className="hover:bg-white/5 transition-colors"><td className="px-6 py-4 font-black text-white uppercase">{r.customerName}</td><td className="px-6 py-4 truncate max-w-[100px]">{r.device}</td><td className="px-6 py-4 uppercase font-black text-[9px] text-indigo-400">{r.status}</td></tr>))}</tbody>
         </TableCard>
         <TableCard title="Recently Added Stock" icon={Package} gradient="from-indigo-900 to-slate-900">
            <thead className="text-[10px] font-black uppercase text-blue-200 border-b border-white/10"><tr><th className="px-6 py-4">Asset</th><th className="px-6 py-4 text-center">Qty</th><th className="px-6 py-4 text-right">Value</th></tr></thead>
-           <tbody className="text-[11px] text-white/70 divide-y divide-white/5">{db.inventory.getAll().slice(0, 5).map((s, i) => (<tr key={i} className="hover:bg-white/5 transition-colors"><td className="px-6 py-4 font-black text-white uppercase truncate max-w-[100px]">{s.name}</td><td className="px-6 py-4 text-center font-black">{s.stock}</td><td className="px-6 py-4 text-right">{currency.symbol}{s.price}</td></tr>))}</tbody>
+           <tbody className="text-[11px] text-white/70 divide-y divide-white/5">{inventoryData.slice(0, 5).map((s, i) => (<tr key={i} className="hover:bg-white/5 transition-colors"><td className="px-6 py-4 font-black text-white uppercase truncate max-w-[100px]">{s.name}</td><td className="px-6 py-4 text-center font-black">{s.stock}</td><td className="px-6 py-4 text-right">{currency.symbol}{s.price}</td></tr>))}</tbody>
         </TableCard>
         <TableCard title="Latest Brands" icon={Tag} gradient="from-purple-900 to-indigo-900">
            <thead className="text-[10px] font-black uppercase text-purple-200 border-b border-white/10"><tr><th className="px-6 py-4">Brand</th><th className="px-6 py-4">Status</th></tr></thead>
-           <tbody className="text-[11px] text-white/70 divide-y divide-white/5">{db.brands.getAll().slice(0, 5).map((b, i) => (<tr key={i}><td className="px-6 py-4 font-black text-white uppercase">{b.name}</td><td className="px-6 py-4 text-emerald-400 font-black">ACTIVE</td></tr>))}</tbody>
+           <tbody className="text-[11px] text-white/70 divide-y divide-white/5">{brandsData.slice(0, 5).map((b, i) => (<tr key={i}><td className="px-6 py-4 font-black text-white uppercase">{b.name}</td><td className="px-6 py-4 text-emerald-400 font-black">ACTIVE</td></tr>))}</tbody>
         </TableCard>
         <TableCard title="Categories" icon={Layers} gradient="from-amber-900 to-rose-900">
            <thead className="text-[10px] font-black uppercase text-amber-200 border-b border-white/10"><tr><th className="px-6 py-4">Category</th><th className="px-6 py-4 text-right">Node</th></tr></thead>
-           <tbody className="text-[11px] text-white/70 divide-y divide-white/5">{db.categories.getAll().slice(0, 5).map((c, i) => (<tr key={i}><td className="px-6 py-4 font-black text-white uppercase">{c.name}</td><td className="px-6 py-4 text-right opacity-40">#{c.id.slice(-4)}</td></tr>))}</tbody>
+           <tbody className="text-[11px] text-white/70 divide-y divide-white/5">{categoriesData.slice(0, 5).map((c, i) => (<tr key={i}><td className="px-6 py-4 font-black text-white uppercase">{c.name}</td><td className="px-6 py-4 text-right opacity-40">#{c._id ? c._id.slice(-4) : c.id?.slice(-4) || '92A4'}</td></tr>))}</tbody>
         </TableCard>
       </div>
 
@@ -1038,7 +1049,7 @@ export const AdminDashboard: React.FC = () => {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cross-Platform Authentication Audit</p>
              </div>
            </div>
-           <div className="bg-slate-50 px-6 py-3 rounded-2xl border border-slate-100 flex items-center gap-3"><span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Node Capacity</span><span className="text-xl font-black text-slate-800">{db.users.getAll().length}</span></div>
+           <div className="bg-slate-50 px-6 py-3 rounded-2xl border border-slate-100 flex items-center gap-3"><span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Node Capacity</span><span className="text-xl font-black text-slate-800">{usersData.length}</span></div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -1046,7 +1057,7 @@ export const AdminDashboard: React.FC = () => {
                <tr><th className="px-10 py-6">Operational Entity</th><th className="px-10 py-6">Identity Uplink (Email)</th><th className="px-10 py-6">Operational Tier</th><th className="px-10 py-6 text-center">Node Status</th><th className="px-10 py-6 text-right">Audit</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {db.users.getAll().map((u, i) => (
+              {usersData.map((u, i) => (
                 <tr key={i} className="hover:bg-indigo-50/30 transition-all cursor-default group">
                    <td className="px-10 py-7"><div className="flex items-center gap-5"><div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">{u.name?.charAt(0)}</div><span className="font-black text-slate-800 text-sm uppercase">{u.name}</span></div></td>
                    <td className="px-10 py-7 lowercase font-bold text-slate-500 text-sm italic">{u.email}</td>

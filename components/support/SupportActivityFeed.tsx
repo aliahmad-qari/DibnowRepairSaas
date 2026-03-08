@@ -10,7 +10,6 @@ import {
   Zap,
   ArrowRight
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { UserRole } from '../../types.ts';
 
@@ -18,7 +17,7 @@ export const SupportActivityFeed: React.FC = () => {
   const { user } = useAuth();
 
   const activityFeed = useMemo(() => {
-    const allActivity = db.activity.getAll();
+    const allActivity: any[] = [];
     const supportLogs = allActivity.filter(a => 
       a.moduleName === 'Support' || 
       a.actionType.toLowerCase().includes('ticket') || 

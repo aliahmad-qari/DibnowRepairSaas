@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../api/db';
+
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import { ShieldCheck, Mail, Lock, Users, AlertTriangle, ChevronRight, CheckCircle2, Bot, ArrowLeft, Loader2 } from 'lucide-react';
@@ -26,27 +26,21 @@ export const TeamPortal: React.FC = () => {
     // Artificial handshake delay
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Database Lookup - Strictly separate collections
-    const collection = portalType === 'USER' ? db.userTeamV2.getAll() : db.adminTeamV2.getAll();
-    const member = collection.find(m => m.email.toLowerCase() === email.toLowerCase() && m.password === password);
+    const result = await login(email, password, portalType === 'USER' ? UserRole.USER : UserRole.ADMIN);
 
-    if (!member) {
-      setError("Authorization Failed: Staff credentials invalid.");
-      setIsLoading(false);
-      return;
-    }
-
-    // STRICT ENABLE / DISABLE ENFORCEMENT
-    if (member.status === 'disabled' || member.status === 'inactive') {
-      setIsBlocked(true);
+    if (!result.success) {
+      // Handle blocked or disabled users
+      if (result.message && result.message.toLowerCase().includes('blocked')) {
+        setIsBlocked(true);
+      } else {
+        setError(result.message || "Authorization Failed: Staff credentials invalid.");
+      }
       setIsLoading(false);
       return;
     }
 
     // Identity Resolution
-    const ownerName = portalType === 'USER' 
-      ? (db.users.getById(member.ownerId)?.name || "Primary Shop Owner")
-      : "DibNow Global Administration";
+    const ownerName = portalType === 'USER' ? "Primary Shop Node" : "DibNow Global Administration";
 
     setSuccessMsg(`Identity verified. You are authorized as staff of ${ownerName}.`);
     
@@ -55,7 +49,6 @@ export const TeamPortal: React.FC = () => {
     sessionStorage.removeItem('dibnow_admin_staff_welcomed');
 
     setTimeout(() => {
-      login(email, UserRole.TEAM_MEMBER, member.role);
       navigate(portalType === 'USER' ? '/user/dashboard' : '/admin/dashboard');
     }, 1500);
   };

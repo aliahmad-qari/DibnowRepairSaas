@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { db } from '../../api/db';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
@@ -51,7 +50,7 @@ export const AddInventory: React.FC = () => {
           if (!isMounted) return;
 
           if (dashResp) {
-            const planId = typeof user.planId === 'object' ? user.planId.toString() : user.planId;
+            const planId = user.planId ? (typeof user.planId === 'object' ? user.planId.toString() : user.planId) : null;
             const plan = dashResp.plans?.find((p: any) =>
               p._id === planId || p.id === planId || 
               (typeof planId === 'string' && p.name?.toLowerCase() === planId.toLowerCase())

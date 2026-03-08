@@ -3,7 +3,7 @@ const router = express.Router();
 const Category = require('../models/Category');
 const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
-const { checkPermission, checkUserStatus } = require('../middleware/permissions');
+const { checkPermission, checkUserStatus, getEffectiveOwnerId } = require('../middleware/permissions');
 const checkLimits = require('../middleware/checkLimits');
 const { logActivity } = require('./activities');
 
@@ -11,9 +11,10 @@ const { logActivity } = require('./activities');
 router.use(authenticateToken, checkUserStatus);
 
 // Get all categories
-router.get('/', checkPermission('categories'), async (req, res) => {
+router.get('/', authenticateToken, checkUserStatus, async (req, res) => {
   try {
-    const categories = await Category.find({ ownerId: req.user.userId }).sort({ name: 1 });
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
+    const categories = await Category.find({ ownerId }).sort({ name: 1 });
     res.json(categories);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching categories' });
@@ -23,15 +24,16 @@ router.get('/', checkPermission('categories'), async (req, res) => {
 // Add category
 router.post('/', checkPermission('categories'), checkLimits('categories'), async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const newCategory = new Category({
       ...req.body,
-      ownerId: req.user.userId
+      ownerId
     });
     await newCategory.save();
     
     // Get user name for activity log
     const user = await User.findById(req.user.userId);
-    await logActivity(req.user.userId, 'Category Created', 'Categories', newCategory._id, 'Success', user?.name || 'User');
+    await logActivity(ownerId, 'Category Created', 'Categories', newCategory._id, 'Success', user?.name || 'User');
     
     res.status(201).json(newCategory);
   } catch (error) {
@@ -42,12 +44,13 @@ router.post('/', checkPermission('categories'), checkLimits('categories'), async
 // Delete category
 router.delete('/:id', checkPermission('categories'), async (req, res) => {
   try {
-    const deleted = await Category.findOneAndDelete({ _id: req.params.id, ownerId: req.user.userId });
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
+    const deleted = await Category.findOneAndDelete({ _id: req.params.id, ownerId });
     if (!deleted) return res.status(404).json({ message: 'Category not found' });
     
     // Get user name for activity log
     const user = await User.findById(req.user.userId);
-    await logActivity(req.user.userId, 'Category Deleted', 'Categories', req.params.id, 'Success', user?.name || 'User');
+    await logActivity(ownerId, 'Category Deleted', 'Categories', req.params.id, 'Success', user?.name || 'User');
     
     res.json({ message: 'Category deleted' });
   } catch (error) {

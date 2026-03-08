@@ -5,7 +5,6 @@ import {
    AlertCircle, DollarSign, Clock, ShoppingBag,
    Wrench, Info, Loader2, ShieldCheck, ChevronRight
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 
@@ -17,9 +16,9 @@ export const AIDailyInsightsV2: React.FC = () => {
 
    // 1. DATA HARVESTING (READ-ONLY)
    const stats = useMemo(() => {
-      const repairs = db.repairs.getAll();
-      const sales = db.sales.getAll();
-      const inventory = db.inventory.getAll();
+      const repairs: any[] = [];
+      const sales: any[] = [];
+      const inventory: any[] = [];
 
       const today = new Date().toLocaleDateString();
       const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();

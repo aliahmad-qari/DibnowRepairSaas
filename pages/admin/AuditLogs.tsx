@@ -6,17 +6,23 @@ import {
   Globe, Server, HardDrive, Cpu, AlertCircle, RefreshCw,
   Download, Eye
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient';
 
 export const AdminAuditLogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [logs, setLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    const syncLogs = () => setLogs(db.audit.getAll());
+    const syncLogs = async () => {
+      try {
+        const data = await callBackendAPI('/api/admin/audit-logs', null, 'GET');
+        setLogs(Array.isArray(data) ? data : (data?.logs || []));
+      } catch (err) {
+        console.error('Failed to load audit logs:', err);
+        setLogs([]);
+      }
+    };
     syncLogs();
-    window.addEventListener('storage', syncLogs);
-    return () => window.removeEventListener('storage', syncLogs);
   }, []);
 
   const filteredLogs = logs.filter(log => 

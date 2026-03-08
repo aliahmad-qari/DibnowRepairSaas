@@ -13,7 +13,6 @@ import {
 import {
    ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend
 } from 'recharts';
-import { db } from '../../api/db';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -34,6 +33,9 @@ export const AllStock: React.FC = () => {
 
    // NEW: Detail Analysis State
    const [selectedStockDetail, setSelectedStockDetail] = useState<any | null>(null);
+   const [detailSales, setDetailSales] = useState<any[]>([]);
+   const [detailRepairs, setDetailRepairs] = useState<any[]>([]);
+   const [detailActivity, setDetailActivity] = useState<any[]>([]);
 
    const [isLoading, setIsLoading] = useState(true);
 
@@ -45,17 +47,12 @@ export const AllStock: React.FC = () => {
             setItems(Array.isArray(data) ? data : []);
          } catch (error: any) {
             console.error('Failed to load inventory:', error);
-            if (error.message?.includes('404') || error.message?.includes('not found')) {
-               console.error('Inventory API route not found. Check backend /api/inventory endpoint.');
-            }
             setItems([]);
          } finally {
             setIsLoading(false);
          }
       };
       loadItems();
-      window.addEventListener('storage', loadItems);
-      return () => window.removeEventListener('storage', loadItems);
    }, []);
 
    // Sync sell form price when an item is selected for selling
@@ -138,12 +135,31 @@ export const AllStock: React.FC = () => {
       item.brand?.toLowerCase().includes(searchTerm.toLowerCase())
    );
 
-   // NEW: READ-ONLY DETAIL ANALYSIS ENGINE
+   // Load detail data from backend when an item is selected
+   useEffect(() => {
+      if (!selectedStockDetail) return;
+      const loadDetailData = async () => {
+         try {
+            const [sales, repairs] = await Promise.all([
+               callBackendAPI('/api/sales', null, 'GET'),
+               callBackendAPI('/api/repairs', null, 'GET'),
+            ]);
+            setDetailSales(Array.isArray(sales) ? sales : (sales?.repairs || []));
+            setDetailRepairs(Array.isArray(repairs) ? repairs : (repairs?.repairs || []));
+            setDetailActivity([]);
+         } catch (err) {
+            console.error('Failed to load detail data:', err);
+         }
+      };
+      loadDetailData();
+   }, [selectedStockDetail]);
+
+   // READ-ONLY DETAIL ANALYSIS ENGINE
    const detailAnalysis = useMemo(() => {
       if (!selectedStockDetail) return null;
-      const allSales = db.sales.getAll();
-      const allRepairs = db.repairs.getAll();
-      const allActivity = db.activity.getAll();
+      const allSales = detailSales;
+      const allRepairs = detailRepairs;
+      const allActivity = detailActivity;
 
       // 1. Transaction Mapping
       const itemSales = allSales.filter(s => s.productId === selectedStockDetail._id || s.productId === selectedStockDetail.id);

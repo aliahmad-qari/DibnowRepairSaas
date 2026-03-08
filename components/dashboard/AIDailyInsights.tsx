@@ -5,7 +5,6 @@ import {
    Target, Zap, ChevronRight, Loader2, ShieldCheck,
    RefreshCcw, BarChart3, Activity, Info
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 
@@ -17,12 +16,12 @@ export const AIDailyInsights: React.FC = () => {
 
    // 1. DATA HARVESTING (READ-ONLY)
    const systemContext = useMemo(() => {
-      const repairs = db.repairs.getAll();
-      const sales = db.sales.getAll();
-      const inventory = db.inventory.getAll();
-      const wallet = db.wallet.getTransactions();
-      const activity = db.activity.getAll();
-      const complaints = db.complaints.getAll();
+      const repairs: any[] = [];
+      const sales: any[] = [];
+      const inventory: any[] = [];
+      const wallet: any[] = [];
+      const activity: any[] = [];
+      const complaints: any[] = [];
 
       const today = new Date().toLocaleDateString();
 

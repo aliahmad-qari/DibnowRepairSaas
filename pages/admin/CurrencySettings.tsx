@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient';
 import { Globe, Save, CheckCircle2, AlertCircle, Trash2, Plus } from 'lucide-react';
 
 export const CurrencySettings: React.FC = () => {
@@ -8,7 +8,15 @@ export const CurrencySettings: React.FC = () => {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setCurrencies(db.currencies.getAll());
+    const load = async () => {
+      try {
+        const data = await callBackendAPI('/api/admin/currencies', null, 'GET');
+        setCurrencies(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load currencies:', err);
+      }
+    };
+    load();
   }, []);
 
   const handleToggle = (id: string) => {
@@ -21,10 +29,14 @@ export const CurrencySettings: React.FC = () => {
     setCurrencies(updated);
   };
 
-  const handleSave = () => {
-    db.currencies.update(currencies);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    try {
+      await callBackendAPI('/api/admin/currencies', currencies, 'PUT');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Failed to save currencies:', err);
+    }
   };
 
   return (

@@ -5,7 +5,7 @@ import {
   AlertCircle, X, Send, Tag, ChevronRight, Hash, Bot,
   Info, Loader2
 } from 'lucide-react';
-import { db } from '../../api/db';
+import { callBackendAPI, getBackendUserId } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { TicketStatus, TicketPriority } from '../../types';
 import { SupportStatusMetrics } from '../../components/support/SupportStatusMetrics.tsx';
@@ -31,35 +31,40 @@ export const SupportTickets: React.FC = () => {
   });
 
   useEffect(() => {
-    const loadTickets = () => {
-      if (user) {
-        setTickets(db.supportTickets.getByUser(user.id));
+    const loadTickets = async () => {
+      if (!user) return;
+      try {
+        const data = await callBackendAPI('/api/support-tickets', null, 'GET');
+        setTickets(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load tickets:', err);
+        setTickets([]);
       }
     };
     loadTickets();
-    window.addEventListener('storage', loadTickets);
-    return () => window.removeEventListener('storage', loadTickets);
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setIsSubmitting(true);
-    
-    // Simulating platform delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    db.supportTickets.add({
-      ...formData,
-      userId: user.id,
-      ownerId: user.ownerId || user.id,
-      userName: user.name,
-      userEmail: user.email
-    });
-    
-    setIsSubmitting(false);
-    setShowModal(false);
-    setFormData({ subject: '', category: 'Technical', priority: 'medium', message: '' });
+    try {
+      await callBackendAPI('/api/support-tickets', {
+        ...formData,
+        userId: user.id || user._id,
+        userName: user.name,
+        userEmail: user.email
+      }, 'POST');
+      // Reload tickets from backend
+      const data = await callBackendAPI('/api/support-tickets', null, 'GET');
+      setTickets(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to submit ticket:', err);
+    } finally {
+      setIsSubmitting(false);
+      setShowModal(false);
+      setFormData({ subject: '', category: 'Technical', priority: 'medium', message: '' });
+    }
   };
 
   const getStatusColor = (status: string) => {

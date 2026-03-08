@@ -5,25 +5,46 @@ import {
    ArrowUpCircle, Lock, Cpu, BarChart3,
    ShieldCheck, BrainCircuit, Activity, Gem
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
+import { callBackendAPI } from '../../api/apiClient';
+import { useEffect } from 'react';
 
 export const AIDailyInsightsV6: React.FC = () => {
    const { user } = useAuth();
    const [isAuditing, setIsAuditing] = useState(false);
    const [quotaReport, setQuotaReport] = useState<any>(null);
+   const [overviewData, setOverviewData] = useState<any>(null);
+   const [isLoading, setIsLoading] = useState(true);
+
+   // Load usage nodes from backend
+   useEffect(() => {
+     const fetchMetrics = async () => {
+       try {
+         const data = await callBackendAPI('/api/dashboard/overview', null, 'GET');
+         setOverviewData(data);
+       } catch (err) {
+         console.error('Failed to fetch usage metrics:', err);
+       } finally {
+         setIsLoading(false);
+       }
+     };
+     fetchMetrics();
+   }, []);
 
    // 1. DATA HARVESTING (READ-ONLY) - Auditing plan consumption nodes
    const usageNodes = useMemo(() => {
-      const plan = db.plans.getById(user?.planId || 'starter');
-      const repairs = db.repairs.getAll().length;
-      const inventory = db.inventory.getAll().length;
-      const team = db.userTeamV2.getByOwner(user?.id || '').length;
-      const brands = db.brands.getAll().length;
-      const categories = db.categories.getAll().length;
+      if (!overviewData || !user) return null;
+      
+      const plan = overviewData.plans?.find((p: any) => p._id === user.planId) || { name: 'Starter', limits: { repairsPerMonth: 50, inventoryItems: 100, teamMembers: 2, brands: 5, categories: 5, aiDiagnostics: false } };
+      
+      const repairs = overviewData.repairCount || 0;
+      const inventory = overviewData.stockCount || 0;
+      const team = overviewData.teamCount || 0;
+      const brands = overviewData.brandCount || 0;
+      const categories = overviewData.categoryCount || 0;
 
       const calculatePercent = (used: number, limit: number) => {
-         if (limit >= 999) return 0;
+         if (!limit || limit >= 999) return 0;
          return Math.min(100, Math.floor((used / limit) * 100));
       };
 
@@ -39,7 +60,7 @@ export const AIDailyInsightsV6: React.FC = () => {
          },
          aiDiagnostics: plan.limits.aiDiagnostics
       };
-   }, [user]);
+   }, [overviewData, user]);
 
    // 2. AI QUOTA SYNTHESIS
    const runQuotaAudit = async () => {

@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Star, MessageSquare, Send, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { db } from '../../api/db.ts';
+
+import { callBackendAPI } from '../../api/apiClient';
 
 interface TicketFeedbackModuleProps {
   ticketId: string;
@@ -23,12 +24,12 @@ export const TicketFeedbackModule: React.FC<TicketFeedbackModuleProps> = ({ tick
     // Simulation of feedback transmission
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    db.activity.log({
+    callBackendAPI('/api/activities', {
       actionType: 'Feedback Submitted',
       moduleName: 'Support',
       refId: ticketId,
       status: 'Success'
-    });
+    }, 'POST');
     
     setIsSubmitted(true);
     setIsSubmitting(false);

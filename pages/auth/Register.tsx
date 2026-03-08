@@ -6,7 +6,7 @@ import {
   Hash, Eye, EyeOff, CheckCircle, AlertCircle, 
   ShieldCheck, Loader2, ArrowRight 
 } from 'lucide-react';
-import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient';
 
 interface FormData {
   firstName: string;
@@ -156,12 +156,16 @@ export const Register: React.FC = () => {
       }
 
       // Log activity
-      db.activity.log({ 
-        actionType: 'New Signup', 
-        moduleName: 'Authentication', 
-        refId: formData.email, 
-        status: 'Success' 
-      });
+      try {
+        await callBackendAPI('/api/activities', { 
+          actionType: 'New Signup', 
+          moduleName: 'Authentication', 
+          refId: formData.email, 
+          status: 'Success' 
+        }, 'POST');
+      } catch (e) {
+        console.warn('Logging failed', e);
+      }
 
       setSuccess(true);
 

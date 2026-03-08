@@ -12,7 +12,7 @@ import {
    Calendar, PieChart as PieIcon, Flame,
    Users, DollarSign
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient';
 import { useNavigate } from 'react-router-dom';
 import { aiService } from '../../api/aiService';
 
@@ -25,12 +25,41 @@ export const SecurityIntelligence: React.FC = () => {
    const [isAiRunning, setIsAiRunning] = useState(false);
    const [aiInsights, setAiInsights] = useState<any[] | null>(null);
 
+   const [systemLogs, setSystemLogs] = useState({
+      activity: [] as any[],
+      transactions: [] as any[],
+      audit: [] as any[],
+      repairs: [] as any[],
+      inventory: [] as any[]
+   });
+
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            const [act, tx, aLog, rep, inv] = await Promise.all([
+               callBackendAPI('/api/activities', null, 'GET').catch(() => []),
+               callBackendAPI('/api/wallet/transactions', null, 'GET').catch(() => []),
+               callBackendAPI('/api/superadmin/audit-logs', null, 'GET').catch(() => []),
+               callBackendAPI('/api/repairs', null, 'GET').catch(() => []),
+               callBackendAPI('/api/inventory', null, 'GET').catch(() => [])
+            ]);
+            setSystemLogs({
+               activity: Array.isArray(act) ? act : act?.activities || [],
+               transactions: Array.isArray(tx) ? tx : tx?.transactions || [],
+               audit: Array.isArray(aLog) ? aLog : aLog?.auditLogs || [],
+               repairs: Array.isArray(rep) ? rep : rep?.repairs || [],
+               inventory: Array.isArray(inv) ? inv : inv?.inventory || []
+            });
+         } catch (error) {
+            console.error('Failed to load intelligence data:', error);
+         }
+      };
+      fetchData();
+   }, []);
+
    // 1. DATA HARVESTING (READ-ONLY FORENSIC SCAN)
    const suspiciousActivities = useMemo(() => {
-      const activity = db.activity.getAll();
-      const transactions = db.wallet.getTransactions();
-      const audit = db.audit.getAll();
-      const repairs = db.repairs.getAll();
+      const { activity, transactions, audit, repairs } = systemLogs;
 
       const flags: any[] = [];
 
@@ -126,7 +155,7 @@ export const SecurityIntelligence: React.FC = () => {
       }
 
       return flags.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-   }, []);
+   }, [systemLogs]);
 
    // RISK SUMMARY DASHBOARD LOGIC (TASK 3 & 4)
    const riskDashboard = useMemo(() => {
@@ -164,10 +193,7 @@ export const SecurityIntelligence: React.FC = () => {
    const invokeAiAudit = async () => {
       setIsAiRunning(true);
       try {
-         const repairs = db.repairs.getAll();
-         const inventory = db.inventory.getAll();
-         const activity = db.activity.getAll();
-         const audit = db.audit.getAll();
+         const { repairs, inventory, activity, audit } = systemLogs;
 
          const negativeMargins = repairs.filter(r => (parseFloat(r.partsCost) || 0) + (parseFloat(r.technicianCost) || 0) > r.cost).length;
 

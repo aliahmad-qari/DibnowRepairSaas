@@ -37,7 +37,7 @@ export const Complaints: React.FC = () => {
       if (selectedComplaint?._id === id) {
         setSelectedComplaint({ ...selectedComplaint, status: 'resolved' });
       }
-      // TODO: Add API call to update complaint status
+      await adminApi.updateComplaintStatus(id, 'resolved');
     } catch (error) {
       console.error('Failed to resolve complaint:', error);
     }

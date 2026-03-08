@@ -6,7 +6,7 @@ import {
   Code, Rocket, Smartphone, Database, Globe, Search,
   ChevronRight, Lock, Terminal
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient';
 
 export const AdminFeatureFlags: React.FC = () => {
   const [flags, setFlags] = useState([
@@ -25,11 +25,11 @@ export const AdminFeatureFlags: React.FC = () => {
     setFlags(updated);
     
     const flag = updated.find(f => f.id === id);
-    db.audit.log({
+    callBackendAPI('/api/activities', {
       actionType: 'Feature Node Mutated',
-      resource: 'Control Matrix',
+      moduleName: 'Control Matrix',
       details: `Flag [${flag?.label}] status transitioned to ${flag?.active ? 'ENABLED' : 'DISABLED'}.`
-    });
+    }, 'POST');
   };
 
   const filteredFlags = flags.filter(f => 

@@ -12,7 +12,6 @@ import {
   PartyPopper, ExternalLink, Smartphone, Banknote, Image as ImageIcon,
   Plus, ToggleRight, ToggleLeft, Minus, Cpu, ShieldPlus, Vault
 } from 'lucide-react';
-import { db } from '../../api/db';
 import { callBackendAPI, getBackendUserId } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -236,12 +235,12 @@ export const UserPricing: React.FC = () => {
     link.click();
     document.body.removeChild(link);
 
-    db.activity.log({
+    callBackendAPI('/api/activities', {
       actionType: 'Invoice Audit Downloaded',
       moduleName: 'Billing',
       refId: user?.id || 'System',
       status: 'Success'
-    });
+    }, 'POST');
   };
 
   const finalizeUpgrade = async () => {
@@ -282,17 +281,6 @@ export const UserPricing: React.FC = () => {
           });
 
           if (response.success) {
-            // Update local storage
-            db.user.updateBalance(localizedPrice, 'debit');
-            db.users.update(user.id, { planId: selectedPlanForUpgrade.id });
-            db.wallet.addTransaction({
-              amount: localizedPrice,
-              type: 'debit',
-              status: 'success',
-              date: new Date().toLocaleDateString(),
-              description: `Subscription Upgrade: ${selectedPlanForUpgrade.name}`
-            });
-
             console.log('✅ [Payment] Wallet payment successful, plan auto-activated');
             setSuccessState(true);
             

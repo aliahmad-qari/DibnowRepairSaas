@@ -11,7 +11,7 @@ import {
   HardDrive, Cpu, BadgeCheck, Lightbulb, Volume2, Pause
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { UserRole } from '../../types';
@@ -117,26 +117,44 @@ export const Utilities: React.FC = () => {
     const storageKey = `dibnow_ui_${key === 'repairs' ? 'repairs_active' : key === 'pos' ? 'pos_active' : key === 'emergency' ? 'emergency_close' : 'maintenance'}`;
     localStorage.setItem(storageKey, String(newVal));
     setToggles(prev => ({ ...prev, [key]: newVal }));
-    db.activity.log({ actionType: `Toggle: ${String(key).toUpperCase()}`, moduleName: 'Infrastructure', refId: 'UI_STATE', status: 'Success' });
+    callBackendAPI('/api/activities', { 
+      actionType: `Toggle: ${String(key).toUpperCase()}`, 
+      moduleName: 'Infrastructure', 
+      refId: 'UI_STATE', 
+      status: 'Success' 
+    }, 'POST');
   };
 
-  const opData = useMemo(() => {
-    const repairs = db.repairs.getAll();
-    const sales = db.sales.getAll();
-    const team = db.userTeamV2.getByOwner(user?.id || '');
-    const todayStr = new Date().toLocaleDateString();
-    const todayRepairs = repairs.filter(r => r.date === todayStr || new Date(r.createdAt).toLocaleDateString() === todayStr);
-    const todaySales = sales.filter(s => s.date === todayStr);
-    const completedToday = todayRepairs.filter(r => ['completed', 'delivered'].includes(r.status?.toLowerCase())).length;
-    const itemsSoldToday = todaySales.reduce((acc, curr) => acc + curr.qty, 0);
-    const inProgress = repairs.filter(r => r.status?.toLowerCase() === 'in progress').length;
-    const pending = repairs.filter(r => r.status?.toLowerCase() === 'pending').length;
-    const activeStaff = team.filter(m => m.status === 'active').length;
+  const [opData, setOpData] = useState({
+    inProgress: 0, pending: 0, activeStaff: 0, completedToday: 0, itemsSoldToday: 0,
+    insightMsg: 'Loading performance data...'
+  });
 
-    return { 
-      inProgress, pending, activeStaff, completedToday, itemsSoldToday, 
-      insightMsg: `Today you completed ${completedToday} repairs and sold ${itemsSoldToday} items. Peak sales node: 4–6 PM.`
+  useEffect(() => {
+    const loadOpData = async () => {
+      try {
+        const [repairsData, salesData] = await Promise.all([
+          callBackendAPI('/api/repairs', null, 'GET'),
+          callBackendAPI('/api/sales', null, 'GET'),
+        ]);
+        const repairs = Array.isArray(repairsData) ? repairsData : (repairsData?.repairs || []);
+        const sales = Array.isArray(salesData) ? salesData : [];
+        const todayStr = new Date().toLocaleDateString();
+        const todayRepairs = repairs.filter((r: any) => new Date(r.createdAt).toLocaleDateString() === todayStr);
+        const todaySales = sales.filter((s: any) => new Date(s.createdAt || s.date).toLocaleDateString() === todayStr);
+        const completedToday = todayRepairs.filter((r: any) => ['completed', 'delivered'].includes(r.status?.toLowerCase())).length;
+        const itemsSoldToday = todaySales.reduce((acc: number, curr: any) => acc + (curr.qty || 0), 0);
+        const inProgress = repairs.filter((r: any) => r.status?.toLowerCase() === 'in progress').length;
+        const pending = repairs.filter((r: any) => r.status?.toLowerCase() === 'pending').length;
+        setOpData({
+          inProgress, pending, activeStaff: 0, completedToday, itemsSoldToday,
+          insightMsg: `Today you completed ${completedToday} repairs and sold ${itemsSoldToday} items. Peak sales node: 4–6 PM.`
+        });
+      } catch (err) {
+        console.error('Failed to load op data:', err);
+      }
     };
+    loadOpData();
   }, [user]);
 
   useEffect(() => {

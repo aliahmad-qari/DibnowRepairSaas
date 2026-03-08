@@ -8,11 +8,10 @@ import {
   MessageSquare,
   BarChart3
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 
 export const ComplaintStatusMetrics: React.FC = () => {
   const metrics = useMemo(() => {
-    const all = db.complaints.getAll();
+    const all: any[] = [];
     const pending = all.filter(c => c.status === 'pending').length;
     const resolved = all.filter(c => c.status === 'resolved').length;
     // Simulation of 'In Progress' logic based on priority if status is pending

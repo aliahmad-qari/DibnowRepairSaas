@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, Edit2, Trash2, CheckCircle2, Zap, Rocket, Building, ShieldCheck, XCircle, X, Save, DollarSign, ListPlus, Star, ShieldAlert, Globe, Tag } from 'lucide-react';
-import { db } from '../../api/db';
+
 import { callBackendAPI } from '../../api/apiClient';
 import { SubscriptionPlan } from '../../types';
 
@@ -47,7 +47,7 @@ export const Plans: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch plans:', error);
-        setPlans(db.plans.getAll());
+        setPlans([]);
       }
     };
     fetchPlans();

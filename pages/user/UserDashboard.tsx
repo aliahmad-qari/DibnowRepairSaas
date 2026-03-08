@@ -11,7 +11,7 @@ import {
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-import { db } from '../../api/db.ts';
+
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
@@ -114,13 +114,6 @@ export const UserDashboard: React.FC = () => {
     
     const isStaff = user?.role === UserRole.TEAM_MEMBER;
     const welcomed = sessionStorage.getItem('dibnow_staff_welcomed');
-    if (isStaff && !welcomed) {
-      const member = db.userTeamV2.getByEmail(user.email);
-      if (member) {
-        setTeamMemberDetails(member);
-        setShowTeamPopup(true);
-      }
-    }
 
     const loadData = async () => {
       if (!user || !isMounted) return;
@@ -129,6 +122,16 @@ export const UserDashboard: React.FC = () => {
         const response = await callBackendAPI('/api/dashboard/overview', null, 'GET');
         if (response && isMounted) {
           const activePlan = response.plans?.find((p: any) => p.id === user.planId) || response.plans?.[0];
+          
+          if (isStaff && !welcomed) {
+            const memberTeam = response.userTeam || [];
+            const member = memberTeam.find((m: any) => m.email === user.email);
+            if (member) {
+              setTeamMemberDetails(member);
+              setShowTeamPopup(true);
+            }
+          }
+
           setData(prev => ({
             ...prev,
             repairs: response.repairs || [],
@@ -232,8 +235,7 @@ export const UserDashboard: React.FC = () => {
 
   const getOwnerName = () => {
     if (!teamMemberDetails) return "Primary Shop Owner";
-    const owner = db.users.getById(teamMemberDetails.ownerId);
-    return owner?.name?.split('@')[0] || "Owner";
+    return teamMemberDetails.ownerName?.split('@')[0] || "Owner";
   };
 
   const totalStockValue = data.stock.reduce((sum, item) => sum + (item.price * item.stock), 0);

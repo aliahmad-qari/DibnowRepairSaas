@@ -5,11 +5,11 @@ import {
   User, ShieldCheck, Mail, Globe, BadgeCheck, 
   MapPin, Phone, Settings, LogOut, Camera,
   Shield, Key, Bell, CreditCard, ChevronRight,
-  Fingerprint, Smartphone, Activity, Info, Users, Zap, Wallet, Receipt, Wrench
+  Fingerprint, Smartphone, Activity, Info, Users, Zap, Wallet, Receipt
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient';
 
 export const ProfilePage: React.FC = () => {
   // Add navigate initialization
@@ -17,11 +17,22 @@ export const ProfilePage: React.FC = () => {
   const { user, logout } = useAuth();
   const { currency } = useCurrency();
   const [activeTab, setActiveTab] = useState('identity');
+  const [accountStats, setAccountStats] = useState({ repairs: 0, team: 0 });
 
-  const accountStats = useMemo(() => {
-    const repairs = db.repairs.getAll().length;
-    const team = db.userTeamV2.getByOwner(user?.id || '').length;
-    return { repairs, team };
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
+      try {
+        const response = await callBackendAPI('/api/dashboard/overview', null, 'GET');
+        if (response) {
+          setAccountStats({
+            repairs: response.repairCount || response.repairs?.length || 0,
+            team: response.teamCount || response.userTeam?.length || 0
+          });
+        }
+      } catch (err) {}
+    };
+    fetchStats();
   }, [user]);
 
   const handleLogout = () => {

@@ -11,7 +11,7 @@ const {
 } = require('../middleware/auth');
 
 // Permission middleware
-const { checkPermission, checkUserStatus } = require('../middleware/permissions');
+const { checkPermission, checkUserStatus, getEffectiveOwnerId } = require('../middleware/permissions');
 
 // Security middleware
 const { 
@@ -106,9 +106,10 @@ router.post('/search', async (req, res) => {
 // Get all repairs for logged-in user
 router.get('/', authenticateToken, checkUserStatus, checkPermission('repairs'), async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const { status, priority, page = 1, limit = 20 } = req.query;
     
-    const query = { ownerId: req.user.userId };
+    const query = { ownerId };
     if (status) query.status = status;
     if (priority) query.priority = priority;
 
@@ -138,9 +139,10 @@ router.get('/', authenticateToken, checkUserStatus, checkPermission('repairs'), 
 // Get single repair
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const repair = await Repair.findOne({
       _id: req.params.id,
-      ownerId: req.user.userId
+      ownerId
     }).populate('ownerId assignedTo', 'name email');
 
     if (!repair) {
@@ -157,6 +159,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new repair
 router.post('/', authenticateToken, checkUserStatus, checkPermission('repairs'), checkLimits('repairsPerMonth'), async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const {
       customerName,
       customerEmail,
@@ -189,7 +192,7 @@ router.post('/', authenticateToken, checkUserStatus, checkPermission('repairs'),
       category,
       brand,
       estimatedCompletionDate,
-      ownerId: req.user.userId,
+      ownerId,
       statusHistory: [{
         status: 'pending',
         note: 'Repair created',
@@ -215,11 +218,12 @@ router.post('/', authenticateToken, checkUserStatus, checkPermission('repairs'),
 // Update repair status
 router.patch('/:id/status', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const { status, note } = req.body;
 
     const repair = await Repair.findOne({
       _id: req.params.id,
-      ownerId: req.user.userId
+      ownerId
     });
 
     if (!repair) {
@@ -250,11 +254,12 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
 // Update protocol status
 router.patch('/:id/protocol-status', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const { protocolStatus } = req.body;
     console.log('[REPAIR] Protocol status update request:', { id: req.params.id, protocolStatus, userId: req.user.userId });
 
     const repair = await Repair.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.user.userId },
+      { _id: req.params.id, ownerId },
       { protocolStatus },
       { new: true, runValidators: true }
     );
@@ -279,6 +284,7 @@ router.patch('/:id/protocol-status', authenticateToken, async (req, res) => {
 // Update repair
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const {
       customerName,
       customerEmail,
@@ -293,11 +299,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
       category,
       brand,
       estimatedCompletionDate,
-      paymentStatus
+      paymentStatus,
+      status
     } = req.body;
 
     const repair = await Repair.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.user.userId },
+      { _id: req.params.id, ownerId },
       {
         customerName,
         customerEmail: customerEmail?.toLowerCase(),
@@ -312,7 +319,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
         category,
         brand,
         estimatedCompletionDate,
-        paymentStatus
+        paymentStatus,
+        status
       },
       { new: true, runValidators: true }
     );
@@ -336,9 +344,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // Delete repair
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const repair = await Repair.findOneAndDelete({
       _id: req.params.id,
-      ownerId: req.user.userId
+      ownerId
     });
 
     if (!repair) {
@@ -357,10 +366,11 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 // Add note to repair
 router.post('/:id/notes', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const { content } = req.body;
 
     const repair = await Repair.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.user.userId },
+      { _id: req.params.id, ownerId },
       {
         $push: {
           notes: {
@@ -390,7 +400,7 @@ router.post('/:id/notes', authenticateToken, async (req, res) => {
 // Get repair statistics
 router.get('/stats/overview', authenticateToken, async (req, res) => {
   try {
-    const ownerId = req.user.userId;
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     
     const stats = await Repair.aggregate([
       { $match: { ownerId: new mongoose.Types.ObjectId(ownerId) } },
@@ -480,11 +490,12 @@ router.delete('/admin/:id', authenticateToken, authorizeRoles('superadmin'), asy
 // User/Admin: Toggle public view for a repair
 router.patch('/:id/public-view', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const { publicView } = req.body;
 
     const repair = await Repair.findOne({
       _id: req.params.id,
-      ownerId: req.user.userId
+      ownerId
     });
 
     if (!repair) {
@@ -509,9 +520,10 @@ router.patch('/:id/public-view', authenticateToken, async (req, res) => {
 // User/Admin: Regenerate tracking ID
 router.post('/:id/regenerate-tracking', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const repair = await Repair.findOne({
       _id: req.params.id,
-      ownerId: req.user.userId
+      ownerId
     });
 
     if (!repair) {
@@ -549,11 +561,12 @@ router.post('/:id/regenerate-tracking', authenticateToken, async (req, res) => {
 // User/Admin: Update status with timeline note
 router.patch('/:id/timeline', authenticateToken, async (req, res) => {
   try {
+    const ownerId = await getEffectiveOwnerId(req.user.userId);
     const { status, note, sendNotification } = req.body;
 
     const repair = await Repair.findOne({
       _id: req.params.id,
-      ownerId: req.user.userId
+      ownerId
     });
 
     if (!repair) {

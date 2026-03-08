@@ -5,7 +5,6 @@ import {
    CheckCircle2, AlertCircle, Key, ShieldCheck,
    User, Eye, Edit3, ShieldAlert
 } from 'lucide-react';
-import { db } from '../../api/db';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { Activity } from 'lucide-react';

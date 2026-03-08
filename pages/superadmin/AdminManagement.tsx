@@ -9,7 +9,6 @@ import {
    RefreshCw, UserCheck, UsersRound, BrainCircuit,
    Settings, Megaphone, ToggleRight
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { callBackendAPI } from '../../api/apiClient';
 import { Permission, UserRole } from '../../types.ts';
 
@@ -55,7 +54,7 @@ export const AdminManagement: React.FC = () => {
             }
          } catch (error) {
             console.error('Failed to fetch admins:', error);
-            setAdmins(db.adminUsers.getAll());
+            setAdmins([]);
          }
       };
       fetchAdmins();
@@ -82,21 +81,11 @@ export const AdminManagement: React.FC = () => {
       try {
          if (selectedAdmin) {
             await callBackendAPI(`/api/users/${selectedAdmin.id}`, formData, 'PUT');
-            db.audit.log({
-               actionType: 'Admin Mutation',
-               resource: 'Identity Matrix',
-               details: `Modified node ${formData.email}. Permissions updated.`
-            });
          } else {
             const response = await callBackendAPI('/api/users/admin/create', formData, 'POST');
             if (response && response.user && response.user.adminAccessToken) {
                alert(`CRITICAL: New Admin Created.\nAccess Token: ${response.user.adminAccessToken}\nProvide this to the administrator.`);
             }
-            db.audit.log({
-               actionType: 'Admin Provisioning',
-               resource: 'Identity Matrix',
-               details: `Created new administrative node: ${formData.email}`
-            });
          }
 
          // Refresh list
@@ -129,15 +118,9 @@ export const AdminManagement: React.FC = () => {
 
    const handleToggleStatus = async (admin: any) => {
       const nextStatus = !admin.is_disabled;
-      try {
+         try {
          await callBackendAPI(`/api/users/${admin.id}`, { is_disabled: nextStatus }, 'PUT');
          setAdmins(prev => prev.map(a => a.id === admin.id ? { ...a, is_disabled: nextStatus } : a));
-
-         db.audit.log({
-            actionType: nextStatus ? 'Identity Suspension' : 'Identity Activation',
-            resource: 'Security Matrix',
-            details: `State transition for ${admin.email} to ${nextStatus ? 'DISABLED' : 'ENABLED'}`
-         });
       } catch (error) {
          console.error('Toggle status error:', error);
       }
@@ -153,11 +136,6 @@ export const AdminManagement: React.FC = () => {
             // I'll use PUT is_disabled: true as a fallback if DELETE is not supported.
             await callBackendAPI(`/api/users/${id}`, { is_disabled: true }, 'PUT');
             setAdmins(prev => prev.filter(a => a.id !== id));
-            db.audit.log({
-               actionType: 'Identity Purge',
-               resource: 'Identity Matrix',
-               details: `Node ${id} removed from system registry.`
-            });
          } catch (error) {
             console.error('Delete error:', error);
          }

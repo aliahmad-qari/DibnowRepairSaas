@@ -5,7 +5,7 @@ import {
   ShieldCheck, ShieldAlert, Settings2, CheckSquare, Square, MoreHorizontal, Terminal,
   LayoutDashboard, Wrench, Package, ShoppingCart, Rocket, ClipboardList, Wallet, Coins, LifeBuoy, MessageSquare, Settings
 } from 'lucide-react';
-import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient';
 
 // Define the comprehensive list of admin panel modules/files for access control
 const ADMIN_PANEL_MODULES = [
@@ -33,15 +33,18 @@ export const SystemStaff: React.FC = () => {
   });
 
   useEffect(() => {
-    const loadData = () => {
-      setMembers(db.adminTeamV2.getAll());
+    const loadData = async () => {
+      try {
+        const data = await callBackendAPI('/api/team', null, 'GET');
+        setMembers(Array.isArray(data) ? data : data?.team || []);
+      } catch (error) {
+        console.error('Failed to load system staff:', error);
+      }
     };
     loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
   }, []);
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const initialPermissions: any = {};
@@ -49,18 +52,25 @@ export const SystemStaff: React.FC = () => {
       initialPermissions[mod.id] = { read: true, create: false };
     });
 
-    db.adminTeamV2.add({ 
-      ...formData, 
-      ownerId: 'system', 
-      permissions: initialPermissions
-    });
+    try {
+      await callBackendAPI('/api/team', { 
+        ...formData, 
+        ownerId: 'system', 
+        permissions: initialPermissions
+      }, 'POST');
+      
+      const data = await callBackendAPI('/api/team', null, 'GET');
+      setMembers(Array.isArray(data) ? data : data?.team || []);
+    } catch (error) {
+      console.error('Failed to add staff:', error);
+    }
+
     setShowAddModal(false);
     setFormData({ name: '', email: '', password: '', role: 'Platform Auditor', status: 'active', department: 'Compliance' });
   };
 
-  const updatePermissions = (memberId: string, moduleId: string, action: string) => {
-    const all = db.adminTeamV2.getAll();
-    const member = all.find(m => m.id === memberId);
+  const updatePermissions = async (memberId: string, moduleId: string, action: string) => {
+    const member = members.find(m => m.id === memberId);
     if (!member) return;
 
     const currentPerms = member.permissions || {};
@@ -74,12 +84,14 @@ export const SystemStaff: React.FC = () => {
       }
     };
 
-    // Updating local DB state and forcing storage sync
-    const updatedAll = all.map(m => m.id === memberId ? { ...m, permissions: newPerms } : m);
-    localStorage.setItem('fixit_admin_team_v2', JSON.stringify(updatedAll));
-    window.dispatchEvent(new Event('storage'));
-    setShowPermissionModal({ ...member, permissions: newPerms });
-    setMembers(updatedAll);
+    try {
+      await callBackendAPI(`/api/team/${memberId}`, { permissions: newPerms }, 'PUT');
+      const updatedMembers = members.map(m => m.id === memberId ? { ...m, permissions: newPerms } : m);
+      setMembers(updatedMembers);
+      setShowPermissionModal({ ...member, permissions: newPerms });
+    } catch (error) {
+      console.error('Failed to update member permissions:', error);
+    }
   };
 
   return (

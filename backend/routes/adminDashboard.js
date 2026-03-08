@@ -8,6 +8,7 @@ const TeamMember = require('../models/TeamMember');
 const Complaint = require('../models/Complaint');
 const Transaction = require('../models/Transaction');
 const PlanRequest = require('../models/PlanRequest');
+const Announcement = require('../models/Announcement');
 const { authenticateToken } = require('../middleware/auth');
 
 // Admin aggregation endpoint - platform-wide statistics
@@ -65,7 +66,7 @@ router.get('/aggregation', authenticateToken, async (req, res) => {
       })
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    const refundRate = allTransactions.length > 0 
+    const refundRate = allTransactions.length > 0
       ? ((allTransactions.filter(t => t.status === 'refunded').length / allTransactions.length) * 100).toFixed(2)
       : 0;
 
@@ -102,11 +103,72 @@ router.get('/aggregation', authenticateToken, async (req, res) => {
         dailyRevenue,
         refundRate,
         activeTopups: allTransactions.filter(t => t.transactionType === 'wallet_topup' && t.status === 'completed').length
-      }
+      },
+      annualIntelligence: await getAnnualIntelligence()
     });
   } catch (error) {
     console.error('Admin Aggregation Error:', error);
     res.status(500).json({ message: 'Error fetching admin statistics' });
+  }
+});
+
+// Helper to calculate 12-month revenue and profit
+async function getAnnualIntelligence() {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const now = new Date();
+  const currentMonth = now.getMonth();
+
+  const annualData = [];
+
+  for (let i = 11; i >= 0; i--) {
+    const monthIndex = (currentMonth - i + 12) % 12;
+    const year = currentMonth - i < 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+    const startDate = new Date(year, monthIndex, 1);
+    const endDate = new Date(year, monthIndex + 1, 0, 23, 59, 59);
+
+    const monthSales = await Sale.find({
+      $or: [
+        { date: { $gte: startDate, $lte: endDate } },
+        { createdAt: { $gte: startDate, $lte: endDate } }
+      ]
+    });
+
+    // Calculate revenue
+    const sales = monthSales.reduce((acc, s) => acc + (s.total || 0), 0);
+
+    // Calculate profit (using 30% margin fallback if actual cost is missing)
+    const profit = monthSales.reduce((acc, s) => {
+      const margin = 0.3; // Default 30% profit margin
+      return acc + (s.total * margin);
+    }, 0);
+
+    const simulationOverhead = sales * 0.15;
+    const netPL = profit - simulationOverhead;
+
+    annualData.push({
+      name: months[monthIndex],
+      sales: Math.round(sales),
+      profit: Math.round(profit),
+      netPL: Math.round(netPL),
+      monthIndex
+    });
+  }
+
+  return annualData;
+}
+
+// Get all announcements (admin only)
+router.get('/announcements', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const announcements = await Announcement.find({}).sort({ createdAt: -1 });
+    res.json(announcements);
+  } catch (error) {
+    console.error('Get Announcements Error:', error);
+    res.status(500).json({ message: 'Error fetching announcements' });
   }
 });
 
@@ -212,6 +274,25 @@ router.patch('/users/:userId/toggle-status', authenticateToken, async (req, res)
   } catch (error) {
     console.error('Toggle User Status Error:', error);
     res.status(500).json({ message: 'Error updating user status' });
+  }
+});
+
+// Update complaint status (admin only)
+router.patch('/complaints/:id/status', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+    complaint.status = req.body.status;
+    await complaint.save();
+    res.json({ message: 'Complaint status updated', complaint });
+  } catch (error) {
+    console.error('Update Complaint Status Error:', error);
+    res.status(500).json({ message: 'Error updating complaint status' });
   }
 });
 

@@ -6,7 +6,6 @@ import {
   Crown, Heart, ShieldCheck, BrainCircuit,
   MessageSquareHeart, UserCheck, Target
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 
@@ -18,9 +17,9 @@ export const AIDailyInsightsV4: React.FC = () => {
 
   // 1. DATA HARVESTING (READ-ONLY) - Extracting behavioral patterns from existing nodes
   const behaviorNodes = useMemo(() => {
-    const sales = db.sales.getAll();
-    const clients = db.clients.getAll();
-    const repairs = db.repairs.getAll();
+    const sales: any[] = [];
+    const clients: any[] = [];
+    const repairs: any[] = [];
 
     const now = new Date();
     const todayStr = now.toLocaleDateString();

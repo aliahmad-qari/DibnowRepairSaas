@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || env.API_KEY || process.env.API_KEY || ''),
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || env.API_KEY || process.env.API_KEY || ''),
-      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || (isProd ? '' : 'http://localhost:5000'))
+      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || (isProd ? '' : 'http://localhost:5002'))
     },
     resolve: {
       alias: {

@@ -6,7 +6,7 @@ import {
   AlertCircle, X, Check, ArrowRight, Hash, Building,
   Star, MoreVertical, Terminal, Loader2, ShieldCheck
 } from 'lucide-react';
-import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient';
 import { SupportTicket } from '../../types';
 import { SupportStatusMetrics } from '../../components/support/SupportStatusMetrics.tsx';
 import { SupportCategoryAnalysis } from '../../components/support/SupportCategoryAnalysis.tsx';
@@ -21,18 +21,29 @@ export const SupportHub: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    const loadData = () => {
-      setTickets(db.supportTickets.getAll());
+    const loadData = async () => {
+      try {
+        const response = await callBackendAPI('/api/superadmin/support/tickets', null, 'GET');
+        if (response && response.tickets) {
+          setTickets(response.tickets);
+        } else if (Array.isArray(response)) {
+          setTickets(response);
+        }
+      } catch (error) {
+        console.error('Failed to load tickets:', error);
+      }
     };
     loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
   }, []);
 
   const handleUpdateStatus = async (id: string, status: string) => {
     setIsUpdating(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    db.supportTickets.updateStatus(id, status);
+    try {
+      await callBackendAPI(`/api/superadmin/support/tickets/${id}`, { status }, 'PUT');
+      setTickets(tickets.map(t => t.id === id ? { ...t, status } : t));
+    } catch (error) {
+      console.error('Failed to update ticket status:', error);
+    }
     setIsUpdating(false);
     setSelectedTicket(null);
   };

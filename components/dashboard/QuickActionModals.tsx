@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Moon, Loader2, BookOpen, Fingerprint, Cloud, History as HistoryIcon, User, Package, ChevronRight, Search } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext';
 
 export const QuickActionModals: React.FC<{ type: string; onClose: () => void }> = ({ type, onClose }) => {
@@ -24,8 +23,8 @@ export const QuickActionModals: React.FC<{ type: string; onClose: () => void }> 
         } else if (type === 'weather') {
           setData({ temp: 22, condition: 'Clear Sky', humidity: 45, city: 'London' });
         } else if (type === 'history') {
-          const repairs = db.repairs.getAll().slice(0, 5);
-          const sales = db.sales.getAll().slice(0, 5);
+          const repairs: any[] = [];
+          const sales: any[] = [];
           setData({ repairs, sales });
         }
       } catch (e) {
@@ -172,7 +171,7 @@ export const QuickActionModals: React.FC<{ type: string; onClose: () => void }> 
       <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white shadow-2xl shadow-indigo-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12"><Package size={150} /></div>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Active Protocol Tier</p>
-        <h4 className="text-4xl font-black tracking-tight mt-2 uppercase">{db.plans.getById(user?.planId || 'starter').name}</h4>
+        <h4 className="text-4xl font-black tracking-tight mt-2 uppercase">STARTER</h4>
         <div className="mt-8 flex items-center gap-2">
            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-200">Subscription Active & Verified</span>

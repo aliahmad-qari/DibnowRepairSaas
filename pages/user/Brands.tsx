@@ -9,7 +9,6 @@ import {
   ResponsiveContainer, PieChart as RePieChart, Pie, Cell, Tooltip,
   BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
-import { db } from '../../api/db';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';

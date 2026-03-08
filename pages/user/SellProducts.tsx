@@ -16,7 +16,7 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   BarChart, Bar, Cell, PieChart, Pie
 } from 'recharts';
-import { db } from '../../api/db';
+import { callBackendAPI } from '../../api/apiClient';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { useAuth } from '../../context/AuthContext';
@@ -55,14 +55,21 @@ export const SellProducts: React.FC = () => {
   const [isRefunding, setIsRefunding] = useState(false);
 
   useEffect(() => {
-    const loadData = () => {
-      setInventory(db.inventory.getAll());
-      setClients(db.clients.getAll());
-      setLastSales(db.sales.getAll());
+    const loadData = async () => {
+      try {
+        const [inv, cli, sales] = await Promise.all([
+          callBackendAPI('/api/inventory', null, 'GET'),
+          callBackendAPI('/api/clients', null, 'GET'),
+          callBackendAPI('/api/sales', null, 'GET'),
+        ]);
+        setInventory(Array.isArray(inv) ? inv : []);
+        setClients(Array.isArray(cli) ? cli : []);
+        setLastSales(Array.isArray(sales) ? sales : []);
+      } catch (err) {
+        console.error('Failed to load POS data:', err);
+      }
     };
     loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
   }, []);
 
   const filteredProducts = inventory.filter(p => 
@@ -132,7 +139,7 @@ export const SellProducts: React.FC = () => {
 
   // DAILY INTELLIGENCE ENGINE (TASKS 1-8)
   const dailyIntelligence = useMemo(() => {
-    const allSalesData = db.sales.getAll();
+    const allSalesData = lastSales;
     const now = new Date();
     const startOfToday = new Date(now.setHours(0,0,0,0));
 
@@ -214,64 +221,84 @@ export const SellProducts: React.FC = () => {
     if (cart.length === 0 || isProcessing) return;
     setIsProcessing(true);
     setShowConfirmModal(false);
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    await new Promise(resolve => setTimeout(resolve, 800));
     try {
       const clientName = selectedClientId === 'walk-in' ? (customerName || 'Walk-in Customer') : clients.find(c => c.id === selectedClientId)?.name;
       let generatedId = '';
       for (const item of cart) {
-        // Core POS Logic - Deducts Stock & Adds Sale Entry
-        const success = db.inventory.sell(item.id, item.qty, item.price, clientName);
-        if (success && !generatedId) generatedId = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+        const saleData = {
+          productId: item._id || item.id,
+          productName: item.name,
+          qty: item.qty,
+          price: item.price,
+          total: item.qty * item.price,
+          customer: clientName,
+          date: new Date().toISOString(),
+        };
+        const sale = await callBackendAPI('/api/sales', saleData, 'POST');
+        if (sale && !generatedId) generatedId = sale._id || `INV-${Math.floor(1000 + Math.random() * 9000)}`;
       }
-      setLastInvoiceId(generatedId || `INV-${Math.floor(1000 + Math.random() * 9000)}`);
+      setLastInvoiceId(generatedId);
       setShowSuccess(true);
       setCart([]);
       setCustomerName('');
       setSelectedClientId('walk-in');
       setCartDiscount({ value: 0, type: 'flat' });
-      setLastSales(db.sales.getAll());
+      // Refresh inventory and sales from backend
+      const [inv, sales] = await Promise.all([
+        callBackendAPI('/api/inventory', null, 'GET'),
+        callBackendAPI('/api/sales', null, 'GET'),
+      ]);
+      setInventory(Array.isArray(inv) ? inv : []);
+      setLastSales(Array.isArray(sales) ? sales : []);
     } catch (err) {
-      alert("Transmission failed.");
+      console.error('Sale failed:', err);
+      alert('Transmission failed. Please try again.');
     } finally { setIsProcessing(false); }
   };
 
-  // REFUND NODE LOGIC (FIXED)
+  // REFUND NODE LOGIC
   const handleRefundProtocol = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!refundInvoiceRef || isRefunding) return;
     setIsRefunding(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 800));
     
-    const allSales = db.sales.getAll();
-    const queryRef = refundInvoiceRef.startsWith('SALE-') ? refundInvoiceRef : `SALE-${refundInvoiceRef}`;
-    const saleToRefund = allSales.find(s => s.id === queryRef || s.id === refundInvoiceRef);
+    const allSales = lastSales;
+    const saleToRefund = allSales.find((s: any) => s._id === refundInvoiceRef || s._id?.slice(-4) === refundInvoiceRef || s.id === refundInvoiceRef);
     
     if (!saleToRefund) {
-      alert("Invalid Invoice Reference Node. Sale not found in global ledger.");
+      alert('Invalid Invoice Reference. Sale not found.');
       setIsRefunding(false);
       return;
     }
 
-    const item = inventory.find(i => i.id === saleToRefund.productId);
-    if (item) {
-      // ADDITIVE: Restoring stock without modifying core deducting API
-      db.inventory.update(item.id, { stock: item.stock + saleToRefund.qty });
-      db.activity.log({ 
-        actionType: 'Asset Refund Processed', 
-        moduleName: 'POS', 
-        refId: saleToRefund.id, 
-        status: 'Success' 
-      });
-      alert("Refund Authorized. Asset inventory successfully restituted.");
-    } else {
-      alert("Asset node missing from database. Partial refund state detected.");
+    try {
+      const inventoryItem = inventory.find((i: any) => (i._id || i.id) === saleToRefund.productId);
+      if (inventoryItem) {
+        // Restore stock via backend
+        await callBackendAPI(`/api/inventory/${inventoryItem._id || inventoryItem.id}`, {
+          stock: (inventoryItem.stock || 0) + saleToRefund.qty
+        }, 'PUT');
+        alert('Refund Authorized. Asset inventory successfully restituted.');
+      } else {
+        alert('Asset not found in inventory. Stock could not be restored.');
+      }
+      // Refresh data
+      const [inv, sales] = await Promise.all([
+        callBackendAPI('/api/inventory', null, 'GET'),
+        callBackendAPI('/api/sales', null, 'GET'),
+      ]);
+      setInventory(Array.isArray(inv) ? inv : []);
+      setLastSales(Array.isArray(sales) ? sales : []);
+    } catch (err) {
+      console.error('Refund failed:', err);
+      alert('Refund failed. Please try again.');
+    } finally {
+      setRefundInvoiceRef('');
+      setShowRefundModal(false);
+      setIsRefunding(false);
     }
-    
-    setRefundInvoiceRef('');
-    setShowRefundModal(false);
-    setIsRefunding(false);
-    setInventory(db.inventory.getAll());
-    setLastSales(db.sales.getAll());
   };
 
   const handleExportCSV = () => {

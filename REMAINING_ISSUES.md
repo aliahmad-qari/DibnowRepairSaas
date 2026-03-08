@@ -4,7 +4,7 @@
 
 1. **Brands.tsx** - "0 / Quota" not updating when plan changes
 2. **TeamMembers.tsx** - "You can add up to team members" - missing number
-3. **User Profile** - Plan info not showing (name, expiry, auto-renewal)
+3. **User Profile** - Plan info section added to billing area (now showing name, expiry, days remaining, status)
 4. **Pricing.tsx** - Wrong expiry date showing "26 Feb 2026" and "Free trial expires in 7 days"
 5. **Plan Expiry Logic** - All paid plans should expire after 1 month automatically
 

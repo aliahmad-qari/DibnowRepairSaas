@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 // Add missing icons: Wrench, ShieldAlert, ArrowUpRight
 import {
    BrainCircuit, Sparkles, ShieldCheck, Zap, Activity,
@@ -6,28 +6,39 @@ import {
    ChevronRight, ArrowUpCircle, AlertTriangle, Fingerprint,
    HardDrive, BarChart3, Users, Globe, Wrench, ShieldAlert, ArrowUpRight
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
+import { callBackendAPI } from '../../api/apiClient';
 import { aiService } from '../../api/aiService';
 
 export const AdminAIInsights: React.FC = () => {
    const [isAuditing, setIsAuditing] = useState(false);
    const [report, setReport] = useState<any>(null);
 
-   const platformSnapshot = useMemo(() => {
-      const users = db.users.getAll();
-      const repairs = db.repairs.getAll();
-      const sales = db.sales.getAll();
-      const complaints = db.complaints.getAll();
+   const [platformSnapshot, setPlatformSnapshot] = useState({
+      activeShops: 0,
+      totalRevenue: 0,
+      openComplaints: 0,
+      repairVolume: 0,
+      systemHealth: '99.98%',
+      globalSales: 0
+   });
 
-      return {
-         activeShops: users.filter(u => u.role === 'USER' && u.status === 'active').length,
-         totalRevenue: sales.reduce((a, b) => a + b.total, 0),
-         openComplaints: complaints.filter(c => c.status === 'pending').length,
-         repairVolume: repairs.length,
-         systemHealth: '99.98%',
-         // Corrected: added missing globalSales property
-         globalSales: sales.length
+   useEffect(() => {
+      const loadSnapshot = async () => {
+         try {
+            const data = await callBackendAPI('/api/admin/dashboard', null, 'GET');
+            setPlatformSnapshot({
+               activeShops: data?.activeUsers || data?.totalUsers || 0,
+               totalRevenue: data?.totalRevenue || 0,
+               openComplaints: data?.pendingRepairs || data?.openComplaints || 0,
+               repairVolume: data?.totalRepairs || 0,
+               systemHealth: '99.98%',
+               globalSales: data?.totalSales || 0
+            });
+         } catch (err) {
+            console.error('Failed to load admin platform snapshot:', err);
+         }
       };
+      loadSnapshot();
    }, []);
 
    const invokeAIAudit = async () => {

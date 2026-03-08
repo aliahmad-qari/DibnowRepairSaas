@@ -6,13 +6,12 @@ import {
   CreditCard, Rocket, Wrench, Package, Lock, 
   LayoutGrid, BarChart3, ShieldCheck, AlertCircle 
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#64748b'];
 
 export const ComplaintCategoryAnalytics: React.FC = () => {
   const analysis = useMemo(() => {
-    const all = db.complaints.getAll();
+    const all: any[] = [];
     const categories = [
       { id: 'payment', label: 'Payment', icon: CreditCard, color: '#6366f1', keywords: ['payment', 'billing', 'charge', 'money', 'refund'] },
       { id: 'plans', label: 'Plans', icon: Rocket, color: '#8b5cf6', keywords: ['plan', 'subscription', 'upgrade', 'tier', 'pricing'] },

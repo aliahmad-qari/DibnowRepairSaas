@@ -12,7 +12,8 @@ import {
   CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie,
   ComposedChart, Line, Legend
 } from 'recharts';
-import { db } from '../../api/db.ts';
+import { adminApi } from '../../api/adminApi';
+import { callBackendAPI } from '../../api/apiClient';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 
 const PIE_COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e'];
@@ -20,11 +21,36 @@ const PIE_COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e'];
 export const AdminReports: React.FC = () => {
   const { currency } = useCurrency();
   const [filter, setFilter] = useState('This Quarter');
+  const [usersData, setUsersData] = useState<any[]>([]);
+  const [plansData, setPlansData] = useState<any[]>([]);
+  const [salesData, setSalesData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchReports = async () => {
+      setLoading(true);
+      try {
+        const [uData, pData, sData] = await Promise.all([
+          adminApi.getAllUsers().catch(() => []),
+          callBackendAPI('/api/plans', null, 'GET').catch(() => []),
+          adminApi.getAllSales().catch(() => [])
+        ]);
+        setUsersData(Array.isArray(uData) ? uData : []);
+        setPlansData(Array.isArray(pData) ? pData : []);
+        setSalesData(Array.isArray(sData) ? sData : []);
+      } catch (err) {
+        console.error("Failed to load global reports data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReports();
+  }, []);
 
   const globalStats = useMemo(() => {
-    const shops = db.users.getAll().filter(u => u.role === 'USER');
-    const plans = db.plans.getAll();
-    const sales = db.sales.getAll();
+    const shops = usersData.filter((u: any) => u.role === 'USER');
+    const plans = plansData;
+    const sales = salesData;
     
     // Growth Data Node Simulation
     const growthNodes = Array.from({ length: 6 }, (_, i) => {
@@ -48,7 +74,7 @@ export const AdminReports: React.FC = () => {
     const conversionRate = "12.4%";
 
     return { growthNodes, mrr, totalShops: shops.length, churnRate, conversionRate, globalSales: sales.length };
-  }, []);
+  }, [usersData, plansData, salesData]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto">

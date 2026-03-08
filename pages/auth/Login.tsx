@@ -3,9 +3,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
-import { db } from '../../api/db';
 import { 
-  ChevronRight, ShieldCheck, Mail, Lock, User as UserIcon, 
+  ShieldCheck, Mail, Lock, User as UserIcon, 
   Shield, AlertTriangle, Eye, EyeOff, Loader2 
 } from 'lucide-react';
 
@@ -20,7 +19,6 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const validateForm = (): boolean => {
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
       setError('Email is required');
@@ -30,7 +28,6 @@ export const Login: React.FC = () => {
       setError('Please enter a valid email address');
       return false;
     }
-    // Password validation
     if (!password) {
       setError('Password is required');
       return false;
@@ -58,27 +55,17 @@ export const Login: React.FC = () => {
     
     if (!result.success) {
       setError(result.message || 'Access Denied.');
-      
-      // Log failed attempt
-      db.activity.log({ 
-        actionType: 'Failed Login Attempt', 
-        moduleName: 'Authentication', 
-        refId: email, 
-        status: 'Failed' 
-      });
       return;
     }
-
-    // Log successful login
-    db.activity.log({ 
-      actionType: 'User Login', 
-      moduleName: 'Authentication', 
-      refId: email, 
-      status: 'Success' 
-    });
     
     // Navigate based on role
-    navigate(role === UserRole.ADMIN ? '/admin/dashboard' : role === UserRole.SUPER_ADMIN ? '/superadmin/dashboard' : '/user/dashboard');
+    const dashboardPath = role === UserRole.ADMIN 
+      ? '/admin/dashboard' 
+      : role === UserRole.SUPER_ADMIN 
+        ? '/superadmin/dashboard' 
+        : '/user/dashboard';
+    
+    navigate(dashboardPath);
   };
 
   return (
@@ -126,18 +113,21 @@ export const Login: React.FC = () => {
           {/* Role Selection Tabs */}
           <div className="flex p-1 bg-slate-100 rounded-2xl mb-8">
             <button 
+              type="button"
               onClick={() => { setRole(UserRole.USER); setError(null); }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${role === UserRole.USER ? 'bg-white shadow-lg text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <UserIcon size={12} /> Shop Owner
             </button>
             <button 
+              type="button"
               onClick={() => { setRole(UserRole.ADMIN); setError(null); }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${role === UserRole.ADMIN ? 'bg-white shadow-lg text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <Shield size={12} /> Administrator
             </button>
             <button 
+              type="button"
               onClick={() => { setRole(UserRole.SUPER_ADMIN); setError(null); }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${role === UserRole.SUPER_ADMIN ? 'bg-slate-900 shadow-lg text-white' : 'text-slate-500 hover:text-slate-700'}`}
             >

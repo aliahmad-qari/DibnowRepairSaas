@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, MessageSquare, Send, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
-import { db } from '../../api/db.ts';
+
+import { callBackendAPI } from '../../api/apiClient';
 
 interface ComplaintFeedbackModuleProps {
   complaintId: string;
@@ -21,12 +22,12 @@ export const ComplaintFeedbackModule: React.FC<ComplaintFeedbackModuleProps> = (
     // Simulation of feedback transmission protocol
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    db.activity.log({
+    callBackendAPI('/api/activities', {
       actionType: 'Complaint Feedback Logged',
       moduleName: 'Support',
       refId: complaintId,
       status: 'Success'
-    });
+    }, 'POST');
     
     setIsSubmitted(true);
     setIsSubmitting(false);

@@ -351,7 +351,7 @@ export const Repairs: React.FC = () => {
 const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: ProtocolStatus) => {
     try {
       console.log('Updating protocol status:', { id, newProtocolStatus });
-      const response = await callBackendAPI(`/api/repairs/${id}/protocol-status`, { protocolStatus: newProtocolStatus }, 'PATCH');
+      const response = await callBackendAPI(`/api/repairs/${id}/status`, { status: newProtocolStatus }, 'PATCH');
       console.log('Protocol status update response:', response);
       
       const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
@@ -361,6 +361,22 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
       alert(`Protocol status updated to ${newProtocolStatus}`);
     } catch (error: any) {
       console.error('Protocol status update failed:', error);
+      alert(`Failed to update: ${error?.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      console.log('Updating status:', { id, newStatus });
+      const response = await callBackendAPI(`/api/repairs/${id}/status`, { status: newStatus }, 'PATCH');
+      console.log('Status update response:', response);
+      
+      const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
+      setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
+      
+      alert(`Status updated to ${newStatus}`);
+    } catch (error: any) {
+      console.error('Status update failed:', error);
       alert(`Failed to update: ${error?.message || 'Unknown error'}`);
     }
   };

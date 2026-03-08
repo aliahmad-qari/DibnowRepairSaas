@@ -5,7 +5,6 @@ import {
   Clock, Package, ShoppingCart, Zap, ArrowUp, ArrowDown,
   ShieldAlert, ClipboardCheck, History, Info
 } from 'lucide-react';
-import { db } from '../../api/db.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { UserRole } from '../../types.ts';
@@ -18,11 +17,11 @@ export const IntelligentInsights: React.FC = () => {
 
   // 1. DATA CALCULATION ENGINE (Read-Only)
   const stats = useMemo(() => {
-    const repairs = db.repairs.getAll();
-    const inventory = db.inventory.getAll();
-    const sales = db.sales.getAll();
-    const team = db.userTeamV2.getByOwner(user?.id || '');
-    const tickets = db.supportTickets.getByUser(user?.id || '');
+    const repairs: any[] = [];
+    const inventory: any[] = [];
+    const sales: any[] = [];
+    const team: any[] = [];
+    const tickets: any[] = [];
 
     // Action Required Logic
     const lowStock = inventory.filter(i => i.stock < 5);

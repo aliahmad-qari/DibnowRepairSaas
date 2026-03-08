@@ -4,7 +4,6 @@ import {
   UserCircle, Inbox, Check, Shield, Info, AlertTriangle, CheckCircle2 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { db } from '../../api/db';
 import { callBackendAPI } from '../../api/apiClient';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserRole } from '../../types.ts';
