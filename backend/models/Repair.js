@@ -70,7 +70,7 @@ const repairSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: ['pending', 'diagnosing', 'in_progress', 'parts_ordered', 'completed', 'ready', 'delivered', 'cancelled', 'refunded'],
+      values: ['pending', 'diagnosing', 'in_progress', 'parts_ordered', 'completed', 'ready', 'delivered', 'cancelled', 'refunded', 'Pending', 'In Progress', 'Delivered', 'Completed', 'Returned', 'Expired'],
       message: 'Invalid status'
     },
     default: 'pending',

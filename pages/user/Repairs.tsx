@@ -80,6 +80,22 @@ export const Repairs: React.FC = () => {
   type ProtocolStatus = 'Pending' | 'In Progress' | 'Delivered' | 'Completed' | 'Returned' | 'Expired';
   const protocolStatusOptions: ProtocolStatus[] = ['Pending', 'In Progress', 'Delivered', 'Completed', 'Returned', 'Expired'];
 
+  // Map display status to backend status
+  const mapStatusToBackend = (displayStatus: ProtocolStatus): string => {
+    console.log('Mapping status:', displayStatus);
+    const statusMap: Record<ProtocolStatus, string> = {
+      'Pending': 'pending',
+      'In Progress': 'in_progress',
+      'Delivered': 'delivered',
+      'Completed': 'completed',
+      'Returned': 'cancelled',
+      'Expired': 'cancelled'
+    };
+    const result = statusMap[displayStatus] || 'pending';
+    console.log('Mapped to:', result);
+    return result;
+  };
+
   // Advanced Filter State
   const [timeFilter, setTimeFilter] = useState('Last 30 Days');
   const [customRange, setCustomRange] = useState({ from: '', to: '' });
@@ -351,7 +367,9 @@ export const Repairs: React.FC = () => {
 const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: ProtocolStatus) => {
     try {
       console.log('Updating protocol status:', { id, newProtocolStatus });
-      const response = await callBackendAPI(`/api/repairs/${id}/status`, { status: newProtocolStatus }, 'PATCH');
+      const backendStatus = mapStatusToBackend(newProtocolStatus);
+      console.log('Mapped backend status:', backendStatus);
+      const response = await callBackendAPI(`/api/repairs/${id}/status`, { status: backendStatus }, 'PATCH');
       console.log('Protocol status update response:', response);
       
       const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
