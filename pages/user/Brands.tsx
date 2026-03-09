@@ -13,6 +13,7 @@ import { callBackendAPI } from '../../api/apiClient.ts';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useQuotas } from '../../hooks/useQuotas';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#06b6d4'];
 import Swal from 'sweetalert2';
@@ -32,8 +33,12 @@ export const Brands: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'a-z' | 'none'>('none');
 
   const [newBrand, setNewBrand] = useState({ name: '', description: '' });
-  const [activePlan, setActivePlan] = useState<any>(null);
-  const [isAtLimit, setIsAtLimit] = useState(false);
+  const { quotas, refetch: refetchQuotas } = useQuotas();
+
+  const isAtLimit = useMemo(() => {
+    if (!quotas) return false;
+    return quotas.limits.brands.used >= quotas.limits.brands.limit;
+  }, [quotas]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,50 +48,16 @@ export const Brands: React.FC = () => {
       if (!user) return;
       setIsLoading(true);
       try {
-        const [brandsResp, invResp, salesResp, dashResp] = await Promise.all([
+        const [brandsResp, invResp, salesResp] = await Promise.all([
           callBackendAPI('/api/brands', null, 'GET'),
           callBackendAPI('/api/inventory', null, 'GET'),
-          callBackendAPI('/api/sales', null, 'GET'),
-          callBackendAPI('/api/dashboard/overview', null, 'GET')
+          callBackendAPI('/api/sales', null, 'GET')
         ]);
 
         setBrands(Array.isArray(brandsResp) ? brandsResp : []);
         setInventory(Array.isArray(invResp) ? invResp : []);
         setSales(Array.isArray(salesResp) ? salesResp : []);
 
-        // Set plan limits
-        if (dashResp && dashResp.plans && Array.isArray(dashResp.plans) && dashResp.plans.length > 0) {
-          // Find user's current plan or default to Free Trial
-          let plan = null;
-          
-          // Try to find by planName first (most reliable)
-          if (user.planName) {
-            plan = dashResp.plans.find((p: any) => 
-              p.name.toLowerCase() === user.planName.toLowerCase() ||
-              p.name.toLowerCase().includes(user.planName.toLowerCase())
-            );
-          }
-          
-          // If not found, use first plan (Free Trial)
-          if (!plan) {
-            plan = dashResp.plans[0];
-          }
-
-          setActivePlan(plan);
-          if (plan && plan.limits && plan.limits.brands) {
-            setIsAtLimit(brandsResp?.length >= plan.limits.brands);
-          } else {
-            setIsAtLimit(false);
-          }
-        } else {
-          // Fallback: Set default Free Trial plan limits
-          const defaultPlan = {
-            name: 'Free Trial',
-            limits: { brands: 5, inventory: 50, repairs: 20, sales: 100 }
-          };
-          setActivePlan(defaultPlan);
-          setIsAtLimit(brandsResp?.length >= defaultPlan.limits.brands);
-        }
       } catch (error) {
         console.error('Failed to load brands data:', error);
       } finally {
@@ -195,35 +166,48 @@ export const Brands: React.FC = () => {
         // Refresh data
         const brandsResp = await callBackendAPI('/api/brands', null, 'GET');
         setBrands(Array.isArray(brandsResp) ? brandsResp : []);
-      }
-    } catch (error: any) {
-      if (error.limitHit) {
+        refetchQuotas();
+        
         Swal.fire({
-          title: 'Requirement Unmet',
-          text: error.upgradeMessage || 'You have reached the limit for your current plan.',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Upgrade Tier',
-          cancelButtonText: 'Analyze Registry',
-          confirmButtonColor: '#6366f1',
-          cancelButtonColor: '#94a3b8',
+          icon: 'success',
+          title: 'Success',
+          text: 'Manufacturer enrolled successfully.',
+          timer: 2000,
+          showConfirmButton: false,
           background: '#ffffff',
           customClass: {
             popup: 'rounded-[1.5rem] border-2 border-indigo-50 shadow-2xl',
             title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
-            htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
-            confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-indigo-100',
-            cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
-          }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/user/pricing');
           }
         });
-      } else {
-        console.error('Failed to enroll manufacturer:', error);
-        alert(error.message || 'Failed to enroll manufacturer.');
       }
+    } catch (error: any) {
+      console.error('Failed to create brand:', error);
+      
+      const isLimitError = error.message?.toLowerCase().includes('limit') || error.status === 403;
+      
+      Swal.fire({
+        icon: isLimitError ? 'warning' : 'error',
+        title: isLimitError ? 'Requirement Unmet' : 'Enrollment Failed',
+        text: error.message || 'You have reached the brand registration limit for your current protocol.',
+        showCancelButton: true,
+        confirmButtonText: isLimitError ? 'Upgrade Tier' : 'Dismiss',
+        cancelButtonText: 'Analyze Registry',
+        confirmButtonColor: '#6366f1',
+        cancelButtonColor: '#94a3b8',
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-[1.5rem] border-2 border-indigo-50 shadow-2xl',
+          title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+          htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
+          confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-indigo-100',
+          cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
+        }
+      }).then((result) => {
+        if (result.isConfirmed && isLimitError) {
+          navigate('/user/pricing');
+        }
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -260,7 +244,7 @@ export const Brands: React.FC = () => {
             <div className="flex items-center gap-3 mt-1">
               <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Manufacturer Ecosystem</p>
               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${isAtLimit ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
-                {brands.length} / {activePlan?.limits.brands >= 999 ? '∞' : activePlan?.limits.brands} Quota
+                {quotas?.limits.brands.used || 0} / {quotas?.limits.brands.limit || 0} Quota
               </span>
               {isAtLimit && (
                 <button

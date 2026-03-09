@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, UserPlus, Mail, Phone, MoreHorizontal, ShieldCheck,
@@ -10,6 +10,7 @@ import {
 import Swal from 'sweetalert2';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
+import { useQuotas } from '../../hooks/useQuotas';
 
 // Define the comprehensive list of user panel modules/files for access control
 const USER_PANEL_MODULES = [
@@ -34,10 +35,14 @@ export const TeamMembers: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [members, setMembers] = useState<any[]>([]);
-  const [activePlan, setActivePlan] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState<any>(null);
-  const [isAtLimit, setIsAtLimit] = useState(false);
+  const { quotas, refetch: refetchQuotas } = useQuotas();
+
+  const isAtLimit = useMemo(() => {
+    if (!quotas) return false;
+    return quotas.limits.team.used >= quotas.limits.team.limit;
+  }, [quotas]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -58,31 +63,12 @@ export const TeamMembers: React.FC = () => {
       if (!user) return;
       setIsLoading(true);
       try {
-        const [teamResp, dashResp] = await Promise.all([
-          callBackendAPI('/api/team', null, 'GET'),
-          callBackendAPI('/api/dashboard/overview', null, 'GET')
-        ]);
+        const teamResp = await callBackendAPI('/api/team', null, 'GET');
 
         // Ensure we always have arrays
         const teamArray = Array.isArray(teamResp) ? teamResp : (teamResp?.data || []);
         setMembers(teamArray);
 
-        if (dashResp) {
-          const plan = dashResp.plans.find((p: any) =>
-            p.name.toLowerCase() === user.planId.toLowerCase() ||
-            (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
-            (user.planId === 'basic' && p.name === 'BASIC') ||
-            (user.planId === 'premium' && p.name === 'PREMIUM') ||
-            (user.planId === 'gold' && p.name === 'GOLD')
-          ) || dashResp.plans[0];
-
-          setActivePlan(plan);
-          if (plan && plan.limits && teamResp?.length >= plan.limits.teamMembers) {
-            setIsAtLimit(true);
-          } else {
-            setIsAtLimit(false);
-          }
-        }
       } catch (error) {
         console.error('Failed to load team data:', error);
       } finally {
@@ -108,44 +94,52 @@ export const TeamMembers: React.FC = () => {
       if (response) {
         setShowAddModal(false);
         setFormData({ name: '', email: '', phone: '', password: '', role: 'Technician', department: 'General', status: 'active', permissions: [] });
-        // Refresh team data
+        
+        // Reload team data
         const teamResp = await callBackendAPI('/api/team', null, 'GET');
-        const teamArray = Array.isArray(teamResp) ? teamResp : (teamResp?.data || []);
-        setMembers(teamArray);
+        setMembers(Array.isArray(teamResp) ? teamResp : (teamResp?.data || []));
+        refetchQuotas();
 
-        // Re-check limits
-        if (activePlan && activePlan.limits && teamArray.length >= activePlan.limits.teamMembers) {
-          setIsAtLimit(true);
-        }
-      }
-    } catch (error: any) {
-      if (error.limitHit) {
         Swal.fire({
-          title: 'Limit Reached',
-          text: error.upgradeMessage || 'You have reached the team member limit for your current plan.',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Upgrade Tier',
-          cancelButtonText: 'Review Roster',
-          confirmButtonColor: '#0052FF',
-          cancelButtonColor: '#94a3b8',
+          icon: 'success',
+          title: 'Associate Provisioned',
+          text: 'The new team member has been successfully integrated into the workspace protocol.',
+          timer: 2000,
+          showConfirmButton: false,
           background: '#ffffff',
           customClass: {
-            popup: 'rounded-[1.5rem] border-2 border-blue-50 shadow-2xl',
+            popup: 'rounded-[1.5rem] border-2 border-indigo-50 shadow-2xl',
             title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
-            htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
-            confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-blue-100',
-            cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
-          }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/user/pricing');
           }
         });
-      } else {
-        console.error('Failed to provision associate:', error);
-        alert(error.message || 'Failed to provision associate.');
       }
+    } catch (error: any) {
+      console.error('Failed to add team member:', error);
+      
+      const isLimitError = error.message?.toLowerCase().includes('limit') || error.status === 403;
+      
+      Swal.fire({
+        icon: isLimitError ? 'warning' : 'error',
+        title: isLimitError ? 'Workspace Limit Hit' : 'Deployment Failed',
+        text: error.message || 'The maximum number of team associates for your current protocol has been reached. Upgrade to expand your workforce.',
+        showCancelButton: true,
+        confirmButtonText: isLimitError ? 'Upgrade Protocol' : 'Dismiss',
+        cancelButtonText: 'Return to Hub',
+        confirmButtonColor: '#6366f1',
+        cancelButtonColor: '#94a3b8',
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-[1.5rem] border-2 border-indigo-50 shadow-2xl',
+          title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+          htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
+          confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-indigo-100',
+          cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
+        }
+      }).then((result) => {
+        if (result.isConfirmed && isLimitError) {
+          navigate('/user/pricing');
+        }
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -290,7 +284,7 @@ export const TeamMembers: React.FC = () => {
               <form onSubmit={handleAddSubmit} className="space-y-6 md:space-y-8">
                 <div className="bg-slate-50 p-5 rounded-2xl md:rounded-3xl border border-slate-100">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Plan Entitlement</label>
-                  <p className="text-xs md:text-sm font-bold text-slate-700">{activePlan?.name} – You can add up to {activePlan?.limits.teamMembers} team members</p>
+                  <p className="text-xs md:text-sm font-bold text-slate-700">{quotas?.planName || 'Free Trial'} – You can add up to {quotas?.limits.team.limit || 0} team members</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">

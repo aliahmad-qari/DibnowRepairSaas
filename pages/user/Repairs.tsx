@@ -47,6 +47,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { aiService } from '../../api/aiService';
+import { useQuotas } from '../../hooks/useQuotas';
+import Swal from 'sweetalert2';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e'];
 
@@ -56,7 +58,7 @@ export const Repairs: React.FC = () => {
   const navigate = useNavigate();
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [repairs, setRepairs] = useState<any[]>([]);
-  const [activePlan, setActivePlan] = useState<any>(null);
+  const { quotas, refetch: refetchQuotas } = useQuotas();
   const [brands, setBrands] = useState<any[]>([]);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
 
@@ -136,38 +138,16 @@ export const Repairs: React.FC = () => {
       if (!user) return;
       setIsLoading(true);
       try {
-        const [repairsResp, brandsResp, teamResp, dashResp] = await Promise.all([
+        const [repairsResp, brandsResp, teamResp] = await Promise.all([
           callBackendAPI('/api/repairs', null, 'GET'),
           callBackendAPI('/api/brands', null, 'GET'),
-          callBackendAPI('/api/team', null, 'GET'),
-          callBackendAPI('/api/dashboard/overview', null, 'GET')
+          callBackendAPI('/api/team', null, 'GET')
         ]);
 
         setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
         setBrands(Array.isArray(brandsResp) ? brandsResp : []);
         setTeamMembers(Array.isArray(teamResp) ? teamResp : teamResp?.data || []);
         
-        console.log('Repairs.tsx - Repairs loaded:', Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
-        console.log('Repairs.tsx - First repair:', (Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || [])[0]);
-        console.log('Repairs.tsx - User permissions:', { hasManageRepairs: hasPermission('manage_repairs'), hasRepairs: hasPermission('repairs') });
-        
-        console.log('Repairs.tsx - Brands loaded:', Array.isArray(brandsResp) ? brandsResp : []);
-        console.log('Repairs.tsx - Brands count:', (Array.isArray(brandsResp) ? brandsResp : []).length);
-        
-        if (dashResp) {
-          const plan = dashResp.plans.find((p: any) => {
-            const userPlanIdStr = user.planId ? String(user.planId) : '';
-            const planNameLower = p.name.toLowerCase();
-            return (
-              (userPlanIdStr && planNameLower === userPlanIdStr.toLowerCase()) ||
-              (userPlanIdStr === 'starter' && p.name === 'FREE TRIAL') ||
-              (userPlanIdStr === 'basic' && p.name === 'BASIC') ||
-              (userPlanIdStr === 'premium' && p.name === 'PREMIUM') ||
-              (userPlanIdStr === 'gold' && p.name === 'GOLD')
-            );
-          }) || dashResp.plans[0];
-          setActivePlan(plan);
-        }
       } catch (error) {
         console.error('Failed to load infrastructure data:', error);
       } finally {
@@ -309,15 +289,18 @@ export const Repairs: React.FC = () => {
 
   const handleEnrollment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
-    if (parseFloat(formData.cost) <= 0) { alert("Estimated Repair Price must be greater than 0."); return; }
+    // Quota Enforcement
+    const isAtLimit = quotas?.limits.repairs.used >= quotas?.limits.repairs.limit;
     
-    // FIX ISSUE 3: Convert planId to string properly before comparison
-    const userPlanId = user?.planId ? String(user.planId) : '';
-    const planLimit = activePlan?.limits?.repairsPerMonth || 0;
-    
-    if (repairs.length >= planLimit) { 
-      alert("Plan limit reached."); 
+    if (isAtLimit) { 
+      Swal.fire({
+        icon: 'warning',
+        title: 'Quota Exhausted',
+        text: 'The monthly repair enrollment limit for your current protocol has been reached.',
+        showCancelButton: true,
+        confirmButtonText: 'Upgrade Tier',
+        confirmButtonColor: '#6366f1'
+      }).then(r => r.isConfirmed && navigate('/user/pricing'));
       return; 
     }
 
@@ -350,10 +333,21 @@ export const Repairs: React.FC = () => {
       console.log('Repair created:', createResp);
 
       const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
-      console.log('Repairs fetched after create:', repairsResp);
       setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
+      refetchQuotas();
 
-      alert('Repair created successfully!');
+      Swal.fire({
+        icon: 'success',
+        title: 'Enrollment Finalized',
+        text: 'Repair node successfully integrated into the management grid.',
+        timer: 2000,
+        showConfirmButton: false,
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-[3rem] border-2 border-indigo-50 shadow-2xl',
+          title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+        }
+      });
       setShowBookingForm(false);
       setAiResult(null);
       setFormData({ customerName: '', mobile: '', email: '', brand: '', device: '', description: '', cost: '', status: 'pending', date: new Date().toISOString().split('T')[0], assignedTo: '', deviceImage: null, symptoms: [], internalNotes: '', estimatedTime: 'Same Day', estimatedPickupDate: new Date().toISOString().split('T')[0], paymentStatus: 'unpaid', paymentMethod: 'cash', attachments: [], partsCost: '0', technicianCost: '0', aiDiagnosis: null, aiConfidence: null, aiEstimatedCost: null, aiEstimatedTime: null, serialNumber: '', deviceColor: '', storageVariant: '', fileError: null });
@@ -487,10 +481,10 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
             <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2"><ShieldCheck size={14} className="text-indigo-600" /> Node Architecture & Fiscal Ledger</p>
           </div>
           <div className="bg-white border border-slate-200 px-5 py-2.5 rounded-2xl flex items-center gap-3 shadow-sm">
-            <div className={`w-2 h-2 rounded-full ${repairs.length >= (activePlan?.limits?.repairsPerMonth || 0) ? 'bg-rose-500 animate-pulse' : 'bg-emerald-50'}`} />
+            <div className={`w-2 h-2 rounded-full ${quotas?.limits.repairs.used >= quotas?.limits.repairs.limit ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
             <div>
               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Operational Quota</p>
-              <p className="text-sm font-black text-slate-800 mt-1">{repairs.length} / {activePlan?.limits?.repairsPerMonth >= 999 ? '∞' : (activePlan?.limits?.repairsPerMonth || 0)} <span className="text-[10px] text-slate-400 font-bold ml-1 uppercase">Units</span></p>
+              <p className="text-sm font-black text-slate-800 mt-1">{quotas?.limits.repairs.used || 0} / {quotas?.limits.repairs.limit || 0} <span className="text-[10px] text-slate-400 font-bold ml-1 uppercase">Units</span></p>
             </div>
           </div>
         </div>

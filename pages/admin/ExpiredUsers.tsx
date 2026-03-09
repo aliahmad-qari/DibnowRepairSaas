@@ -13,8 +13,8 @@ export const ExpiredUsers: React.FC = () => {
         const allUsers = await adminApi.getAllUsers();
         // Filter users with expired plans (plan expiry date < current date)
         const expiredUsers = allUsers.filter((user: any) => {
-          if (!user.planExpiryDate) return false;
-          const expiryDate = new Date(user.planExpiryDate);
+          if (!user.planExpireDate) return false;
+          const expiryDate = new Date(user.planExpireDate);
           const now = new Date();
           return expiryDate < now;
         });
@@ -113,7 +113,7 @@ export const ExpiredUsers: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Calendar size={14} className="text-slate-400" />
                       <span className="text-sm font-bold text-slate-700">
-                        {user.planExpiryDate ? new Date(user.planExpiryDate).toLocaleDateString() : 'N/A'}
+                        {user.planExpireDate ? new Date(user.planExpireDate).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
                   </td>

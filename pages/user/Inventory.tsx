@@ -12,6 +12,7 @@ import {
    Percent, FileSpreadsheet, BarChart as BarChartIcon,
    Landmark, ChevronUp, PieChart as PieIcon, Scale, Save
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import {
    ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
    BarChart, Bar, Cell, PieChart, Pie
@@ -19,6 +20,7 @@ import {
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
+import { useQuotas } from '../../hooks/useQuotas';
 
 const COMP_COLORS = ['#6366f1', '#f43f5e'];
 
@@ -31,7 +33,7 @@ export const Inventory: React.FC = () => {
    const [items, setItems] = useState<any[]>([]);
    const [sales, setSales] = useState<any[]>([]);
    const [repairs, setRepairs] = useState<any[]>([]);
-   const [activePlan, setActivePlan] = useState<any>(null);
+   const { quotas } = useQuotas();
    const [activityLogs, setActivityLogs] = useState<any[]>([]);
 
    // UI Control States
@@ -68,11 +70,10 @@ export const Inventory: React.FC = () => {
          if (!user) return;
          setIsLoading(true);
          try {
-            const [invResp, salesResp, repairsResp, dashResp] = await Promise.all([
+            const [invResp, salesResp, repairsResp] = await Promise.all([
                callBackendAPI('/api/inventory', null, 'GET'),
                callBackendAPI('/api/sales', null, 'GET'),
-               callBackendAPI('/api/repairs', null, 'GET'),
-               callBackendAPI('/api/dashboard/overview', null, 'GET')
+               callBackendAPI('/api/repairs', null, 'GET')
             ]);
 
             setItems(Array.isArray(invResp) ? invResp : []);
@@ -81,10 +82,6 @@ export const Inventory: React.FC = () => {
             const activResp = await callBackendAPI('/api/activities', null, 'GET');
             setActivityLogs(Array.isArray(activResp) ? activResp : []);
 
-            if (dashResp && dashResp.plans) {
-               const plan = dashResp.plans.find((p: any) => p.id === user.planId) || dashResp.plans[0];
-               setActivePlan(plan);
-            }
          } catch (error) {
             console.error('Error loading inventory data:', error);
          } finally {
@@ -355,22 +352,48 @@ export const Inventory: React.FC = () => {
             </div>
          )}
 
-         {/* PRIMARY ACTION BUTTONS */}
-         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+         {/* PRIMARY ACTION BUTTONS & QUOTA */}
+         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 mb-12">
             <div>
-               <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">Warehouse Protocol</h1>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Central Node Capacity: {items.length} Units</p>
+               <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-none uppercase">Warehouse Protocol</h1>
+               <div className="flex items-center gap-4 mt-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Central Node Capacity: {items.length} Units</p>
+                  <div className="h-1 w-24 bg-slate-100 rounded-full overflow-hidden">
+                     <div 
+                        className={`h-full transition-all duration-1000 ${quotas?.limits.stock.percentage && quotas.limits.stock.percentage > 90 ? 'bg-rose-500' : 'bg-indigo-600'}`}
+                        style={{ width: `${quotas?.limits.stock.percentage || 0}%` }}
+                     />
+                  </div>
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{quotas?.limits.stock.used || 0} / {quotas?.limits.stock.limit || 0} Authorized</span>
+               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-               <button onClick={() => navigate('/user/pos')} className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
-                  <ShoppingCart size={18} /> Direct Sell
+            <div className="flex flex-wrap items-center gap-4">
+               <button onClick={() => navigate('/user/pos')} className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group">
+                  <ShoppingCart size={18} className="group-hover:rotate-12 transition-transform" /> Direct Sell
                </button>
-               <button onClick={() => navigate('/user/add-repair')} className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
-                  <Wrench size={18} /> Add Repair
+               <button onClick={() => navigate('/user/add-repair')} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group">
+                  <Wrench size={18} className="group-hover:rotate-12 transition-transform" /> Add Repair
                </button>
-               <button onClick={() => navigate('/user/add-inventory')} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
-                  <Plus size={18} /> Add Stock
+               <button 
+                  onClick={() => {
+                     const isAtStockLimit = quotas?.limits.stock.used >= quotas?.limits.stock.limit;
+                     if (isAtStockLimit) {
+                        Swal.fire({
+                           icon: 'warning',
+                           title: 'Warehouse Full',
+                           text: 'Stock quota reached. Upgrade protocol to expand inventory ceiling.',
+                           showCancelButton: true,
+                           confirmButtonText: 'Upgrade',
+                           confirmButtonColor: '#6366f1'
+                        }).then(r => r.isConfirmed && navigate('/user/pricing'));
+                     } else {
+                        navigate('/user/add-inventory');
+                     }
+                  }} 
+                  className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-indigo-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group border-2 border-indigo-500"
+               >
+                  <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> Deploy Asset
                </button>
             </div>
          </div>

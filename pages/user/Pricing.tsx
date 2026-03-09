@@ -284,6 +284,9 @@ export const UserPricing: React.FC = () => {
             console.log('✅ [Payment] Wallet payment successful, plan auto-activated');
             setSuccessState(true);
             
+            // Refresh global user state immediately
+            if (refreshUser) refreshUser();
+            
             // Reload page to fetch updated user data
             setTimeout(() => {
               window.location.reload();

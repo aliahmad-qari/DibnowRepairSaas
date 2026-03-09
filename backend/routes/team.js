@@ -53,11 +53,10 @@ router.post('/', checkLimits('teamMembers'), async (req, res) => {
     }
     
     // Create User account for team member
-    const hashedPassword = await bcrypt.hash(password, 12);
     const newUser = new User({
       name,
       email: email.toLowerCase(),
-      password: hashedPassword,
+      password, // Will be hashed by User model pre-save hook
       role: 'user', // Team members are regular users
       status: 'active',
       permissions: permissions || [],

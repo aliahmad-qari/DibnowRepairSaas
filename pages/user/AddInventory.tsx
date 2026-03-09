@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
+import { useQuotas } from '../../hooks/useQuotas';
 import {
   Package, Tag, Hash, DollarSign, Layers, Smartphone, ChevronLeft,
   Save, AlertOctagon, ArrowUpCircle, Palette, FileText, Image as ImageIcon,
@@ -14,10 +15,14 @@ export const AddInventory: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currency } = useCurrency();
-  const [isLimitReached, setIsLimitReached] = useState(false);
-  const [activePlan, setActivePlan] = useState<any>(null);
+  const { quotas, refetch: refetchQuotas } = useQuotas();
   const [availableBrands, setAvailableBrands] = useState<any[]>([]);
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+
+  const isLimitReached = useMemo(() => {
+    if (!quotas) return false;
+    return quotas.limits.inventory.used >= quotas.limits.inventory.limit;
+  }, [quotas]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -41,33 +46,18 @@ export const AddInventory: React.FC = () => {
     const loadPrerequisites = async () => {
       if (user && isMounted) {
         try {
-          const [dashResp, brandsResp, catsResp] = await Promise.all([
-            callBackendAPI('/api/dashboard/overview', null, 'GET'),
+          const [brandsResp, catsResp] = await Promise.all([
             callBackendAPI('/api/brands', null, 'GET'),
             callBackendAPI('/api/categories', null, 'GET')
           ]);
 
           if (!isMounted) return;
 
-          if (dashResp) {
-            const planId = user.planId ? (typeof user.planId === 'object' ? user.planId.toString() : user.planId) : null;
-            const plan = dashResp.plans?.find((p: any) =>
-              p._id === planId || p.id === planId || 
-              (typeof planId === 'string' && p.name?.toLowerCase() === planId.toLowerCase())
-            ) || dashResp.plans?.[0];
-
-            setActivePlan(plan);
-            if (plan?.limits && dashResp.stockCount >= plan.limits.inventoryItems) {
-              setIsLimitReached(true);
-            }
-          }
-
           const brands = Array.isArray(brandsResp) ? brandsResp : (brandsResp?.data || []);
           const cats = Array.isArray(catsResp) ? catsResp : (catsResp?.data || []);
           
           setAvailableBrands(brands);
           setAvailableCategories(cats);
-          console.log('[AddInventory] Loaded brands:', brands.length, 'categories:', cats.length);
         } catch (error) {
           console.error('Failed to load prerequisites:', error);
           setAvailableBrands([]);
@@ -113,9 +103,24 @@ export const AddInventory: React.FC = () => {
 
       const response = await callBackendAPI('/api/inventory', payload, 'POST');
       if (response) {
+        refetchQuotas();
         // Dispatch inventory update event to refresh other components
         window.dispatchEvent(new CustomEvent('inventoryUpdated'));
-        navigate('/user/inventory');
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Enrollment Finalized',
+          text: 'Stock item successfully integrated into the management grid.',
+          timer: 2000,
+          showConfirmButton: false,
+          background: '#ffffff',
+          customClass: {
+            popup: 'rounded-[1.5rem] border-2 border-indigo-50 shadow-2xl',
+            title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+          }
+        }).then(() => {
+          navigate('/user/inventory');
+        });
       }
     } catch (error: any) {
       if (error.limitHit) {
@@ -158,9 +163,9 @@ export const AddInventory: React.FC = () => {
         <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-rose-100">
           <AlertOctagon size={40} />
         </div>
-        <h2 className="text-3xl font-black text-slate-800 tracking-tight">Inventory Limit Reached</h2>
+        <h2 className="text-3xl font-black text-slate-800 tracking-tightest">Inventory Limit Reached</h2>
         <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Platform Restriction Policy</p>
-        <p className="text-slate-600 font-medium">Your current plan ({activePlan?.name}) allows for a maximum of <b>{activePlan?.limits.inventoryItems}</b> unique stock items.</p>
+        <p className="text-slate-600 font-medium">Your current plan ({quotas?.planName || 'Evaluating...'}) allows for a maximum of <b>{quotas?.limits.inventory.limit || 0}</b> unique stock items.</p>
         <div className="pt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <button onClick={() => navigate('/user/pricing')} className="bg-[#0052FF] text-white px-8 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 flex items-center justify-center gap-2 hover:scale-105 transition-all uppercase tracking-widest text-[10px]">
             <ArrowUpCircle size={18} /> Expand Inventory Limit

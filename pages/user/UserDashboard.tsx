@@ -163,7 +163,7 @@ export const UserDashboard: React.FC = () => {
     loadData();
     
     return () => { isMounted = false; };
-  }, [user?.id]); // Only re-run if user ID changes
+  }, [user?.id, user?.planId]); // Re-run if user ID or planId changes
 
   // Filter data based on timeframe
   const filterDataByTimeframe = (items: any[], timeframe: string) => {

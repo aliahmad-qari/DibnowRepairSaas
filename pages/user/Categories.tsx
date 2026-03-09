@@ -15,6 +15,7 @@ import Swal from 'sweetalert2';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useQuotas } from '../../hooks/useQuotas';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#06b6d4'];
 
@@ -33,8 +34,12 @@ export const Categories: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'a-z' | 'none'>('none');
 
   const [newCat, setNewCat] = useState({ name: '', description: '' });
-  const [activePlan, setActivePlan] = useState<any>(null);
-  const [isAtLimit, setIsAtLimit] = useState(false);
+  const { quotas, refetch: refetchQuotas } = useQuotas();
+
+  const isAtLimit = useMemo(() => {
+    if (!quotas) return false;
+    return quotas.limits.categories.used >= quotas.limits.categories.limit;
+  }, [quotas]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,49 +49,16 @@ export const Categories: React.FC = () => {
       if (!user) return;
       setIsLoading(true);
       try {
-        const [catsResp, invResp, salesResp, dashResp] = await Promise.all([
+        const [catsResp, invResp, salesResp] = await Promise.all([
           callBackendAPI('/api/categories', null, 'GET'),
           callBackendAPI('/api/inventory', null, 'GET'),
-          callBackendAPI('/api/sales', null, 'GET'),
-          callBackendAPI('/api/dashboard/overview', null, 'GET')
+          callBackendAPI('/api/sales', null, 'GET')
         ]);
 
         setCategories(Array.isArray(catsResp) ? catsResp : []);
         setInventory(Array.isArray(invResp) ? invResp : []);
         setSales(Array.isArray(salesResp) ? salesResp : []);
 
-        if (dashResp && dashResp.plans && Array.isArray(dashResp.plans) && dashResp.plans.length > 0) {
-          // Find user's current plan or default to Free Trial
-          let plan = null;
-          
-          // Try to find by planName first (most reliable)
-          if (user.planName) {
-            plan = dashResp.plans.find((p: any) => 
-              p.name.toLowerCase() === user.planName.toLowerCase() ||
-              p.name.toLowerCase().includes(user.planName.toLowerCase())
-            );
-          }
-          
-          // If not found, use first plan (Free Trial)
-          if (!plan) {
-            plan = dashResp.plans[0];
-          }
-
-          setActivePlan(plan);
-          if (plan && plan.limits && catsResp?.length >= plan.limits.categories) {
-            setIsAtLimit(true);
-          } else {
-            setIsAtLimit(false);
-          }
-        } else {
-          // Fallback: Set default Free Trial plan limits
-          const defaultPlan = {
-            name: 'Free Trial',
-            limits: { categories: 5, inventory: 50, repairs: 20, sales: 100 }
-          };
-          setActivePlan(defaultPlan);
-          setIsAtLimit(catsResp?.length >= defaultPlan.limits.categories);
-        }
       } catch (error) {
         console.error('Failed to load categories data:', error);
       } finally {
@@ -180,40 +152,48 @@ export const Categories: React.FC = () => {
         // Refresh data
         const catsResp = await callBackendAPI('/api/categories', null, 'GET');
         setCategories(Array.isArray(catsResp) ? catsResp : []);
+        refetchQuotas();
 
-        // Re-check limits
-        if (activePlan && activePlan.limits && catsResp.length >= activePlan.limits.categories) {
-          setIsAtLimit(true);
-        }
-      }
-    } catch (error: any) {
-      if (error.limitHit) {
         Swal.fire({
-          title: 'Requirement Unmet',
-          text: error.upgradeMessage || 'You have reached the limit for your current plan.',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Upgrade Tier',
-          cancelButtonText: 'Review Registry',
-          confirmButtonColor: '#0052FF',
-          cancelButtonColor: '#94a3b8',
+          icon: 'success',
+          title: 'Classification Finalized',
+          text: 'The new category has been successfully mapped to the system registry.',
+          timer: 2000,
+          showConfirmButton: false,
           background: '#ffffff',
           customClass: {
-            popup: 'rounded-[1.5rem] border-2 border-blue-50 shadow-2xl',
+            popup: 'rounded-[1.5rem] border-2 border-indigo-50 shadow-2xl',
             title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
-            htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
-            confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-blue-100',
-            cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
-          }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/user/pricing');
           }
         });
-      } else {
-        console.error('Failed to define category node:', error);
-        alert(error.message || 'Failed to define category node.');
       }
+    } catch (error: any) {
+      console.error('Failed to define category:', error);
+      
+      const isLimitError = error.message?.toLowerCase().includes('limit') || error.status === 403;
+      
+      Swal.fire({
+        icon: isLimitError ? 'warning' : 'error',
+        title: isLimitError ? 'Registry Capacity Reached' : 'Integration Failed',
+        text: error.message || 'The maximum number of category nodes for your current protocol has been reached. Upgrade to extend mapping capabilities.',
+        showCancelButton: true,
+        confirmButtonText: isLimitError ? 'Upgrade Protocol' : 'Dismiss',
+        cancelButtonText: 'Return to Hub',
+        confirmButtonColor: '#6366f1',
+        cancelButtonColor: '#94a3b8',
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-[1.5rem] border-2 border-indigo-50 shadow-2xl',
+          title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+          htmlContainer: 'text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed',
+          confirmButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-indigo-100',
+          cancelButton: 'px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[9px]'
+        }
+      }).then((result) => {
+        if (result.isConfirmed && isLimitError) {
+          navigate('/user/pricing');
+        }
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -250,7 +230,7 @@ export const Categories: React.FC = () => {
             <div className="flex items-center gap-3 mt-1">
               <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Classification Ledger</p>
               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${isAtLimit ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
-                {categories.length} / {activePlan?.limits.categories >= 999 ? '∞' : activePlan?.limits.categories} Quota
+                {quotas?.limits.categories.used || 0} / {quotas?.limits.categories.limit || 0} Mapping Nodes
               </span>
               {isAtLimit && (
                 <button

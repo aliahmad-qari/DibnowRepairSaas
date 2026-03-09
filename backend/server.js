@@ -36,6 +36,7 @@ const planRequestsRoutes = require('./routes/planRequests');
 const adminDashboardRoutes = require('./routes/adminDashboard');
 const superAdminRoutes = require('./routes/superadmin');
 const supportTicketsRoutes = require('./routes/supportTickets');
+const quotasRoutes = require('./routes/quotas');
 
 // Import services
 const { startRenewalScheduler } = require('./services/renewalService');
@@ -194,6 +195,7 @@ app.use('/api/plan-requests', planRequestsRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/support-tickets', supportTicketsRoutes);
+app.use('/api/quotas', quotasRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => res.send("DibNow API is Running..."));

@@ -14,14 +14,19 @@ import {
   Zap
 } from 'lucide-react';
 import { aiService } from '../../api/aiService';
+import { useQuotas } from '../../hooks/useQuotas';
 
 export const AddRepair: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currency } = useCurrency();
-  const [isLimitReached, setIsLimitReached] = useState(false);
-  const [activePlan, setActivePlan] = useState<any>(null);
+  const { quotas, refetch: refetchQuotas } = useQuotas();
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
+
+  const isLimitReached = useMemo(() => {
+    if (!quotas) return false;
+    return quotas.limits.repairs.used >= quotas.limits.repairs.limit;
+  }, [quotas]);
 
   // Existing Form Data
   const [formData, setFormData] = useState({
@@ -56,25 +61,7 @@ export const AddRepair: React.FC = () => {
     const loadPrerequisites = async () => {
       if (user) {
         try {
-          const [dashResp, teamResp] = await Promise.all([
-            callBackendAPI('/api/dashboard/overview', null, 'GET'),
-            callBackendAPI('/api/team', null, 'GET')
-          ]);
-
-          if (dashResp) {
-            const plan = dashResp.plans.find((p: any) =>
-              (user.planId && p.name.toLowerCase() === user.planId.toLowerCase()) ||
-              (user.planId === 'starter' && p.name === 'FREE TRIAL') ||
-              (user.planId === 'basic' && p.name === 'BASIC') ||
-              (user.planId === 'premium' && p.name === 'PREMIUM') ||
-              (user.planId === 'gold' && p.name === 'GOLD')
-            ) || dashResp.plans[0];
-
-            setActivePlan(plan);
-            if (plan && plan.limits && dashResp.repairCount >= plan.limits.repairsPerMonth) {
-              setIsLimitReached(true);
-            }
-          }
+          const teamResp = await callBackendAPI('/api/team', null, 'GET');
           setTeamMembers(Array.isArray(teamResp) ? teamResp : teamResp?.data || []);
         } catch (error) {
           console.error('Failed to load repair prerequisites:', error);
@@ -151,7 +138,22 @@ export const AddRepair: React.FC = () => {
 
       const response = await callBackendAPI('/api/repairs', payload, 'POST');
       if (response) {
-        navigate('/user/repairs');
+        refetchQuotas();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Enrollment Finalized',
+          text: 'Repair node successfully integrated into the management grid.',
+          timer: 2000,
+          showConfirmButton: false,
+          background: '#ffffff',
+          customClass: {
+            popup: 'rounded-[1.5rem] border-2 border-indigo-50 shadow-2xl',
+            title: 'text-xl font-black uppercase text-slate-800 tracking-tightest',
+          }
+        }).then(() => {
+          navigate('/user/repairs');
+        });
       }
     } catch (error: any) {
       if (error.limitHit) {
@@ -210,13 +212,13 @@ export const AddRepair: React.FC = () => {
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm mb-10 text-left">
           <div className="flex justify-between items-center mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Tier</span>
-            <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">{activePlan?.name}</span>
+            <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">{quotas?.planName || 'Evaluating...'}</span>
           </div>
           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
             <div className="h-full bg-rose-500 w-full" />
           </div>
           <p className="text-slate-600 text-sm mt-6 font-medium leading-relaxed">
-            Your current plan is capped at <b>{activePlan?.limits.repairsPerMonth}</b> repairs per cycle. To continue enrolling new client devices, please promote your account to a higher operational tier.
+            Your current plan is capped at <b>{quotas?.limits.repairs.limit || 0}</b> repairs per cycle. To continue enrolling new client devices, please promote your account to a higher operational tier.
           </p>
         </div>
 

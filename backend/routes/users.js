@@ -251,7 +251,15 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     }
 
     // Find user with password
-    const user = await User.findValidForLogin(email);
+    // Find user with password and adminAccessToken for fallback
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+      is_disabled: false,
+      $or: [
+        { status: 'active' },
+        { status: 'pending' }
+      ]
+    }).select('+password +adminAccessToken');
 
     if (!user) {
       trackFailedLogin(email);
@@ -626,7 +634,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId)
       .select('-password')
-      .populate('planId', 'name price features status expiresAt');
+      .populate('planId', 'name price features status expiresAt limits');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -645,7 +653,8 @@ router.get('/profile', authenticateToken, async (req, res) => {
       currentPlan: user.planId ? user.planId.name : 'Free Trial',
       planStatus: user.status,
       planExpiresAt: user.planId?.expiresAt,
-      unreadNotifications: unreadCount
+      unreadNotifications: unreadCount,
+      planLimits: user.planId?.limits || {}
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -677,11 +686,12 @@ router.post('/admin/login', loginLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     // Find admin user
+    // Find admin user with both password and adminAccessToken for fallback
     const user = await User.findOne({ 
       email: email.toLowerCase(),
       role: { $in: ['admin', 'superadmin'] }
-    }).select('+password');
-
+    }).select('+password +adminAccessToken');
+    
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }

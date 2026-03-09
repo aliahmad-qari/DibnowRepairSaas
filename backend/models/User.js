@@ -87,6 +87,21 @@ const userSchema = new mongoose.Schema({
     ref: 'Plan',
     default: null
   },
+  planName: {
+    type: String,
+    default: 'Free Trial'
+  },
+  planExpireDate: {
+    type: Date
+  },
+  planStartDate: {
+    type: Date
+  },
+  planStatus: {
+    type: String,
+    enum: ['active', 'expired', 'cancelled', 'pending'],
+    default: 'active'
+  },
   walletBalance: {
     type: Number,
     default: 0,

@@ -27,6 +27,7 @@ export const ProfilePage: React.FC = () => {
 
    // Data states
    const [dashboardData, setDashboardData] = useState<any>(null);
+   const [quotaData, setQuotaData] = useState<any>(null);
    const [transactions, setTransactions] = useState<any[]>([]);
    const [loginActivities, setLoginActivities] = useState<any[]>([]);
 
@@ -43,13 +44,21 @@ export const ProfilePage: React.FC = () => {
       const loadProfileData = async () => {
          setIsLoading(true);
          try {
-            const [dashResp, activitiesResp] = await Promise.all([
-               callBackendAPI('/dashboard/overview', null, 'GET'),
-               callBackendAPI('/activities', null, 'GET')
+            const [quotaResp, activitiesResp] = await Promise.all([
+               callBackendAPI('/api/quotas/status', null, 'GET'),
+               callBackendAPI('/api/activities', null, 'GET')
             ]);
 
+            // Get dashboard data for other stats
+            const dashResp = await callBackendAPI('/api/dashboard/overview', null, 'GET');
             setDashboardData(dashResp);
             setLoginActivities((activitiesResp || []).filter((a: any) => a.actionType.includes('Login')));
+
+            // Store quota data separately for usage display
+            if (quotaResp && quotaResp.success) {
+               setQuotaData(quotaResp);
+               console.log('[Profile] Quota data loaded:', quotaResp);
+            }
 
             if (user) {
                const walletResp = await callBackendAPI(`/wallet/${user._id || user.id}/transactions`, null, 'GET');
@@ -62,7 +71,7 @@ export const ProfilePage: React.FC = () => {
          }
       };
       loadProfileData();
-   }, [user]);
+   }, [user, user?.planId]);
 
    // --- NEW ENHANCEMENTS LOGIC ---
 
@@ -93,11 +102,31 @@ export const ProfilePage: React.FC = () => {
 
    // 3. SUBSCRIPTION USAGE SNAPSHOT
    const usage = useMemo(() => {
-      if (!user || !dashboardData) return null;
+      if (!user) return null;
       
-      // Find plan by planName (database-driven)
+      // Use quotaData from /api/quotas/status (database-driven, real-time)
+      if (quotaData && quotaData.success) {
+         return {
+            planName: quotaData.planName || user.planName || 'Free Trial',
+            metrics: [
+               { label: 'Repairs Used', used: quotaData.limits?.repairs?.used || 0, limit: quotaData.limits?.repairs?.limit },
+               { label: 'Stock Used', used: quotaData.limits?.stock?.used || 0, limit: quotaData.limits?.stock?.limit },
+               { label: 'Team Members', used: quotaData.limits?.team?.used || 0, limit: quotaData.limits?.team?.limit },
+               { label: 'AI Diagnostics', used: quotaData.limits?.aiDiagnostics ? 'Enabled' : 'Disabled', isToggle: true }
+            ]
+         };
+      }
+      
+      // Fallback to dashboard data if quotaData not available
+      if (!dashboardData) return null;
+       
+      // Find plan by planId (more reliable than planName)
       let plan = null;
-      if (user.planName && dashboardData.plans) {
+      if (user.planId && dashboardData.plans) {
+         plan = dashboardData.plans.find((p: any) => p._id === user.planId);
+      }
+      // Fallback to planName matching
+      if (!plan && user.planName && dashboardData.plans) {
          plan = dashboardData.plans.find((p: any) => 
             p.name.toLowerCase() === user.planName.toLowerCase() ||
             p.name.toLowerCase().includes(user.planName.toLowerCase())
@@ -116,16 +145,20 @@ export const ProfilePage: React.FC = () => {
             { label: 'AI Diagnostics', used: plan?.limits?.aiDiagnostics ? 'Enabled' : 'Disabled', isToggle: true }
          ]
       };
-   }, [user, dashboardData]);
+   }, [user, quotaData, dashboardData]);
 
    // --- EXISTING RESTORED LOGIC ---
 
    const accountInfo = useMemo(() => {
       if (!user || !dashboardData) return null;
       
-      // Find plan by planName (database-driven)
+      // Find plan by planId (more reliable than planName)
       let plan = null;
-      if (user.planName && dashboardData.plans) {
+      if (user.planId && dashboardData.plans) {
+         plan = dashboardData.plans.find((p: any) => p._id === user.planId);
+      }
+      // Fallback to planName matching
+      if (!plan && user.planName && dashboardData.plans) {
          plan = dashboardData.plans.find((p: any) => 
             p.name.toLowerCase() === user.planName.toLowerCase() ||
             p.name.toLowerCase().includes(user.planName.toLowerCase())
@@ -197,7 +230,7 @@ export const ProfilePage: React.FC = () => {
    const handleGlobalLogout = async () => {
       if (window.confirm("Authorize global session revocation? This will terminate access on all nodes.")) {
          try {
-            await callBackendAPI('/activities', {
+            await callBackendAPI('/api/activities', {
                actionType: 'Global Session Revoke',
                moduleName: 'Security',
                refId: user?._id || user?.id || 'ID-0',
@@ -222,7 +255,7 @@ export const ProfilePage: React.FC = () => {
       }
       setIsUpdatingPin(true);
       try {
-         await callBackendAPI('/activities', {
+         await callBackendAPI('/api/activities', {
             actionType: 'Security PIN Rotation',
             moduleName: 'Identity',
             refId: user?._id || user?.id || 'System',
@@ -255,9 +288,9 @@ export const ProfilePage: React.FC = () => {
 
          try {
             const userId = user._id || user.id;
-            await callBackendAPI(`/users/${userId}`, { avatar: base64Image }, 'PUT');
+            await callBackendAPI(`/api/users/${userId}`, { avatar: base64Image }, 'PUT');
 
-            await callBackendAPI('/activities', {
+            await callBackendAPI('/api/activities', {
                actionType: 'Profile Identity Updated',
                moduleName: 'Account',
                refId: userId,

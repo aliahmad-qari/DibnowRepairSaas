@@ -54,15 +54,15 @@ export const UserInvoices: React.FC = () => {
         });
         
         // Process completed repairs
-        const repairsArray = Array.isArray(repairs) ? repairs : [];
-        repairsArray.forEach((r: any) => {
+        const repairsRaw = Array.isArray(repairs) ? repairs : (repairs?.repairs || repairs?.data || []);
+        repairsRaw.forEach((r: any) => {
           if (r.status === 'completed' || r.status === 'delivered') {
             allInvoices.push({
               id: r._id,
               type: 'repair',
-              title: `Repair: ${r.deviceType || 'Device'}`,
-              amount: r.totalCost || r.cost,
-              date: r.completedAt || r.updatedAt,
+              title: `Repair: ${r.deviceType || r.device || 'Device'}`,
+              amount: r.totalCost || r.cost || r.finalCost || 0,
+              date: r.completedAt || r.updatedAt || r.createdAt,
               status: 'paid',
               invoiceNumber: `REP-${r._id.slice(-8)}`
             });
@@ -70,13 +70,13 @@ export const UserInvoices: React.FC = () => {
         });
         
         // Process inventory sales
-        const salesArray = Array.isArray(sales) ? sales : [];
-        salesArray.forEach((s: any) => {
+        const salesRaw = Array.isArray(sales) ? sales : (sales?.sales || sales?.data || []);
+        salesRaw.forEach((s: any) => {
           allInvoices.push({
             id: s._id,
             type: 'inventory_sale',
             title: `Sale: ${s.productName || 'Product'}`,
-            amount: s.total,
+            amount: s.total || 0,
             date: s.date || s.createdAt,
             status: 'paid',
             invoiceNumber: `SAL-${s._id.slice(-8)}`
@@ -98,7 +98,7 @@ export const UserInvoices: React.FC = () => {
   }, [user]);
 
   const filteredInvoices = invoices.filter(inv =>
-    (inv.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (inv.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inv._id || inv.id || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -156,7 +156,7 @@ export const UserInvoices: React.FC = () => {
                         <Hash size={18} />
                       </div>
                       <div>
-                        <p className="font-black text-slate-800 text-sm uppercase">{inv.description}</p>
+                        <p className="font-black text-slate-800 text-sm uppercase">{inv.title}</p>
                         <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">ID: {inv._id || inv.id}</p>
                       </div>
                     </div>

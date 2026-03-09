@@ -75,7 +75,7 @@ export const ProfilePage: React.FC = () => {
                </div>
                <div className="flex flex-wrap justify-center md:justify-start gap-6 pt-4">
                   <div className="flex items-center gap-2 px-5 py-2 bg-white/5 rounded-2xl border border-white/10">
-                     <Wrench size={14} className="text-indigo-400" />
+                     <WrenchIcon size={14} className="text-indigo-400" />
                      <span className="text-[11px] font-black uppercase">{accountStats.repairs} Repairs Logged</span>
                   </div>
                   <div className="flex items-center gap-2 px-5 py-2 bg-white/5 rounded-2xl border border-white/10">
@@ -291,4 +291,4 @@ export const ProfilePage: React.FC = () => {
   );
 };
 
-const Wrench = ({size, className}:any) => <Activity size={size} className={className} />;
+const WrenchIcon = ({size, className}:any) => <Activity size={size} className={className} />;

@@ -20,22 +20,78 @@ export const AIDailyInsightsV6: React.FC = () => {
    useEffect(() => {
      const fetchMetrics = async () => {
        try {
-         const data = await callBackendAPI('/api/dashboard/overview', null, 'GET');
-         setOverviewData(data);
+         // Use dedicated quotas API for real-time quota data
+         const quotaData = await callBackendAPI('/quotas/status', null, 'GET');
+         if (quotaData && quotaData.success) {
+            setOverviewData(quotaData);
+         } else {
+            // Fallback to dashboard overview
+            const data = await callBackendAPI('/dashboard/overview', null, 'GET');
+            setOverviewData(data);
+         }
        } catch (err) {
          console.error('Failed to fetch usage metrics:', err);
+         // Fallback
+         try {
+            const data = await callBackendAPI('/dashboard/overview', null, 'GET');
+            setOverviewData(data);
+         } catch (fallbackErr) {
+            console.error('Failed to fetch fallback metrics:', fallbackErr);
+         }
        } finally {
          setIsLoading(false);
        }
      };
      fetchMetrics();
-   }, []);
+   }, [user?.planId]);
 
    // 1. DATA HARVESTING (READ-ONLY) - Auditing plan consumption nodes
    const usageNodes = useMemo(() => {
       if (!overviewData || !user) return null;
       
-      const plan = overviewData.plans?.find((p: any) => p._id === user.planId) || { name: 'Starter', limits: { repairsPerMonth: 50, inventoryItems: 100, teamMembers: 2, brands: 5, categories: 5, aiDiagnostics: false } };
+      // Check if data is from /quotas/status API (has success flag and different structure)
+      if (overviewData.success) {
+         // Direct quota data from /quotas/status
+         return {
+            planName: overviewData.planName || 'Unknown',
+            limits: overviewData.limits || {},
+            consumption: {
+               repairs: { 
+                  used: overviewData.limits?.repairs?.used || 0, 
+                  limit: overviewData.limits?.repairs?.limit || 0, 
+                  pct: overviewData.limits?.repairs?.percentage || 0 
+               },
+               inventory: { 
+                  used: overviewData.limits?.stock?.used || 0, 
+                  limit: overviewData.limits?.stock?.limit || 0, 
+                  pct: overviewData.limits?.stock?.percentage || 0 
+               },
+               team: { 
+                  used: overviewData.limits?.team?.used || 0, 
+                  limit: overviewData.limits?.team?.limit || 0, 
+                  pct: overviewData.limits?.team?.percentage || 0 
+               },
+               brands: { 
+                  used: overviewData.limits?.brands?.used || 0, 
+                  limit: overviewData.limits?.brands?.limit || 0, 
+                  pct: overviewData.limits?.brands?.percentage || 0 
+               },
+               categories: { 
+                  used: overviewData.limits?.categories?.used || 0, 
+                  limit: overviewData.limits?.categories?.limit || 0, 
+                  pct: overviewData.limits?.categories?.percentage || 0 
+               }
+            },
+            aiDiagnostics: overviewData.limits?.aiDiagnostics || false
+         };
+      }
+      
+      // Fallback: data from /dashboard/overview
+      // Find plan by matching planId - use database limits only, no hardcoded fallback
+      const plan = overviewData.plans?.find((p: any) => p._id === user.planId);
+      
+      // If no plan found, try to get limits from user's planId in the response
+      const planLimits = plan?.limits || {};
       
       const repairs = overviewData.repairCount || 0;
       const inventory = overviewData.stockCount || 0;
@@ -49,16 +105,16 @@ export const AIDailyInsightsV6: React.FC = () => {
       };
 
       return {
-         planName: plan.name,
-         limits: plan.limits,
+         planName: plan?.name || 'Unknown',
+         limits: planLimits,
          consumption: {
-            repairs: { used: repairs, limit: plan.limits.repairsPerMonth, pct: calculatePercent(repairs, plan.limits.repairsPerMonth) },
-            inventory: { used: inventory, limit: plan.limits.inventoryItems, pct: calculatePercent(inventory, plan.limits.inventoryItems) },
-            team: { used: team, limit: plan.limits.teamMembers, pct: calculatePercent(team, plan.limits.teamMembers) },
-            brands: { used: brands, limit: plan.limits.brands, pct: calculatePercent(brands, plan.limits.brands) },
-            categories: { used: categories, limit: plan.limits.categories, pct: calculatePercent(categories, plan.limits.categories) }
+            repairs: { used: repairs, limit: planLimits.repairsPerMonth, pct: calculatePercent(repairs, planLimits.repairsPerMonth) },
+            inventory: { used: inventory, limit: planLimits.inventoryItems, pct: calculatePercent(inventory, planLimits.inventoryItems) },
+            team: { used: team, limit: planLimits.teamMembers, pct: calculatePercent(team, planLimits.teamMembers) },
+            brands: { used: brands, limit: planLimits.brands, pct: calculatePercent(brands, planLimits.brands) },
+            categories: { used: categories, limit: planLimits.categories, pct: calculatePercent(categories, planLimits.categories) }
          },
-         aiDiagnostics: plan.limits.aiDiagnostics
+         aiDiagnostics: planLimits.aiDiagnostics
       };
    }, [overviewData, user]);
 
