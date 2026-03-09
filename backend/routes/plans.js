@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Plan = require('../models/Plan');
-const { authenticateToken, adminOnly } = require('../middleware/auth');
+const { notifyUser } = require('../services/notificationHelper');
 
 // ==================== GET ALL PLANS ====================
 
@@ -75,6 +75,12 @@ router.post('/add', authenticateToken, adminOnly, async (req, res) => {
 
     await plan.save();
 
+    // Notify all users of new plan availability
+    const allUsers = await User.find({ role: 'user' });
+    for (const user of allUsers) {
+      await notifyUser(user._id, 'New Plan Available', `New ${plan.name} plan is now available for upgrade`, 'info');
+    }
+
     res.status(201).json({
       success: true,
       message: 'Plan created successfully',
@@ -117,6 +123,12 @@ router.put('/:id', authenticateToken, adminOnly, async (req, res) => {
         success: false,
         message: 'Plan not found'
       });
+    }
+
+    // Notify all users with this plan
+    const users = await User.find({ planId: req.params.id });
+    for (const user of users) {
+      await notifyUser(user._id, 'Plan Updated', `Your ${plan.name} plan has been updated with new features`, 'success');
     }
 
     res.json({
@@ -196,7 +208,7 @@ router.post('/manual-payment-request', authenticateToken, async (req, res) => {
       manualMethod: method || 'Bank Transfer',
       notes,
       status: 'pending',
-      invoiceStatus: 'pending'
+      invoiceStatus: 'unpaid'
     });
     await planRequest.save();
     console.log('[MANUAL PAYMENT] Plan request created:', planRequest._id);
