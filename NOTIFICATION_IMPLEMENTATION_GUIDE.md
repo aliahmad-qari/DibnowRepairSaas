@@ -125,17 +125,17 @@ Already has notifications in PUT '/:id/status' route.
 ## IMPLEMENTATION CHECKLIST
 
 ### User Actions → Admin Notifications:
-- [ ] User Login
-- [ ] Add Repair
-- [ ] Add Brand  
-- [ ] Add Team Member
+- [x] User Login
+- [x] Add Repair
+- [x] Add Brand  
+- [x] Add Team Member
 - [x] Submit Plan Request (DONE)
-- [ ] Create Ticket
+- [x] Create Ticket
 
 ### Admin Actions → User Notifications:
-- [ ] Update Plan
-- [ ] Create New Plan
-- [ ] Resolve Complaint
+- [x] Update Plan
+- [x] Create New Plan
+- [x] Resolve Complaint
 - [x] Approve Plan Request (DONE)
 
 ---

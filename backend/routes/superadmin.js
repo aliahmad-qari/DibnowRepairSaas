@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken, adminOnly } = require('../middleware/auth');
+const { authenticateToken, adminOnly, superAdminOnly } = require('../middleware/auth');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Subscription = require('../models/Subscription');
@@ -122,17 +122,42 @@ router.get('/system/health', async (req, res) => {
 
 // ==================== USER MANAGEMENT ENDPOINTS ====================
 
-// Get all users with filters
-router.get('/users', async (req, res) => {
+// Create new user
+router.post('/create-user', superAdminOnly, async (req, res) => {
   try {
-    const { role, status, planName } = req.query;
-    const filter = {};
+    const { name, email, password } = req.body;
 
-    if (role) filter.role = role;
-    if (status) filter.status = status;
-    if (planName) filter.planName = planName;
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
 
-    const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
+    // Create new user
+    const user = new User({
+      name,
+      email: email.toLowerCase(),
+      password, // Will be hashed by pre-save middleware
+      role: 'user',
+      status: 'active',
+      emailVerified: true // Auto-verify for superadmin created users
+    });
+
+    await user.save();
+
+    // Return user without password
+    const userResponse = await User.findById(user._id).select('-password');
+    res.status(201).json(userResponse);
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ message: 'Failed to create user', error: error.message });
+  }
+});
+
+// Get all users
+router.get('/users', superAdminOnly, async (req, res) => {
+  try {
+    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
     console.error('Get users error:', error);
@@ -140,13 +165,12 @@ router.get('/users', async (req, res) => {
   }
 });
 
-// Update user status
-router.put('/users/:id/status', async (req, res) => {
+// Disable user
+router.put('/users/:id/disable', superAdminOnly, async (req, res) => {
   try {
-    const { status } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { status: 'disabled' },
       { new: true, runValidators: true }
     ).select('-password');
 
@@ -156,18 +180,17 @@ router.put('/users/:id/status', async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    console.error('Update user status error:', error);
-    res.status(500).json({ message: 'Failed to update user status', error: error.message });
+    console.error('Disable user error:', error);
+    res.status(500).json({ message: 'Failed to disable user', error: error.message });
   }
 });
 
-// Update user plan
-router.put('/users/:id/plan', async (req, res) => {
+// Enable user
+router.put('/users/:id/enable', superAdminOnly, async (req, res) => {
   try {
-    const { planId, planName } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { planId, planName },
+      { status: 'active' },
       { new: true, runValidators: true }
     ).select('-password');
 
@@ -177,8 +200,24 @@ router.put('/users/:id/plan', async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    console.error('Update user plan error:', error);
-    res.status(500).json({ message: 'Failed to update user plan', error: error.message });
+    console.error('Enable user error:', error);
+    res.status(500).json({ message: 'Failed to enable user', error: error.message });
+  }
+});
+
+// Delete user
+router.delete('/users/:id', superAdminOnly, async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ message: 'Failed to delete user', error: error.message });
   }
 });
 
@@ -342,6 +381,18 @@ router.post('/announcements', async (req, res) => {
     res.status(201).json(announcement);
   } catch (error) {
     res.status(500).json({ message: 'Failed to create announcement', error: error.message });
+  }
+});
+
+router.put('/announcements/:id', async (req, res) => {
+  try {
+    const announcement = await Announcement.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!announcement) {
+      return res.status(404).json({ message: 'Announcement not found' });
+    }
+    res.json(announcement);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update announcement', error: error.message });
   }
 });
 

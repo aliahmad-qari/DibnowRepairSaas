@@ -10,7 +10,7 @@ import {
   ShieldCheck, History, Tag, Boxes, ShieldHalf, LogOut, ChevronRight,
   UserCheck, Settings, ClipboardList, Menu, X, LifeBuoy, Coins,
   ShieldAlert, BarChart3, Receipt, Bell, User, Activity,
-  LineChart, Terminal, BrainCircuit, Megaphone, ToggleRight
+  LineChart, Terminal, BrainCircuit, Megaphone, ToggleRight, UserX
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -54,6 +54,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     { name: 'Intelligence', path: '/admin/security-intel', icon: ShieldAlert, permission: 'manage_security' },
     { name: 'AI Insights', path: '/admin/ai-insights', icon: BrainCircuit, permission: 'manage_ai' },
     { name: 'Users', path: '/admin/users', icon: UsersRound, permission: 'manage_users' },
+    { name: 'Active Users', path: '/admin/active-users', icon: UserCheck, permission: 'manage_users' },
+    { name: 'Expired Users', path: '/admin/expired-users', icon: UserX, permission: 'manage_users' },
     { name: 'Staff', path: '/admin/staff', icon: UserCheck, permission: 'manage_team' },
     { name: 'Repairs', path: '/admin/all-repairs', icon: Wrench, permission: 'manage_repairs' },
     { name: 'Inventory', path: '/admin/all-inventory', icon: Package, permission: 'manage_inventory' },

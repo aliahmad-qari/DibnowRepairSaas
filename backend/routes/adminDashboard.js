@@ -9,6 +9,7 @@ const Complaint = require('../models/Complaint');
 const Transaction = require('../models/Transaction');
 const PlanRequest = require('../models/PlanRequest');
 const Announcement = require('../models/Announcement');
+const { notifyUser } = require('../services/notificationHelper');
 const { authenticateToken } = require('../middleware/auth');
 
 // Admin aggregation endpoint - platform-wide statistics
@@ -289,6 +290,12 @@ router.patch('/complaints/:id/status', authenticateToken, async (req, res) => {
     }
     complaint.status = req.body.status;
     await complaint.save();
+    
+    // Notify user if complaint is resolved
+    if (req.body.status === 'resolved') {
+      await notifyUser(complaint.ownerId, 'Ticket Resolved', `Your ticket "${complaint.subject}" has been resolved by admin`, 'success');
+    }
+    
     res.json({ message: 'Complaint status updated', complaint });
   } catch (error) {
     console.error('Update Complaint Status Error:', error);

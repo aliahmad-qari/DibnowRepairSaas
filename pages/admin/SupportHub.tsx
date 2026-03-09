@@ -83,7 +83,7 @@ export const SupportHub: React.FC = () => {
       </div>
 
       {/* ONLY ADD: Global Support Status Overview */}
-      <SupportStatusMetrics />
+      <SupportStatusMetrics tickets={tickets} />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
          <div className="xl:col-span-8">

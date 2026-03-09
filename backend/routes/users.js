@@ -3,6 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { notifyAdmin } = require('../services/notificationHelper');
 
 // Security middleware
 const { 
@@ -258,9 +259,9 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     }
 
     // Check if user is blocked/disabled (only for regular users, not admin/superadmin)
-    if (user.role === 'user' && (user.status === 'disabled' || user.status === 'cancelled')) {
+    if (user.role === 'user' && user.status === 'disabled') {
       return res.status(403).json({ 
-        message: 'You have been blocked. Please contact your account owner.',
+        message: 'Account disabled by administrator',
         blocked: true 
       });
     }
@@ -321,6 +322,9 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     user.passwordResetExpires = undefined;
 
     console.log(`[AUTH] User logged in: ${email}`);
+
+    // Notify admin of user login
+    await notifyAdmin('User Login', `${user.name} logged into the system`, 'info');
 
     res.json({
       message: 'Login successful',

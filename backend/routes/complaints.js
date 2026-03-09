@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Complaint = require('../models/Complaint');
+const User = require('../models/User');
+const { notifyAdmin } = require('../services/notificationHelper');
 const { authenticateToken } = require('../middleware/auth');
 
 // Get all complaints for owner
@@ -21,6 +23,11 @@ router.post('/', authenticateToken, async (req, res) => {
       ownerId: req.user.userId
     });
     const newComplaint = await complaint.save();
+    
+    // Notify admin of new ticket
+    const user = await User.findById(req.user.userId);
+    await notifyAdmin('New Support Ticket', `${user.name} created ticket: ${newComplaint.subject}`, 'warning');
+    
     res.status(201).json(newComplaint);
   } catch (error) {
     res.status(400).json({ message: error.message });

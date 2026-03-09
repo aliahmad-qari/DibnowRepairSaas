@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Plan = require('../models/Plan');
 const { notifyUser } = require('../services/notificationHelper');
+const { authenticateToken, adminOnly } = require('../middleware/auth');
 
 // ==================== GET ALL PLANS ====================
 

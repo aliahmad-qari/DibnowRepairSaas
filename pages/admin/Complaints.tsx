@@ -63,7 +63,7 @@ export const Complaints: React.FC = () => {
       </div>
 
       {/* ADDITIVE: Complaint Status Metrics Overview */}
-      <ComplaintStatusMetrics />
+      <ComplaintStatusMetrics complaints={complaints} />
 
       {/* ADDITIVE: Complaint Category Analytics for System Weakness Detection */}
       <ComplaintCategoryAnalytics />

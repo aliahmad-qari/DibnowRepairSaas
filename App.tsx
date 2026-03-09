@@ -75,6 +75,8 @@ import { AdminAuditLogs } from './pages/admin/AuditLogs.tsx';
 import { AdminAIInsights } from './pages/admin/AIInsightsAdmin.tsx';
 import { AdminAnnouncements } from './pages/admin/Announcements.tsx';
 import { AdminFeatureFlags } from './pages/admin/FeatureFlags.tsx';
+import { ActiveUsers } from './pages/admin/ActiveUsers.tsx';
+import { ExpiredUsers } from './pages/admin/ExpiredUsers.tsx';
 
 // Public Pages
 import { TrackRepair } from './pages/public/TrackRepair.tsx';
@@ -200,6 +202,8 @@ const App: React.FC = () => {
             <Route path="/admin/feature-flags" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_system"><DashboardLayout><AdminFeatureFlags /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/security-intel" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_system"><DashboardLayout><SecurityIntelligence /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_system"><DashboardLayout><AdminUsers /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/admin/active-users" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_system"><DashboardLayout><ActiveUsers /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/admin/expired-users" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_system"><DashboardLayout><ExpiredUsers /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/staff" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_system"><DashboardLayout><SystemStaff /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/all-repairs" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_repairs"><DashboardLayout><AllRepairs /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin/all-inventory" element={<ProtectedRoute role={UserRole.ADMIN} permission="manage_inventory"><DashboardLayout><AllInventory /></DashboardLayout></ProtectedRoute>} />

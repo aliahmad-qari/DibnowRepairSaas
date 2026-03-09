@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Repair = require('../models/Repair');
 const User = require('../models/User');
+const { notifyAdmin } = require('../services/notificationHelper');
 
 // Auth middleware
 const { 
@@ -203,6 +204,10 @@ router.post('/', authenticateToken, checkUserStatus, checkPermission('repairs'),
     await repair.save();
 
     console.log(`[REPAIR] New repair created: ${trackingId}`);
+
+    // Notify admin of new repair
+    const user = await User.findById(req.user.userId);
+    await notifyAdmin('New Repair Added', `${user.name} added repair for ${customerName} - ${device}`, 'info');
 
     res.status(201).json({
       message: 'Repair created successfully',

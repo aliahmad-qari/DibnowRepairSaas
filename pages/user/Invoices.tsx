@@ -24,21 +24,72 @@ export const UserInvoices: React.FC = () => {
       setIsLoading(true);
       try {
         const userId = user._id || user.id;
-        const data = await callBackendAPI(`/api/wallet/${userId}/transactions`, null, 'GET');
-        // Ensure we always have an array
-        const transArray = Array.isArray(data) ? data : (data?.data || []);
-        // Filter for billing related items (Subscriptions, Top-ups)
-        const filtered = transArray.filter((t: any) =>
-          t.transactionType === 'subscription' ||
-          t.transactionType === 'wallet_topup' ||
-          (t.description || '').toLowerCase().includes('refill') ||
-          (t.description || '').toLowerCase().includes('subscription') ||
-          (t.description || '').toLowerCase().includes('upgrade')
-        );
-        setInvoices(filtered);
+        
+        // Load data from multiple sources
+        const [transactions, repairs, sales] = await Promise.all([
+          callBackendAPI(`/api/wallet/${userId}/transactions`, null, 'GET').catch(() => []),
+          callBackendAPI('/api/repairs', null, 'GET').catch(() => []),
+          callBackendAPI('/api/sales', null, 'GET').catch(() => [])
+        ]);
+        
+        const allInvoices: any[] = [];
+        
+        // Process wallet transactions (plans, top-ups)
+        const transArray = Array.isArray(transactions) ? transactions : (transactions?.data || []);
+        transArray.forEach((t: any) => {
+          if (t.transactionType === 'subscription' || t.transactionType === 'wallet_topup' ||
+              (t.description || '').toLowerCase().includes('refill') ||
+              (t.description || '').toLowerCase().includes('subscription') ||
+              (t.description || '').toLowerCase().includes('upgrade')) {
+            allInvoices.push({
+              id: t._id,
+              type: 'plan_purchase',
+              title: t.description || 'Plan Purchase',
+              amount: t.amount,
+              date: t.createdAt,
+              status: t.status,
+              invoiceNumber: `PLN-${t._id.slice(-8)}`
+            });
+          }
+        });
+        
+        // Process completed repairs
+        const repairsArray = Array.isArray(repairs) ? repairs : [];
+        repairsArray.forEach((r: any) => {
+          if (r.status === 'completed' || r.status === 'delivered') {
+            allInvoices.push({
+              id: r._id,
+              type: 'repair',
+              title: `Repair: ${r.deviceType || 'Device'}`,
+              amount: r.totalCost || r.cost,
+              date: r.completedAt || r.updatedAt,
+              status: 'paid',
+              invoiceNumber: `REP-${r._id.slice(-8)}`
+            });
+          }
+        });
+        
+        // Process inventory sales
+        const salesArray = Array.isArray(sales) ? sales : [];
+        salesArray.forEach((s: any) => {
+          allInvoices.push({
+            id: s._id,
+            type: 'inventory_sale',
+            title: `Sale: ${s.productName || 'Product'}`,
+            amount: s.total,
+            date: s.date || s.createdAt,
+            status: 'paid',
+            invoiceNumber: `SAL-${s._id.slice(-8)}`
+          });
+        });
+        
+        // Sort by date (newest first)
+        allInvoices.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        setInvoices(allInvoices);
       } catch (error) {
         console.error('Failed to load fiscal trace:', error);
-        setInvoices([]); // Set empty array on error
+        setInvoices([]);
       } finally {
         setIsLoading(false);
       }

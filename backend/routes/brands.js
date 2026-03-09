@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Brand = require('../models/Brand');
 const User = require('../models/User');
+const { notifyAdmin } = require('../services/notificationHelper');
 const { authenticateToken } = require('../middleware/auth');
 const { checkPermission, checkUserStatus, getEffectiveOwnerId } = require('../middleware/permissions');
 const checkLimits = require('../middleware/checkLimits');
@@ -34,6 +35,9 @@ router.post('/', checkLimits('brands'), async (req, res) => {
     // Get user name for activity log
     const user = await User.findById(req.user.userId);
     await logActivity(ownerId, 'Brand Created', 'Brands', newBrand._id, 'Success', user?.name || 'User');
+    
+    // Notify admin of new brand
+    await notifyAdmin('New Brand Added', `${user.name} added brand: ${newBrand.name}`, 'info');
     
     res.status(201).json(newBrand);
   } catch (error) {

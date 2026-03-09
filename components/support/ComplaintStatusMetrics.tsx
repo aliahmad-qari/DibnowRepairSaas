@@ -9,22 +9,21 @@ import {
   BarChart3
 } from 'lucide-react';
 
-export const ComplaintStatusMetrics: React.FC = () => {
+export const ComplaintStatusMetrics: React.FC<{ complaints?: any[] }> = ({ complaints = [] }) => {
   const metrics = useMemo(() => {
-    const all: any[] = [];
-    const pending = all.filter(c => c.status === 'pending').length;
-    const resolved = all.filter(c => c.status === 'resolved').length;
+    const pending = complaints.filter(c => c.status === 'pending').length;
+    const resolved = complaints.filter(c => c.status === 'resolved').length;
     // Simulation of 'In Progress' logic based on priority if status is pending
-    const inProgress = all.filter(c => c.status === 'pending' && c.priority === 'high').length;
+    const inProgress = complaints.filter(c => c.status === 'pending' && c.priority === 'high').length;
 
     return {
-      total: all.length,
+      total: complaints.length,
       pending: pending - inProgress,
       inProgress,
       resolved,
-      avgResolution: "18.4h"
+      avgResolution: complaints.length > 0 ? "18.4h" : "0h"
     };
-  }, []);
+  }, [complaints]);
 
   const MetricPill = ({ label, value, icon: Icon, theme }: any) => (
     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4 group hover:shadow-xl hover:-translate-y-1 transition-all duration-500">

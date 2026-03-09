@@ -77,7 +77,7 @@ const userSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: ['active', 'pending', 'expired', 'cancelled'],
+      values: ['active', 'pending', 'expired', 'cancelled', 'disabled'],
       message: 'Invalid status'
     },
     default: 'pending'

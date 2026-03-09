@@ -35,7 +35,7 @@ export const SystemStaff: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const data = await callBackendAPI('/api/team', null, 'GET');
+        const data = await callBackendAPI('/api/team?system=true', null, 'GET');
         setMembers(Array.isArray(data) ? data : data?.team || []);
       } catch (error) {
         console.error('Failed to load system staff:', error);
@@ -85,7 +85,7 @@ export const SystemStaff: React.FC = () => {
     };
 
     try {
-      await callBackendAPI(`/api/team/${memberId}`, { permissions: newPerms }, 'PUT');
+      await callBackendAPI(`/api/team/${memberId}?system=true`, { permissions: newPerms }, 'PUT');
       const updatedMembers = members.map(m => m.id === memberId ? { ...m, permissions: newPerms } : m);
       setMembers(updatedMembers);
       setShowPermissionModal({ ...member, permissions: newPerms });

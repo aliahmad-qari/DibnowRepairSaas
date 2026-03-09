@@ -49,6 +49,14 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
+// Superadmin-only middleware
+const superadminOnly = (req, res, next) => {
+  if (!req.user || req.user.role !== 'superadmin') {
+    return res.status(403).json({ message: 'Superadmin access required' });
+  }
+  next();
+};
+
 // Super Admin only middleware
 const superAdminOnly = (req, res, next) => {
   if (!req.user || req.user.role !== 'superadmin') {

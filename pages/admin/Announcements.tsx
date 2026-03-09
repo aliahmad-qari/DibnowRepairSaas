@@ -12,6 +12,7 @@ export const AdminAnnouncements: React.FC = () => {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -58,6 +59,56 @@ export const AdminAnnouncements: React.FC = () => {
     setFormData({ title: '', message: '', type: 'info', target: 'all' });
   };
 
+  const handleUpdate = async (announcement: any) => {
+    setEditingAnnouncement(announcement);
+    setFormData({
+      title: announcement.title,
+      message: announcement.message,
+      type: announcement.type,
+      target: announcement.target
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this announcement?')) return;
+    
+    try {
+      await callBackendAPI(`/api/superadmin/announcements/${id}`, null, 'DELETE');
+      setAnnouncements(announcements.filter(ann => ann._id !== id));
+    } catch (error) {
+      console.error('Failed to delete announcement:', error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsPublishing(true);
+    
+    try {
+      if (editingAnnouncement) {
+        // Update existing announcement
+        await callBackendAPI(`/api/superadmin/announcements/${editingAnnouncement._id}`, formData, 'PUT');
+        setAnnouncements(announcements.map(ann => 
+          ann._id === editingAnnouncement._id 
+            ? { ...ann, ...formData }
+            : ann
+        ));
+      } else {
+        // Create new announcement
+        const newAnnouncement = await callBackendAPI('/api/superadmin/announcements', formData, 'POST');
+        setAnnouncements([newAnnouncement, ...announcements]);
+      }
+    } catch (error) {
+      console.error('Failed to save announcement:', error);
+    }
+
+    setIsPublishing(false);
+    setShowModal(false);
+    setEditingAnnouncement(null);
+    setFormData({ title: '', message: '', type: 'info', target: 'all' });
+  };
+
   const getStatusColor = (type: string) => {
     switch(type) {
       case 'success': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
@@ -76,7 +127,11 @@ export const AdminAnnouncements: React.FC = () => {
           </p>
         </div>
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setEditingAnnouncement(null);
+            setFormData({ title: '', message: '', type: 'info', target: 'all' });
+            setShowModal(true);
+          }}
           className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-all text-[11px] uppercase tracking-widest"
         >
           <Plus size={18} /> Deploy New Announcement
@@ -95,14 +150,14 @@ export const AdminAnnouncements: React.FC = () => {
                </div>
                <div className="divide-y divide-slate-50">
                   {announcements.map((ann) => (
-                    <div key={ann.id} className="p-8 flex items-start gap-6 hover:bg-slate-50 transition-all group">
+                    <div key={ann._id} className="p-8 flex items-start gap-6 hover:bg-slate-50 transition-all group">
                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border shadow-sm ${getStatusColor(ann.type)}`}>
                           <Megaphone size={24} />
                        </div>
                        <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-2">
                              <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">{ann.title}</h4>
-                             <span className="text-[9px] font-bold text-slate-300 uppercase">{ann.date}</span>
+                             <span className="text-[9px] font-bold text-slate-300 uppercase">{new Date(ann.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                           </div>
                           <p className="text-sm font-medium text-slate-500 leading-relaxed uppercase tracking-tighter">"{ann.message}"</p>
                           <div className="mt-6 flex items-center justify-between">
@@ -111,8 +166,8 @@ export const AdminAnnouncements: React.FC = () => {
                                 <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${getStatusColor(ann.type)}`}>{ann.type}</span>
                              </div>
                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm"><Edit2 size={16}/></button>
-                                <button className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-rose-600 shadow-sm"><Trash2 size={16}/></button>
+                                <button onClick={() => handleUpdate(ann)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm"><Edit2 size={16}/></button>
+                                <button onClick={() => handleDelete(ann._id)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-rose-600 shadow-sm"><Trash2 size={16}/></button>
                              </div>
                           </div>
                        </div>
@@ -168,7 +223,7 @@ export const AdminAnnouncements: React.FC = () => {
                  <div className="flex items-center gap-5">
                     <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md shadow-2xl"><Megaphone size={28}/></div>
                     <div>
-                       <h2 className="text-2xl font-black uppercase tracking-widest leading-none">New Broadcast</h2>
+                       <h2 className="text-2xl font-black uppercase tracking-widest leading-none">{editingAnnouncement ? 'Edit Broadcast' : 'New Broadcast'}</h2>
                        <p className="text-[9px] font-bold text-indigo-100 uppercase mt-2 tracking-widest opacity-80">Global Notification Protocol</p>
                     </div>
                  </div>
@@ -176,7 +231,7 @@ export const AdminAnnouncements: React.FC = () => {
               </div>
 
               <div className="p-10 md:p-12 overflow-y-auto custom-scrollbar flex-1">
-                 <form onSubmit={handlePublish} className="space-y-8">
+                 <form onSubmit={handleSubmit} className="space-y-8">
                     <div className="space-y-1.5">
                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Announcement Subject</label>
                        <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 text-sm font-black transition-all" placeholder="E.g. System Protocol Upgrade v9.4" />
@@ -209,7 +264,7 @@ export const AdminAnnouncements: React.FC = () => {
                     <div className="pt-6 flex gap-4">
                        <button type="submit" disabled={isPublishing} className="flex-1 py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50">
                           {isPublishing ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                          {isPublishing ? "TRANSMITTING PROTOCOL..." : "Authorize Global Dispatch"}
+                          {isPublishing ? "TRANSMITTING PROTOCOL..." : editingAnnouncement ? "Update Broadcast" : "Authorize Global Dispatch"}
                        </button>
                     </div>
                  </form>

@@ -32,6 +32,10 @@ const currencySchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  isDefault: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

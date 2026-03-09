@@ -12,23 +12,35 @@ const teamMemberSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
+  phone: {
+    type: String,
+    trim: true
+  },
   role: {
     type: String,
     required: true,
     default: 'technician'
   },
+  department: {
+    type: String,
+    default: 'General'
+  },
   status: {
     type: String,
-    default: 'enabled'
+    enum: ['active', 'inactive', 'suspended'],
+    default: 'active'
   },
   permissions: {
-    type: [String],
-    default: []
+    type: mongoose.Schema.Types.Mixed, // Allow both array and object structures
+    default: {}
   },
   ownerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and string for system admin
     required: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true

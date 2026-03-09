@@ -1071,6 +1071,99 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* BRANDS & CATEGORIES OVERVIEW */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Brands Section */}
+        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-8 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-2xl">
+                <Tag size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-slate-800">Brand Registry</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Product Brand Management</p>
+              </div>
+            </div>
+            <div className="bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">
+              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{brandsData.length} Brands</span>
+            </div>
+          </div>
+          <div className="p-8">
+            <div className="space-y-4 max-h-80 overflow-y-auto">
+              {brandsData.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <Tag size={48} className="mx-auto mb-4 opacity-20" />
+                  <p className="text-sm font-bold uppercase tracking-widest">No brands registered</p>
+                </div>
+              ) : brandsData.map((brand: any) => (
+                <div key={brand._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-indigo-50 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center font-black text-sm">
+                      {brand.name?.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-slate-800 uppercase">{brand.name}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: {brand._id.slice(-6)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      {new Date(brand.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Categories Section */}
+        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-8 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-2xl">
+                <Layers size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-slate-800">Category Matrix</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Product Category Organization</p>
+              </div>
+            </div>
+            <div className="bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100">
+              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{categoriesData.length} Categories</span>
+            </div>
+          </div>
+          <div className="p-8">
+            <div className="space-y-4 max-h-80 overflow-y-auto">
+              {categoriesData.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <Layers size={48} className="mx-auto mb-4 opacity-20" />
+                  <p className="text-sm font-bold uppercase tracking-widest">No categories registered</p>
+                </div>
+              ) : categoriesData.map((category: any) => (
+                <div key={category._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-emerald-50 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center font-black text-sm">
+                      {category.name?.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-slate-800 uppercase">{category.name}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: {category._id.slice(-6)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      {new Date(category.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
         </>
       )}
     </div>
