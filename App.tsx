@@ -171,6 +171,7 @@ const App: React.FC = () => {
             <Route path="/user/quick/weather" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><WeatherPage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user/quick/history" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><HistoryPage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user/quick/support" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><SupportPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/user/quick/profile" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
 
             {/* Standard User Routes */}
             <Route path="/user/repairs" element={<ProtectedRoute role={UserRole.USER}><DashboardLayout><Repairs /></DashboardLayout></ProtectedRoute>} />
