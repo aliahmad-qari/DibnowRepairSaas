@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BackButton } from '../../../components/common/BackButton';
 import {
    User, ShieldCheck, Mail, Wallet, Key, ChevronLeft,
    LogOut, Settings, BadgeCheck, Globe, Rocket,
@@ -307,35 +308,35 @@ export const ProfilePage: React.FC = () => {
    };
 
    return (
-      <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-500 pb-20 px-4 md:px-0 relative">
+      <div className="max-w-5xl mx-auto space-y-8 sm:space-y-12 animate-in fade-in duration-500 pb-20 px-4 md:px-0 relative">
          {isLoading && (
             <div className="absolute inset-0 z-[100] bg-white/60 backdrop-blur-[2px] flex items-center justify-center rounded-[3rem]">
                <Loader2 className="w-16 h-16 text-indigo-600 animate-spin" />
             </div>
          )}
          {/* Header */}
-         <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 shadow-sm transition-all"><ChevronLeft /></button>
-            <div>
-               <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Authorized Shop Owner Passport</p>
+         <div className="flex items-center gap-4 pt-4">
+            <BackButton />
+            <div className="min-w-0">
+               <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-1 truncate">Authorized Shop Owner Passport</p>
             </div>
          </div>
 
          {/* --- ADDITIVE: TASK 1 - ACCOUNT HEALTH SUMMARY --- */}
-         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-top-2 duration-700">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-top-2 duration-700">
             {[
                { label: 'Overall Health', val: '98%', icon: HeartPulse, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                { label: 'Security Status', val: 'Strong', icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                { label: 'Billing Status', val: 'Healthy', icon: Wallet, color: 'text-blue-600', bg: 'bg-blue-50' },
                { label: 'Compliance', val: 'Verified', icon: ListChecks, color: 'text-amber-600', bg: 'bg-amber-50' }
             ].map((stat, i) => (
-               <div key={i} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 group">
-                  <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-inner`}>
+               <div key={i} className="bg-white p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 group">
+                  <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-inner shrink-0`}>
                      <stat.icon size={18} />
                   </div>
-                  <div>
-                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                     <h4 className="text-sm font-black text-slate-800">{stat.val}</h4>
+                  <div className="min-w-0">
+                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest truncate">{stat.label}</p>
+                     <h4 className="text-sm font-black text-slate-800 truncate">{stat.val}</h4>
                   </div>
                </div>
             ))}
@@ -365,15 +366,14 @@ export const ProfilePage: React.FC = () => {
             <div className="lg:col-span-1 space-y-8">
                <div className="flex flex-col items-center text-center">
                   <div className="relative group">
-                     {/* ✅ ADDITIVE: Functional Avatar Update Area */}
                      <label className="cursor-pointer relative block">
-                        <div className="w-40 h-40 rounded-[3.5rem] bg-indigo-50 border-4 border-white shadow-2xl flex items-center justify-center overflow-hidden transition-all group-hover:scale-105 group-hover:brightness-90">
+                        <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] sm:rounded-[3.5rem] bg-indigo-50 border-4 border-white shadow-2xl flex items-center justify-center overflow-hidden transition-all group-hover:scale-105 group-hover:brightness-90">
                            {isUploadingAvatar ? (
-                              <Loader2 className="animate-spin text-indigo-600" size={48} />
+                              <Loader2 className="animate-spin text-indigo-600" size={32} />
                            ) : user?.avatar ? (
                               <img src={user.avatar} className="w-full h-full object-cover" alt="Profile" />
                            ) : (
-                              <User size={80} className="text-indigo-200" />
+                              <User size={60} className="text-indigo-200" />
                            )}
                         </div>
                         {!isUploadingAvatar && (
@@ -390,14 +390,14 @@ export const ProfilePage: React.FC = () => {
                         />
                      </label>
 
-                     <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-emerald-500 text-white rounded-2xl border-4 border-white flex items-center justify-center shadow-lg">
-                        <BadgeCheck size={24} />
+                     <div className="absolute -bottom-2 -right-2 w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500 text-white rounded-[0.8rem] sm:rounded-2xl border-4 border-white flex items-center justify-center shadow-lg">
+                        <BadgeCheck size={20} />
                      </div>
                   </div>
-                  <h3 className="mt-8 text-3xl font-black text-slate-900 tracking-tighter uppercase">{user?.name}</h3>
-                  <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mt-1">{user?.subRole || user?.role}</p>
+                  <h3 className="mt-6 sm:mt-8 text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-tight">{user?.name}</h3>
+                  <p className="text-[9px] sm:text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mt-1">{user?.subRole || user?.role}</p>
 
-                  <div className="w-full mt-10 p-6 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4 text-left">
+                  <div className="w-full mt-8 sm:mt-10 p-5 sm:p-6 bg-white rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4 text-left">
                      <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center"><Mail size={18} /></div>
                         <div className="min-w-0">
@@ -443,23 +443,23 @@ export const ProfilePage: React.FC = () => {
                </div>
 
                {/* --- ADDITIVE: TASK 5 - NOTIFICATION STATUS SUMMARY --- */}
-               <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-amber-500">
-                  <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center gap-3">
-                     <BellRing size={18} className="text-amber-600" />
-                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-800">Notification Status</h3>
+               <div className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-amber-500">
+                  <div className="p-5 sm:p-6 border-b border-slate-50 bg-slate-50/30 flex items-center gap-3">
+                     <BellRing size={18} className="text-amber-600 shrink-0" />
+                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-800 truncate">Notification Status</h3>
                   </div>
-                  <div className="p-6 space-y-3">
-                     <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Security Alerts</span>
-                        <span className="text-[8px] font-black text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded">ON</span>
+                  <div className="p-5 sm:p-6 space-y-3">
+                     <div className="flex justify-between items-center gap-4">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate">Security Alerts</span>
+                        <span className="text-[8px] font-black text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded shrink-0">ON</span>
                      </div>
-                     <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Billing Alerts</span>
-                        <span className="text-[8px] font-black text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded">ON</span>
+                     <div className="flex justify-between items-center gap-4">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate">Billing Alerts</span>
+                        <span className="text-[8px] font-black text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded shrink-0">ON</span>
                      </div>
-                     <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">System Alerts</span>
-                        <span className="text-[8px] font-black text-rose-600 uppercase bg-rose-50 px-2 py-0.5 rounded">OFF</span>
+                     <div className="flex justify-between items-center gap-4">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate">System Alerts</span>
+                        <span className="text-[8px] font-black text-rose-600 uppercase bg-rose-50 px-2 py-0.5 rounded shrink-0">OFF</span>
                      </div>
                   </div>
                </div>
@@ -486,14 +486,14 @@ export const ProfilePage: React.FC = () => {
             <div className="lg:col-span-2 space-y-8">
 
                {/* Plan Information Section */}
-               <div className="bg-white rounded-[3rem] border border-slate-100 p-8 space-y-6">
+               <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 p-6 sm:p-8 space-y-6">
                   <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
-                     <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-                        <Zap size={24} />
+                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 rounded-xl sm:rounded-2xl flex items-center justify-center text-indigo-600 shrink-0">
+                        <Zap size={20} sm:size={24} />
                      </div>
                      <div>
-                        <h4 className="text-sm font-black uppercase tracking-widest">Active Subscription</h4>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">Current Plan Details</p>
+                        <h4 className="text-[11px] sm:text-sm font-black uppercase tracking-widest leading-tight">Active Subscription</h4>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase mt-1">Current Plan Details</p>
                      </div>
                   </div>
                   
@@ -533,25 +533,25 @@ export const ProfilePage: React.FC = () => {
                   <div className="pt-4 border-t border-slate-100">
                      <button 
                         onClick={() => navigate('/user/pricing')} 
-                        className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-700 transition-all"
+                        className="w-full py-4 sm:py-5 bg-indigo-600 text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] hover:bg-indigo-700 transition-all shadow-lg"
                      >
                         Manage Subscription
                      </button>
                   </div>
                </div>
 
-               <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col border-b-8 border-b-indigo-600">
-                  <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+               <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col border-b-8 border-b-indigo-600">
+                  <div className="p-6 sm:p-8 border-b border-slate-50 bg-slate-50/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg">
+                        <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg shrink-0">
                            <Shield size={20} />
                         </div>
-                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Account Status Overview</h3>
+                        <h3 className="text-[11px] sm:text-sm font-black uppercase tracking-widest text-slate-800 leading-tight">Account Status Overview</h3>
                      </div>
                      {accountInfo?.isLimited && (
-                        <div className="bg-rose-50 text-rose-600 px-4 py-1.5 rounded-xl border border-rose-100 flex items-center gap-2 animate-pulse">
+                        <div className="bg-rose-50 text-rose-600 px-4 py-1.5 rounded-xl border border-rose-100 flex items-center gap-2 animate-pulse w-fit">
                            <AlertCircle size={14} />
-                           <span className="text-[9px] font-black uppercase tracking-widest">Action Required</span>
+                           <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">Action Required</span>
                         </div>
                      )}
                   </div>
@@ -603,16 +603,16 @@ export const ProfilePage: React.FC = () => {
                   </div>
                </div>
 
-               <div className="bg-slate-900 rounded-[3rem] p-8 md:p-10 text-white relative overflow-hidden group shadow-2xl">
-                  <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform duration-1000"><Activity size={200} /></div>
+               <div className="bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 text-white relative overflow-hidden group shadow-2xl">
+                  <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform duration-1000 hidden sm:block"><Activity size={200} /></div>
                   <div className="relative z-10">
-                     <div className="flex items-center justify-between mb-10">
-                        <div>
-                           <h3 className="text-xl font-black uppercase tracking-widest leading-none">Operational Quota Monitor</h3>
-                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">Active Protocol: {usage?.planName}</p>
+                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 sm:mb-10 gap-6">
+                        <div className="text-center sm:text-left">
+                           <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest leading-none">Operational Quota Monitor</h3>
+                           <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">Active Protocol: {usage?.planName}</p>
                         </div>
-                        <div className="flex gap-2">
-                           <button onClick={() => navigate('/user/pricing')} className="bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2">
+                        <div className="flex justify-center sm:justify-start">
+                           <button onClick={() => navigate('/user/pricing')} className="bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg">
                               <Rocket size={14} /> Upgrade Plan
                            </button>
                         </div>
@@ -747,42 +747,43 @@ export const ProfilePage: React.FC = () => {
                   </div>
                </div>
 
-               <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-emerald-500">
-                  <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+               <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-emerald-500">
+                  <div className="p-6 sm:p-8 border-b border-slate-50 bg-slate-50/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg">
+                        <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg shrink-0">
                            <Monitor size={20} />
                         </div>
-                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Login & Device Registry</h3>
+                        <h3 className="text-[11px] sm:text-sm font-black uppercase tracking-widest text-slate-800 leading-tight">Login & Device Registry</h3>
                      </div>
-                     <div className="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-2">
+                     <div className="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-2 w-fit">
                         <ShieldCheck size={14} />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Active Protection</span>
+                        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">Active Protection</span>
                      </div>
                   </div>
 
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto custom-scrollbar">
                      <table className="w-full text-left">
-                        <thead className="bg-slate-50/50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
+                        <thead className="bg-slate-50/50 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 whitespace-nowrap">
                            <tr>
-                              <th className="px-8 py-4">Date</th>
-                              <th className="px-8 py-4">Node Context (Location)</th>
-                              <th className="px-8 py-4">Hardware Node</th>
-                              <th className="px-8 py-4 text-center">Protocol Status</th>
+                              <th className="px-6 sm:px-8 py-4">Date</th>
+                              <th className="px-6 sm:px-8 py-4">Node Context (Location)</th>
+                              <th className="px-6 sm:px-8 py-4">Hardware Node</th>
+                              <th className="px-6 sm:px-8 py-4 text-center">Protocol Status</th>
                            </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50 text-[10px] font-bold">
+                        <tbody className="divide-y divide-slate-50 text-[10px] font-bold whitespace-nowrap">
                            {loginHistory.map((log) => (
                               <tr key={log.id} className="hover:bg-slate-50/80 transition-colors h-16">
-                                 <td className="px-8 font-black text-slate-800">{log.date}</td>
-                                 <td className="px-8 text-slate-500">{log.location}</td>
-                                 <td className="px-8 text-slate-500">
-                                    {log.device}
-                                    {/* --- ADDITIVE: TASK 4 - DEVICE TRUST INDICATOR --- */}
-                                    <span className="ml-3 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[7px] font-black uppercase rounded border border-emerald-100">Trusted</span>
+                                 <td className="px-6 sm:px-8 font-black text-slate-800">{log.date}</td>
+                                 <td className="px-6 sm:px-8 text-slate-500">{log.location}</td>
+                                 <td className="px-6 sm:px-8 text-slate-500">
+                                    <div className="flex items-center gap-3">
+                                       {log.device}
+                                       <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[6px] sm:text-[7px] font-black uppercase rounded border border-emerald-100">Trusted</span>
+                                    </div>
                                  </td>
-                                 <td className="px-8 text-center">
-                                    <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-100 uppercase text-[8px] font-black">
+                                 <td className="px-6 sm:px-8 text-center text-[10px]">
+                                    <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded border border-emerald-100 uppercase text-[8px] font-black">
                                        {log.status}
                                     </span>
                                  </td>

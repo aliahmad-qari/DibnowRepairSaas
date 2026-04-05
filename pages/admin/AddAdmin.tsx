@@ -40,13 +40,13 @@ export const AddAdmin: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-8 px-4 sm:px-0">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Add New Administrator</h2>
         <p className="text-slate-500">Create a new system-level user with elevated privileges.</p>
       </div>
 
-      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+      <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
             <div>
@@ -136,8 +136,8 @@ export const AddAdmin: React.FC = () => {
         </form>
       </div>
 
-      <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl flex items-start gap-4">
-        <Shield className="text-indigo-600 mt-1" size={24} />
+      <div className="bg-indigo-50 border border-indigo-100 p-4 sm:p-6 rounded-2xl flex items-start gap-4">
+        <Shield className="text-indigo-600 mt-1 shrink-0" size={24} />
         <div>
           <h4 className="font-bold text-indigo-900">Security Warning</h4>
           <p className="text-sm text-indigo-700 mt-1">

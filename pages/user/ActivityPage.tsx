@@ -6,6 +6,7 @@ import {
   Filter, Search, RefreshCw
 } from 'lucide-react';
 import { callBackendAPI } from '../../api/apiClient';
+import { BackButton } from '../../components/common/BackButton';
 import { useAuth } from '../../context/AuthContext';
 
 export const UserActivity: React.FC = () => {
@@ -91,43 +92,38 @@ export const UserActivity: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 pb-32 animate-in fade-in duration-500">
+    <div className="space-y-6 sm:space-y-8 pb-32 animate-in fade-in duration-500 px-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={() => navigate(-1)} 
-          className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 transition-all shadow-sm"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Activity Monitor</h2>
-          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-1">
+      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pt-4">
+        <BackButton />
+        <div className="text-center sm:text-left">
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight uppercase leading-tight">Activity Monitor</h2>
+          <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest mt-1">
             System Event Stream & User Actions
           </p>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="flex-1 relative group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+      <div className="bg-white p-5 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex-1 relative group w-full">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} sm:size={20} />
           <input
             type="text"
             placeholder="Search activities..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 text-sm font-bold transition-all"
+            className="w-full pl-12 sm:pl-14 pr-6 py-3 sm:py-4 bg-slate-50 border-2 border-slate-100 rounded-xl sm:rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 text-sm font-bold transition-all"
           />
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl">
-            <Filter size={16} className="text-slate-400" />
+        <div className="flex items-center gap-3 w-full lg:w-auto">
+          <div className="flex-1 lg:flex-none flex items-center gap-2 px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl">
+            <Filter size={16} className="text-slate-400 shrink-0" />
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
+              className="w-full bg-transparent text-[9px] sm:text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
             >
               <option value="all">All Modules</option>
               <option value="inventory">Inventory</option>
@@ -142,7 +138,7 @@ export const UserActivity: React.FC = () => {
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="p-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
+            className="p-3 sm:p-3.5 bg-indigo-600 text-white rounded-xl sm:rounded-2xl hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50 shrink-0"
           >
             <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
           </button>
@@ -150,7 +146,7 @@ export const UserActivity: React.FC = () => {
       </div>
 
       {/* Activity List */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
+      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
         {isLoading ? (
           <div className="p-20 text-center">
             <Activity className="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-4" />
@@ -165,31 +161,31 @@ export const UserActivity: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left">
-              <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+              <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
                 <tr>
-                  <th className="px-10 py-6">Activity</th>
+                  <th className="px-6 sm:px-10 py-6">Activity</th>
                   <th className="px-6 py-6">Module</th>
                   <th className="px-6 py-6 text-center">Status</th>
                   <th className="px-6 py-6">User</th>
-                  <th className="px-10 py-6 text-right">Timestamp</th>
+                  <th className="px-6 sm:px-10 py-6 text-right">Timestamp</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-50 whitespace-nowrap">
                 {filteredActivities.map((activity, index) => (
                   <tr key={activity._id || index} className="hover:bg-indigo-50/30 transition-all group">
-                    <td className="px-10 py-7">
+                    <td className="px-6 sm:px-10 py-7">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 group-hover:bg-white transition-all">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-50 rounded-lg sm:rounded-xl flex items-center justify-center border border-slate-100 group-hover:bg-white transition-all shrink-0">
                           {getActivityIcon(activity.actionType)}
                         </div>
-                        <div>
-                          <p className="font-black text-slate-800 text-sm tracking-tight uppercase">
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-800 text-sm tracking-tight uppercase truncate">
                             {activity.actionType}
                           </p>
                           {activity.refId && (
-                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
+                            <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">
                               REF: {activity.refId}
                             </p>
                           )}
@@ -216,12 +212,12 @@ export const UserActivity: React.FC = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="px-10 py-7 text-right">
+                    <td className="px-6 sm:px-10 py-7 text-right">
                       <div className="flex flex-col items-end">
                         <span className="text-[10px] font-black text-slate-800 uppercase">
                           {new Date(activity.timestamp || activity.createdAt).toLocaleDateString()}
                         </span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase mt-1">
+                        <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase mt-1">
                           {new Date(activity.timestamp || activity.createdAt).toLocaleTimeString([], { 
                             hour: '2-digit', 
                             minute: '2-digit' 
@@ -239,43 +235,43 @@ export const UserActivity: React.FC = () => {
 
       {/* Summary Stats */}
       {!isLoading && filteredActivities.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-center">
-            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Activity size={24} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm text-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Activity size={20} sm:size={24} />
             </div>
-            <h4 className="text-2xl font-black text-slate-800">{filteredActivities.length}</h4>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Total Events</p>
+            <h4 className="text-xl sm:text-2xl font-black text-slate-800">{filteredActivities.length}</h4>
+            <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Total Events</p>
           </div>
           
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-center">
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <CheckCircle2 size={24} />
+          <div className="bg-white p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm text-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-50 text-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 size={20} sm:size={24} />
             </div>
-            <h4 className="text-2xl font-black text-slate-800">
+            <h4 className="text-xl sm:text-2xl font-black text-slate-800">
               {filteredActivities.filter(a => a.status === 'Success').length}
             </h4>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Successful</p>
+            <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Successful</p>
           </div>
           
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-center">
-            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <AlertTriangle size={24} />
+          <div className="bg-white p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm text-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-50 text-rose-600 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-3">
+              <AlertTriangle size={20} sm:size={24} />
             </div>
-            <h4 className="text-2xl font-black text-slate-800">
+            <h4 className="text-xl sm:text-2xl font-black text-slate-800">
               {filteredActivities.filter(a => a.status === 'Failed' || a.status === 'Error').length}
             </h4>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Failed</p>
+            <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Failed</p>
           </div>
           
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-center">
-            <div className="w-12 h-12 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Clock size={24} />
+          <div className="bg-white p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm text-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-50 text-slate-600 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Clock size={20} sm:size={24} />
             </div>
-            <h4 className="text-2xl font-black text-slate-800">
+            <h4 className="text-xl sm:text-2xl font-black text-slate-800">
               {filteredActivities.length > 0 ? 'Today' : '--'}
             </h4>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Last Activity</p>
+            <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Last Activity</p>
           </div>
         </div>
       )}

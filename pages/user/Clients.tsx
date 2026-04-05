@@ -13,6 +13,7 @@ import { callBackendAPI } from '../../api/apiClient.ts';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../context/CurrencyContext';
 import { Loader2 } from 'lucide-react';
+import { BackButton } from '../../components/common/BackButton';
 
 type CustomerFilter = 'all' | 'active' | 'inactive' | 'high_value' | 'complaints' | 'new';
 
@@ -221,50 +222,48 @@ export const Clients: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 shadow-sm transition-all">
-            <ChevronLeft size={20} />
-          </button>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <BackButton />
           <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase leading-none">Client CRM</h2>
-            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2 flex items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight uppercase leading-none">Client CRM</h2>
+            <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest mt-2 flex items-center gap-2">
               <Zap size={12} className="text-indigo-600" /> Retention & Growth Intelligence
             </p>
           </div>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl hover:scale-105 active:scale-95 transition-all text-[11px] uppercase tracking-widest w-full md:w-auto"
+          className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl hover:scale-105 active:scale-95 transition-all text-[11px] uppercase tracking-widest w-full lg:w-auto"
         >
           <UserPlus size={18} /> Enroll New Identity
         </button>
       </div>
 
       {/* KPI STRIP */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Registry', val: intel.total, icon: UsersRound, color: 'text-indigo-600', bg: 'bg-indigo-50' },
           { label: 'Active (30d)', val: intel.active, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Returning Nodes', val: intel.returning, icon: BadgeCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Dormant Segments', val: intel.inactive, icon: UserMinus, color: 'text-rose-600', bg: 'bg-rose-50' }
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4 group hover:shadow-xl transition-all">
-            <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}><stat.icon size={22} /></div>
+          <div key={i} className="bg-white p-5 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4 group hover:shadow-xl transition-all">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}><stat.icon size={20} sm:size={22} /></div>
             <div>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
-              <h4 className="text-2xl font-black text-slate-800 tracking-tighter">{stat.val}</h4>
+              <h4 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tighter">{stat.val}</h4>
             </div>
           </div>
         ))}
       </div>
 
       {showForm && (
-        <div className="bg-white p-8 rounded-[2.5rem] border border-indigo-100 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-indigo-100 shadow-2xl animate-in zoom-in-95 duration-200">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Identity Enrollment</h3>
-              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg sm:text-xl font-black text-slate-800 uppercase tracking-tight">Identity Enrollment</h3>
+              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={20} sm:size={24} /></button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-1">
@@ -280,19 +279,19 @@ export const Clients: React.FC = () => {
                 <input required type="email" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 font-bold text-sm" value={newClient.email} onChange={(e) => setNewClient({ ...newClient, email: e.target.value })} />
               </div>
             </div>
-            <div className="pt-4 flex gap-3">
-              <button disabled={isSubmitting} type="submit" className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-indigo-700 transition-all uppercase tracking-widest text-[11px] disabled:opacity-50 flex items-center justify-center gap-2">
+            <div className="pt-4 flex flex-col sm:flex-row gap-3">
+              <button disabled={isSubmitting} type="submit" className="flex-[2] bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-indigo-700 transition-all uppercase tracking-widest text-[11px] disabled:opacity-50 flex items-center justify-center gap-2">
                 {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null}
                 {isSubmitting ? 'Authorizing...' : 'Authorize Enrollment'}
               </button>
-              <button disabled={isSubmitting} type="button" onClick={() => setShowForm(false)} className="px-8 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[11px]">Discard</button>
+              <button disabled={isSubmitting} type="button" onClick={() => setShowForm(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[11px]">Discard</button>
             </div>
           </form>
         </div>
       )}
 
       {/* CUSTOMER VALUE MODULE */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600 min-h-[400px] flex flex-col relative">
+      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600 min-h-[400px] flex flex-col relative">
         {isLoading && (
           <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
             <Users className="w-12 h-12 text-indigo-600 animate-spin" />
@@ -314,29 +313,29 @@ export const Clients: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="p-8 border-b border-slate-50 bg-slate-50/20 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="p-6 sm:p-8 border-b border-slate-50 bg-slate-50/20 flex flex-col lg:flex-row justify-between lg:items-center gap-6">
               {/* Task 7: Filter Tabs */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-2 px-2">
                 {[
                   { id: 'all', label: 'All Clients', icon: Users },
                   { id: 'active', label: 'Active', icon: UserCheck },
                   { id: 'inactive', label: 'Inactive', icon: UserMinus },
                   { id: 'high_value', label: 'High Value', icon: Star },
-                  { id: 'complaints', label: 'Support Issues', icon: MessageSquare },
-                  { id: 'new', label: 'New (7D)', icon: Zap },
+                  { id: 'complaints', label: 'Issues', icon: MessageSquare },
+                  { id: 'new', label: 'New', icon: Zap },
                 ].map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTabFilter(tab.id as CustomerFilter)}
-                    className={`px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${activeTabFilter === tab.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all whitespace-nowrap ${activeTabFilter === tab.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}
                   >
                     <tab.icon size={12} /> {tab.label}
                   </button>
                 ))}
               </div>
 
-              <div className="relative flex-1 max-w-sm group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <div className="relative flex-1 max-w-full lg:max-w-sm group">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
                   type="text"
                   placeholder="Query Name, Email, or Phone..."
@@ -349,16 +348,16 @@ export const Clients: React.FC = () => {
 
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left">
-                <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+                <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
                   <tr>
-                    <th className="px-10 py-6">Customer identity</th>
+                    <th className="px-6 sm:px-10 py-6">Customer identity</th>
                     <th className="px-6 py-6 text-center">Protocol Source</th>
                     <th className="px-6 py-6 text-center">Settlement Node</th>
                     <th className="px-6 py-6 text-right">Total Flow</th>
                     <th className="px-6 py-6 text-center">Retention status</th>
                     <th className="px-6 py-6 text-center">Flags</th>
                     <th className="px-6 py-6 text-center">Loyalty Index</th>
-                    <th className="px-10 py-6 text-right">Actions</th>
+                    <th className="px-6 sm:px-10 py-6 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -375,11 +374,11 @@ export const Clients: React.FC = () => {
                       <tr
                         key={client._id}
                         onClick={() => setSelectedClientForTimeline(client)}
-                        className="hover:bg-indigo-50/30 transition-all group cursor-pointer"
+                        className="hover:bg-indigo-50/30 transition-all group cursor-pointer whitespace-nowrap"
                       >
-                        <td className="px-10 py-7">
+                        <td className="px-6 sm:px-10 py-7">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-xl text-indigo-600 shadow-sm border border-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl text-indigo-600 shadow-sm border border-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
                               {client.name.charAt(0)}
                             </div>
                             <div className="min-w-0">
@@ -454,7 +453,7 @@ export const Clients: React.FC = () => {
                             {client.loyalty}
                           </span>
                         </td>
-                        <td className="px-10 py-7 text-right">
+                        <td className="px-6 sm:px-10 py-7 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"><History size={16} /></button>
                             <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"><Trash2 size={16} /></button>
@@ -474,13 +473,13 @@ export const Clients: React.FC = () => {
       {selectedClientForTimeline && (
         <div className="fixed inset-0 z-[300] flex justify-end bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="fixed inset-0" onClick={() => setSelectedClientForTimeline(null)} />
-          <div className="bg-white w-full max-w-2xl h-full shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col relative z-10 overflow-hidden rounded-l-[2rem]">
-            <div className="p-10 bg-slate-900 text-white flex flex-col gap-6 shrink-0 relative overflow-hidden">
+          <div className="bg-white w-full sm:max-w-2xl h-full shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col relative z-10 overflow-hidden sm:rounded-l-[2rem]">
+            <div className="p-6 sm:p-10 bg-slate-900 text-white flex flex-col gap-6 shrink-0 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-10 opacity-5">
                 <UserIcon size={200} />
               </div>
               <div className="flex items-center justify-between relative z-10">
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center font-black text-3xl text-indigo-600 shadow-xl">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-2xl sm:text-3xl text-indigo-600 shadow-xl">
                   {selectedClientForTimeline.name.charAt(0)}
                 </div>
                 <button onClick={() => setSelectedClientForTimeline(null)} className="p-3 bg-white/10 hover:bg-rose-500 rounded-full transition-all">
@@ -488,56 +487,56 @@ export const Clients: React.FC = () => {
                 </button>
               </div>
               <div className="relative z-10">
-                <h3 className="text-3xl font-black tracking-tight uppercase leading-none">{selectedClientForTimeline.name}</h3>
-                <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.3em] mt-3">Entity Audit Reference: ID-{selectedClientForTimeline._id?.slice(-6) || selectedClientForTimeline.id?.slice(-6)}</p>
+                <h3 className="text-2xl sm:text-3xl font-black tracking-tight uppercase leading-none">{selectedClientForTimeline.name}</h3>
+                <p className="text-[9px] sm:text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em] sm:tracking-[0.3em] mt-3">Entity Audit: ID-{selectedClientForTimeline._id?.slice(-6) || selectedClientForTimeline.id?.slice(-6)}</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 pt-6 relative z-10">
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                  <p className="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1">Lifetime value</p>
-                  <p className="text-xl font-black">{currency.symbol}{selectedClientForTimeline.totalSpend.toLocaleString()}</p>
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-6 relative z-10">
+                <div className="p-3 sm:p-4 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 backdrop-blur-md">
+                  <p className="text-[7px] sm:text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1 leading-none">LTV</p>
+                  <p className="text-sm sm:text-xl font-black">{currency.symbol}{selectedClientForTimeline.totalSpend.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                  <p className="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1">Total Repairs</p>
-                  <p className="text-xl font-black">{selectedClientForTimeline.repairCount}</p>
+                <div className="p-3 sm:p-4 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 backdrop-blur-md">
+                  <p className="text-[7px] sm:text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1 leading-none">Repairs</p>
+                  <p className="text-sm sm:text-xl font-black">{selectedClientForTimeline.repairCount}</p>
                 </div>
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                  <p className="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1">Protocol Risk</p>
-                  <p className={`text-xl font-black ${selectedClientForTimeline.needsSupport ? 'text-rose-400' : 'text-emerald-400'}`}>{selectedClientForTimeline.needsSupport ? 'HIGH' : 'LOW'}</p>
+                <div className="p-3 sm:p-4 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 backdrop-blur-md">
+                  <p className="text-[7px] sm:text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1 leading-none">Risk</p>
+                  <p className={`text-sm sm:text-xl font-black ${selectedClientForTimeline.needsSupport ? 'text-rose-400' : 'text-emerald-400'}`}>{selectedClientForTimeline.needsSupport ? 'HIGH' : 'LOW'}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar bg-slate-50/30">
+            <div className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-8 sm:space-y-10 custom-scrollbar bg-slate-50/30">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h4 className="text-[11px] font-black uppercase text-indigo-600 tracking-[0.2em] flex items-center gap-2">
+                <h4 className="text-[10px] sm:text-[11px] font-black uppercase text-indigo-600 tracking-[0.2em] flex items-center gap-2">
                   <History size={16} /> Operational Lifecycle Feed
                 </h4>
-                <span className="text-[9px] font-bold text-slate-400 uppercase">Chronological Trace</span>
+                <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase">Chronological Trace</span>
               </div>
 
-              <div className="relative space-y-0 before:absolute before:left-[1.85rem] before:top-0 before:bottom-0 before:w-0.5 before:bg-slate-100">
+              <div className="relative space-y-0 before:absolute before:left-[1.35rem] sm:before:left-[1.85rem] before:top-0 before:bottom-0 before:w-0.5 before:bg-slate-100">
                 {clientTimeline.length === 0 ? (
                   <div className="py-20 text-center opacity-30 grayscale flex flex-col items-center gap-4">
                     <History size={48} strokeWidth={1.5} />
                     <p className="text-[10px] font-black uppercase tracking-widest">No historical node activity detected</p>
                   </div>
                 ) : clientTimeline.map((event: any, idx: number) => (
-                  <div key={idx} className="relative flex gap-8 group animate-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <div key={idx} className="relative flex gap-4 sm:gap-8 group animate-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
                     <div className="flex flex-col items-center shrink-0">
-                      <div className={`w-14 h-14 rounded-2xl bg-white shadow-xl border-4 border-slate-50 flex items-center justify-center z-10 group-hover:scale-110 transition-transform`}>
-                        <event.icon size={22} className={`${event.type === 'COMPLAINT' ? 'text-rose-600' : event.type === 'POS' ? 'text-emerald-600' : 'text-blue-600'}`} />
+                      <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow-xl border-4 border-slate-50 flex items-center justify-center z-10 group-hover:scale-110 transition-transform`}>
+                        <event.icon size={18} sm:size={22} className={`${event.type === 'COMPLAINT' ? 'text-rose-600' : event.type === 'POS' ? 'text-emerald-600' : 'text-blue-600'}`} />
                       </div>
                       <div className="flex-1" />
                     </div>
                     <div className="flex-1 pb-10">
-                      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-50 group-hover:shadow-md transition-all">
-                        <div className="flex justify-between items-start mb-3">
+                      <div className="bg-white p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-sm border border-slate-50 group-hover:shadow-md transition-all">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 sm:mb-3">
                           <div className="space-y-1">
                             <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-slate-50 text-slate-500 border border-slate-100`}>{event.type} NODE</span>
-                            <h5 className="text-sm font-black text-slate-800 uppercase tracking-tight">{event.title}</h5>
+                            <h5 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-tight leading-tight">{event.title}</h5>
                           </div>
-                          <div className="text-right">
+                          <div className="sm:text-right">
                             <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">{event.displayDate}</p>
                             <p className="text-sm font-black text-slate-900 tracking-tighter">{event.val}</p>
                           </div>
@@ -552,15 +551,15 @@ export const Clients: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-8 bg-white border-t border-slate-100 flex flex-col gap-4 shrink-0">
-              <div className="flex items-center gap-4 p-5 bg-indigo-50 border border-indigo-100 rounded-2xl">
-                <ShieldCheck size={24} className="text-indigo-600 shrink-0" />
+            <div className="p-6 sm:p-8 bg-white border-t border-slate-100 flex flex-col gap-4 shrink-0">
+              <div className="flex items-center gap-4 p-4 sm:p-5 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                <ShieldCheck size={20} sm:size={24} className="text-indigo-600 shrink-0" />
                 <div>
-                  <p className="text-[10px] font-black text-indigo-900 uppercase leading-none">Security Clearance Verified</p>
-                  <p className="text-[9px] font-bold text-indigo-600/70 uppercase tracking-tighter mt-1">This audit trail is read-only. Modification of past transactional nodes is restricted.</p>
+                  <p className="text-[9px] sm:text-[10px] font-black text-indigo-900 uppercase leading-none">Security Verified</p>
+                  <p className="text-[8px] sm:text-[9px] font-bold text-indigo-600/70 uppercase tracking-tighter mt-1">Timeline is read-only. Modifications are restricted.</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedClientForTimeline(null)} className="w-full py-5 bg-slate-900 text-white rounded-[1.8rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:bg-black transition-all">Close Entity Audit</button>
+              <button onClick={() => setSelectedClientForTimeline(null)} className="w-full py-5 bg-slate-900 text-white rounded-2xl sm:rounded-[1.8rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:bg-black transition-all">Close Audit</button>
             </div>
           </div>
         </div>
@@ -568,30 +567,30 @@ export const Clients: React.FC = () => {
 
       {/* FOOTER INTELLIGENCE BANNERS */}
       {clients.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {intel.stats.filter(s => s.needsSupport).length > 0 && (
-            <div className="bg-rose-50 border-2 border-rose-100 p-8 rounded-[2.5rem] flex items-center justify-between gap-6 animate-in slide-in-from-top-2">
+            <div className="bg-rose-50 border-2 border-rose-100 p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-between gap-6 animate-in slide-in-from-top-2">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-rose-600 text-white rounded-[2rem] flex items-center justify-center shadow-lg shadow-rose-200 animate-pulse">
-                  <AlertTriangle size={32} />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-rose-600 text-white rounded-xl sm:rounded-[2rem] flex items-center justify-center shadow-lg shadow-rose-200 animate-pulse shrink-0">
+                  <AlertTriangle size={24} sm:size={32} />
                 </div>
                 <div>
-                  <h4 className="text-base font-black text-rose-900 uppercase leading-none">Support Protocol Active</h4>
-                  <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest mt-2">⚠ {intel.stats.filter(s => s.needsSupport).length} identity nodes require immediate attention (Multiple complaints/cancellations)</p>
+                  <h4 className="text-sm sm:text-base font-black text-rose-900 uppercase leading-none">Support Protocol</h4>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-rose-600 uppercase tracking-widest mt-2">{intel.stats.filter(s => s.needsSupport).length} identity nodes require attention.</p>
                 </div>
               </div>
             </div>
           )}
 
           {intel.stats.filter(s => s.isHighValue).length > 0 && (
-            <div className="bg-amber-50 border-2 border-amber-100 p-8 rounded-[2.5rem] flex items-center justify-between gap-6 animate-in slide-in-from-top-2">
+            <div className="bg-amber-50 border-2 border-amber-100 p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-between gap-6 animate-in slide-in-from-top-2">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-amber-500 text-white rounded-[2rem] flex items-center justify-center shadow-lg shadow-amber-200">
-                  <Star size={32} fill="currentColor" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-amber-500 text-white rounded-xl sm:rounded-[2rem] flex items-center justify-center shadow-lg shadow-amber-200 shrink-0">
+                  <Star size={24} sm:size={32} fill="currentColor" />
                 </div>
                 <div>
-                  <h4 className="text-base font-black text-amber-900 uppercase leading-none">High-Yield Assets Detected</h4>
-                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-2">⭐ {intel.stats.filter(s => s.isHighValue).length} Tier-1 clients identified by revenue density.</p>
+                  <h4 className="text-sm sm:text-base font-black text-amber-900 uppercase leading-none">High-Yield Assets</h4>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-2">{intel.stats.filter(s => s.isHighValue).length} Tier-1 clients identified.</p>
                 </div>
               </div>
             </div>

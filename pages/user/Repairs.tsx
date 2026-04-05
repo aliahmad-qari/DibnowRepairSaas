@@ -49,6 +49,7 @@ import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { aiService } from '../../api/aiService';
 import { useQuotas } from '../../hooks/useQuotas';
 import Swal from 'sweetalert2';
+import { BackButton } from '../../components/common/BackButton';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e'];
 
@@ -147,7 +148,7 @@ export const Repairs: React.FC = () => {
         setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
         setBrands(Array.isArray(brandsResp) ? brandsResp : []);
         setTeamMembers(Array.isArray(teamResp) ? teamResp : teamResp?.data || []);
-        
+
       } catch (error) {
         console.error('Failed to load infrastructure data:', error);
       } finally {
@@ -291,8 +292,8 @@ export const Repairs: React.FC = () => {
     e.preventDefault();
     // Quota Enforcement
     const isAtLimit = quotas?.limits.repairs.used >= quotas?.limits.repairs.limit;
-    
-    if (isAtLimit) { 
+
+    if (isAtLimit) {
       Swal.fire({
         icon: 'warning',
         title: 'Quota Exhausted',
@@ -301,7 +302,7 @@ export const Repairs: React.FC = () => {
         confirmButtonText: 'Upgrade Tier',
         confirmButtonColor: '#6366f1'
       }).then(r => r.isConfirmed && navigate('/user/pricing'));
-      return; 
+      return;
     }
 
     setIsSubmitting(true);
@@ -358,18 +359,18 @@ export const Repairs: React.FC = () => {
     }
   };
 
-const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: ProtocolStatus) => {
+  const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: ProtocolStatus) => {
     try {
       console.log('Updating protocol status:', { id, newProtocolStatus });
       const backendStatus = mapStatusToBackend(newProtocolStatus);
       console.log('Mapped backend status:', backendStatus);
       const response = await callBackendAPI(`/api/repairs/${id}/status`, { status: backendStatus }, 'PATCH');
       console.log('Protocol status update response:', response);
-      
+
       const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
       setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
       setActiveProtocolPicker(null);
-      
+
       alert(`Protocol status updated to ${newProtocolStatus}`);
     } catch (error: any) {
       console.error('Protocol status update failed:', error);
@@ -382,10 +383,10 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
       console.log('Updating status:', { id, newStatus });
       const response = await callBackendAPI(`/api/repairs/${id}/status`, { status: newStatus }, 'PATCH');
       console.log('Status update response:', response);
-      
+
       const repairsResp = await callBackendAPI('/api/repairs', null, 'GET');
       setRepairs(Array.isArray(repairsResp) ? repairsResp : repairsResp?.repairs || []);
-      
+
       alert(`Status updated to ${newStatus}`);
     } catch (error: any) {
       console.error('Status update failed:', error);
@@ -473,6 +474,7 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
 
   return (
     <div className="space-y-8 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
@@ -492,7 +494,7 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
       </div>
 
       {/* KPI STRIP */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
           { label: 'Total (This Month)', value: repairKPIs.totalThisMonth, icon: Wrench, color: 'text-indigo-600', bg: 'bg-indigo-50', filter: 'all' },
           { label: 'Pending Repairs', value: repairKPIs.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', filter: 'pending' },
@@ -520,23 +522,23 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
             <Download size={20} /> Liquidate Ledger
           </button>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto ">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
               <tr>
-                <th className="px-10 py-6">Operational Entity</th>
-                <th className="px-10 py-6">Hardware model</th>
-                <th className="px-10 py-6 text-center">Technician</th>
-                <th className="px-10 py-6 text-center">Status</th>
-                <th className="px-10 py-6 text-right">Settlement value</th>
-                <th className="px-10 py-6 text-center">Protocol Date</th>
-                <th className="px-10 py-6 text-right">Actions</th>
+                <th className="px-6 sm:px-10 py-6">Operational Entity</th>
+                <th className="px-6 sm:px-10 py-6">Hardware model</th>
+                <th className="px-6 sm:px-10 py-6 text-center">Technician</th>
+                <th className="px-6 sm:px-10 py-6 text-center">Status</th>
+                <th className="px-6 sm:px-10 py-6 text-right">Settlement value</th>
+                <th className="px-6 sm:px-10 py-6 text-center">Protocol Date</th>
+                <th className="px-6 sm:px-10 py-6 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filteredData.map(r => (
-                <tr key={r._id || r.id} className="hover:bg-indigo-50/20 transition-all group">
-                  <td className="px-10 py-7">
+                <tr key={r._id || r.id} className="hover:bg-indigo-50/20 transition-all group whitespace-nowrap">
+                  <td className="px-6 sm:px-10 py-7">
                     <div className="flex items-center gap-5">
                       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-sm group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">{r.customerName.charAt(0)}</div>
                       <div onClick={() => handleOpenClientProfile(r.customerName)} className="cursor-pointer">
@@ -545,10 +547,10 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
                       </div>
                     </div>
                   </td>
-                  <td className="px-10 py-7">
+                  <td className="px-6 sm:px-10 py-7">
                     <div className="flex items-center gap-3 text-sm font-bold text-slate-600 uppercase"><Smartphone size={16} className="text-slate-300" />{r.device}</div>
                   </td>
-                  <td className="px-10 py-7 text-center">
+                  <td className="px-6 sm:px-10 py-7 text-center">
                     <div className="flex flex-col items-center">
                       <span className={`text-[10px] font-black uppercase ${r.assignedTo ? 'text-indigo-600' : 'text-slate-300'}`}>
                         {r.assignedTo || 'Unassigned'}
@@ -562,7 +564,7 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
                       )}
                     </div>
                   </td>
-                  <td className="px-10 py-7 text-center relative">
+                  <td className="px-6 sm:px-10 py-7 text-center relative">
                     <div onClick={(e) => { e.stopPropagation(); setActiveProtocolPicker(activeProtocolPicker === r._id ? null : r._id); }} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 ${(r.protocolStatus === 'Completed' || r.protocolStatus === 'Delivered') ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : (r.protocolStatus === 'In Progress') ? 'bg-blue-50 text-blue-700 border-blue-100' : (r.protocolStatus === 'Expired' || r.protocolStatus === 'Returned') ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${(r.protocolStatus === 'Completed' || r.protocolStatus === 'Delivered') ? 'bg-emerald-500 animate-pulse' : (r.protocolStatus === 'In Progress') ? 'bg-blue-500' : (r.protocolStatus === 'Expired' || r.protocolStatus === 'Returned') ? 'bg-rose-500' : 'bg-amber-500'}`} />
                       {r.protocolStatus || 'Pending'}
@@ -576,13 +578,13 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
                       </div>
                     )}
                   </td>
-                  <td className="px-10 py-7 text-right">
+                  <td className="px-6 sm:px-10 py-7 text-right">
                     <p className="font-black text-slate-900 text-lg tracking-tighter">{currency.symbol}{parseFloat(r.estimatedCost || r.cost).toLocaleString()}</p>
                   </td>
-                  <td className="px-10 py-7 text-center">
+                  <td className="px-6 sm:px-10 py-7 text-center">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{r.date}</p>
                   </td>
-                  <td className="px-10 py-7 text-right">
+                  <td className="px-6 sm:px-10 py-7 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={(e) => { e.stopPropagation(); handleEmailInvoice(r); }} className="p-2.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Email Invoice"><Mail size={16} /></button>
                       <button onClick={(e) => { e.stopPropagation(); setSelectedInvoiceRepair(r); }} className="p-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Quick QR Protocol"><QrCode size={16} /></button>
@@ -617,7 +619,7 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
               </div>
             </div>
 
-            <div id="repair-invoice-printable" className="flex-1 overflow-y-auto custom-scrollbar p-10 md:p-16 bg-white text-slate-900">
+            <div id="repair-invoice-printable" className="flex-1  p-10 md:p-16 bg-white text-slate-900">
               <div className="flex justify-between items-start border-b-2 border-slate-100 pb-12 mb-12">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
@@ -697,17 +699,17 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
       {showBookingForm && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xl animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col relative border border-white/20 max-h-[90vh]">
-            <div className="bg-indigo-600 p-8 md:p-10 text-white flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-white/20 rounded-[1.5rem] flex items-center justify-center border border-white/20 backdrop-blur-md"><Wrench size={28} /></div>
+            <div className="bg-indigo-600 p-5 sm:p-8 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center border border-white/20 backdrop-blur-md shrink-0"><Wrench size={22} /></div>
                 <div>
-                  <h3 className="text-2xl font-black uppercase tracking-widest leading-none">New Enrollment</h3>
+                  <h3 className="text-lg sm:text-2xl font-black uppercase tracking-widest leading-none">New Enrollment</h3>
                   <p className="text-[10px] font-bold text-indigo-100 uppercase mt-2 tracking-widest opacity-80">Technical Intake Protocol</p>
                 </div>
               </div>
-              <button onClick={() => setShowBookingForm(false)} className="p-3 bg-white/10 hover:bg-rose-500 rounded-full transition-all duration-300"><X size={24} /></button>
+              <button onClick={() => setShowBookingForm(false)} className="p-2 sm:p-3 bg-white/10 hover:bg-rose-500 rounded-full transition-all duration-300"><X size={20} /></button>
             </div>
-            <div className="overflow-y-auto flex-1 custom-scrollbar p-10 md:p-12">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 <form onSubmit={handleEnrollment} className="lg:col-span-8 space-y-12">
                   {/* Client Details */}
@@ -992,7 +994,7 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
               <div className="flex items-center gap-4"><div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10"><Terminal size={24} /></div><div><h3 className="text-xl font-black uppercase tracking-widest leading-none">Trace Audit Record</h3><p className="text-[10px] font-bold text-slate-400 uppercase mt-1.5 tracking-widest opacity-80">Ref: {selectedTimelineRepair.trackingId}</p></div></div>
               <button onClick={() => setSelectedTimelineRepair(null)} className="p-3 hover:bg-rose-500 rounded-full transition-all"><X size={20} /></button>
             </div>
-            <div className="p-10 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/50">
+            <div className="p-10   flex-1 bg-slate-50/50">
               <div className="relative space-y-12 before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                 {(selectedTimelineRepair.events || [{ type: 'Repair Created', timestamp: selectedTimelineRepair.createdAt || selectedTimelineRepair.date, description: 'Technician logged intake protocol.', actor: 'System' }]).map((event: any, idx: number) => (
                   <div key={idx} className="relative flex items-start gap-8 animate-in slide-in-from-left-4" style={{ animationDelay: `${idx * 100}ms` }}>
@@ -1010,7 +1012,7 @@ const handleUpdateProtocolStatus = async (id: string, newProtocolStatus: Protoco
       {selectedClientProfile && (
         <div className="fixed inset-0 z-[450] flex justify-end bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-md h-full shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col border-l border-slate-100">
-            <div className="p-10 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="p-10 flex-1 overflow-y-auto ">
               <button onClick={() => setSelectedClientProfile(null)} className="mb-10 p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-rose-50 hover:text-rose-600 transition-all"><X size={20} /></button>
               <div className="flex flex-col items-center text-center mb-12">
                 <div className="w-28 h-28 bg-indigo-50 text-indigo-600 rounded-[2.5rem] flex items-center justify-center font-black text-4xl shadow-xl border-4 border-white mb-6">{selectedClientProfile.name.charAt(0)}</div>

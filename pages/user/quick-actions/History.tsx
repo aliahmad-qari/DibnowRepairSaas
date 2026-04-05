@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../../context/CurrencyContext.tsx';
 import { useAuth } from '../../../context/AuthContext.tsx';
+import { BackButton } from '../../../components/common/BackButton';
 import { callBackendAPI } from '../../../api/apiClient.ts';
 
 // --- NEW ADDITIVE COMPONENT: InvoicePreview ---
@@ -445,52 +446,52 @@ export const HistoryPage: React.FC = () => {
   const isOwner = user?.role === 'USER';
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto px-4">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto px-4">
       {/* HEADER & EXPORTS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 shadow-sm transition-all"><ChevronLeft /></button>
-          <div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">Forensic Activity Hub</h2>
-            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
-              <ShieldCheck size={14} className="text-indigo-600" /> End-to-End Handshake & Deep Audit Scrutiny
+          <BackButton />
+          <div className="min-w-0">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase leading-none truncate">Forensic Activity Hub</h2>
+            <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2 truncate">
+              <ShieldCheck size={14} className="text-indigo-600 shrink-0" /> End-to-End Handshake & Audit Scrutiny
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           {/* TASK 1: NEW GLOBAL ACTION BUTTONS */}
           <button
             onClick={handleEmailReport}
             disabled={!isOwner || isEmailingReport}
-            className="bg-white border border-slate-200 text-slate-600 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+            className="flex-1 lg:flex-none justify-center bg-white border border-slate-200 text-slate-600 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
           >
             {isEmailingReport ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Email Report
           </button>
-          <button onClick={handleExportCSV} className="bg-white border border-slate-200 text-slate-600 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-            <FileSpreadsheet size={16} /> Export CSV
+          <button onClick={handleExportCSV} className="flex-1 lg:flex-none justify-center bg-white border border-slate-200 text-slate-600 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+            <FileSpreadsheet size={16} /> <span className="hidden sm:inline">Export</span> CSV
           </button>
-          <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-black transition-all shadow-xl">
+          <button onClick={() => window.print()} className="w-full lg:w-auto justify-center bg-slate-900 text-white px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] flex items-center gap-2 hover:bg-black transition-all shadow-xl">
             <FileText size={16} /> Export PDF Audit
           </button>
         </div>
       </div>
 
       {/* TASK 6: ADDITIONAL COMPLIANCE DATA */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {[
           { label: 'Fiscal Net Flow', val: `${currency.symbol}${Math.round(complianceStats.totalFiscal).toLocaleString()}`, icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'System Pulsar', val: complianceStats.systemActions, icon: Cpu, color: 'text-indigo-600', bg: 'bg-indigo-50' },
           { label: 'Human Actors', val: complianceStats.userActions, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Export Sync', val: complianceStats.lastExport, icon: RefreshCcw, color: 'text-slate-400', bg: 'bg-slate-50' },
-          { label: 'Audit Integrity', val: complianceStats.integrity, icon: ShieldPlus, color: 'text-indigo-900', bg: 'bg-indigo-50' },
+          { label: 'Audit Integrity', val: complianceStats.integrity, icon: ShieldPlus, color: 'text-indigo-900', bg: 'bg-indigo-50', fullWidth: true },
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-2 group hover:shadow-xl transition-all">
-            <div className={`w-8 h-8 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center`}>
+          <div key={i} className={`bg-white p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-2 group hover:shadow-xl transition-all ${stat.fullWidth ? 'col-span-2 lg:col-span-1' : ''}`}>
+            <div className={`w-8 h-8 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center shrink-0`}>
               <stat.icon size={16} />
             </div>
-            <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-              <h4 className="text-sm font-black text-slate-800">{stat.val}</h4>
+            <div className="min-w-0">
+              <p className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest truncate">{stat.label}</p>
+              <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate">{stat.val}</h4>
             </div>
           </div>
         ))}
@@ -498,19 +499,19 @@ export const HistoryPage: React.FC = () => {
 
       {/* G. AI INSIGHT BANNER */}
       {aiAnomalies.length > 0 && (
-        <div className="bg-rose-600 rounded-[2.5rem] p-6 text-white shadow-2xl relative overflow-hidden group animate-in slide-in-from-top-4 duration-700">
-          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
+        <div className="bg-rose-600 rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-6 text-white shadow-2xl relative overflow-hidden group animate-in slide-in-from-top-4 duration-700">
+          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform hidden sm:block">
             <Sparkles size={120} />
           </div>
-          <div className="relative z-10 flex items-center gap-6">
-            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md">
-              <BrainCircuit size={24} fill="white" className="animate-pulse" />
+          <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md shrink-0">
+              <BrainCircuit size={20} sm:size={24} fill="white" className="animate-pulse" />
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-rose-200">Autonomous Security Insight</p>
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-rose-200">Autonomous Security Insight</p>
               <div className="space-y-0.5">
                 {aiAnomalies.map((insight, idx) => (
-                  <p key={idx} className="text-sm font-black tracking-tight leading-none uppercase">• {insight}</p>
+                  <p key={idx} className="text-xs sm:text-sm font-black tracking-tight leading-tight uppercase">• {insight}</p>
                 ))}
               </div>
             </div>
@@ -582,26 +583,26 @@ export const HistoryPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
-        <div className="p-8 border-b border-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-slate-50/20">
-          <div className="relative flex-1 max-w-xl group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={22} />
-            <input
-              type="text"
-              placeholder="Search Actor, Source, or Protocol ID..."
-              className="w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-3xl text-sm font-bold focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 shadow-sm transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
+        <div className="p-6 sm:p-8 border-b border-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-slate-50/20">
+          <div className="relative flex-1 w-full lg:max-w-xl group">
+             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} sm:size={22} />
+             <input
+               type="text"
+               placeholder="Search Actor, Source, or Protocol ID..."
+               className="w-full pl-12 sm:pl-14 pr-6 py-4 sm:py-5 bg-white border-2 border-slate-100 rounded-2xl sm:rounded-3xl text-xs sm:text-sm font-bold focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 shadow-sm transition-all"
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+             />
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/user/pos')}
-              className="bg-indigo-50 text-indigo-600 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
-            >
-              <Plus size={16} /> New Transaction
-            </button>
-            <button onClick={() => setFilters({ protocolType: 'all', status: 'all', actor: 'all', minAmount: '', maxAmount: '', dateFrom: '', dateTo: '' })} className="text-[10px] font-black text-indigo-600 uppercase hover:underline">Reset All Criteria</button>
+          <div className="flex items-center justify-between lg:justify-end gap-6 w-full lg:w-auto">
+             <button
+               onClick={() => navigate('/user/pos')}
+               className="flex-1 lg:flex-none justify-center bg-indigo-50 text-indigo-600 px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] flex items-center gap-2 hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100 shadow-sm"
+             >
+               <Plus size={16} /> <span className="hidden sm:inline">New</span> Transaction
+             </button>
+             <button onClick={() => setFilters({ protocolType: 'all', status: 'all', actor: 'all', minAmount: '', maxAmount: '', dateFrom: '', dateTo: '' })} className="text-[9px] sm:text-[10px] font-black text-indigo-600 uppercase hover:underline whitespace-nowrap">Reset Filters</button>
           </div>
         </div>
 
@@ -612,18 +613,18 @@ export const HistoryPage: React.FC = () => {
             </div>
           )}
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+            <thead className="bg-slate-50/50 text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
               <tr>
-                <th className="px-10 py-6">Protocol / Type</th>
-                <th className="px-10 py-6">Action Performed</th>
-                <th className="px-10 py-6">Actor Identity</th>
-                <th className="px-10 py-6">Financial Impact</th>
-                <th className="px-10 py-6">Source Origin</th>
-                <th className="px-10 py-6 text-center">Timestamp</th>
-                <th className="px-10 py-6 text-right">Actions</th>
+                <th className="px-6 sm:px-10 py-6">Protocol / Type</th>
+                <th className="px-6 sm:px-10 py-6">Action Performed</th>
+                <th className="px-6 sm:px-10 py-6">Actor Identity</th>
+                <th className="px-6 sm:px-10 py-6">Financial Impact</th>
+                <th className="px-6 sm:px-10 py-6">Source Origin</th>
+                <th className="px-6 sm:px-10 py-6 text-center">Timestamp</th>
+                <th className="px-6 sm:px-10 py-6 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 whitespace-nowrap">
               {filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-32 text-center">

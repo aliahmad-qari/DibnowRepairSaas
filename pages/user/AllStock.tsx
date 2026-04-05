@@ -16,6 +16,7 @@ import {
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../context/CurrencyContext';
+import { BackButton } from '../../components/common/BackButton';
 
 const PIE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e'];
 
@@ -237,30 +238,18 @@ export const AllStock: React.FC = () => {
    return (
       <div className="space-y-8 pb-32 animate-in fade-in duration-500">
          {/* Header Area */}
-         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-               <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 shadow-sm transition-all">
-                  <ChevronLeft size={20} />
-               </button>
-               <div>
-                  <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none">Complete Stock Ledger</h1>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
-                     <Info size={12} className="text-blue-500" />
-                     Real-time Asset Scrutiny & Node Analysis
-                  </p>
-               </div>
-            </div>
-            <div className="relative flex-1 max-w-md w-full">
-               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-               <input
-                  type="text"
-                  placeholder="Query warehouse database..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 text-sm font-bold shadow-sm transition-all"
-               />
-            </div>
-         </div>
+          <div className="flex flex-col gap-4">
+             <BackButton />
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                   <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none">Complete Stock Ledger</h1>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                      <Info size={12} className="text-blue-500" />
+                      Real-time Asset Scrutiny & Node Analysis
+                   </p>
+                </div>
+             </div>
+          </div>
 
          {/* Main Grid */}
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 relative min-h-[400px]">
@@ -329,10 +318,10 @@ export const AllStock: React.FC = () => {
          {selectedStockDetail && detailAnalysis && (
             <div className="fixed inset-0 z-[300] flex justify-end bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300">
                <div className="fixed inset-0" onClick={() => setSelectedStockDetail(null)} />
-               <div className="bg-white w-full max-w-4xl h-full shadow-[0_0_100px_rgba(0,0,0,0.2)] animate-in slide-in-from-right duration-500 flex flex-col relative z-10 overflow-hidden rounded-l-[3rem]">
+               <div className="bg-white w-full max-w-4xl h-full shadow-[0_0_100px_rgba(0,0,0,0.2)] animate-in slide-in-from-right duration-500 flex flex-col relative z-10 overflow-hidden rounded-l-[1.5rem] sm:rounded-l-[3rem]">
 
                   {/* Header */}
-                  <div className="p-8 md:p-10 border-b border-slate-50 flex items-center justify-between shrink-0 bg-slate-50/20">
+                  <div className="p-6 sm:p-8 md:p-10 border-b border-slate-50 flex items-center justify-between shrink-0 bg-slate-50/20">
                      <div className="flex items-center gap-6">
                         <div className="w-20 h-20 bg-white rounded-3xl overflow-hidden shadow-xl border border-slate-100 p-1">
                            {selectedStockDetail.image ? <img src={selectedStockDetail.image} className="w-full h-full object-cover rounded-2xl" /> : <Package size={40} className="m-4 text-slate-200" />}
@@ -345,14 +334,14 @@ export const AllStock: React.FC = () => {
                            </div>
                         </div>
                      </div>
-                     <button onClick={() => setSelectedStockDetail(null)} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-rose-600 shadow-sm transition-all"><X size={24} /></button>
+                     <button onClick={() => setSelectedStockDetail(null)} className="p-3 sm:p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-rose-600 shadow-sm transition-all"><X size={20} sm:size={24} /></button>
                   </div>
 
                   {/* Scrollable Intelligence Body */}
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-8 md:p-10 space-y-12 bg-white">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 md:p-10 space-y-8 md:space-y-12 bg-white">
 
                      {/* 1. KEY ANALYTICS STRIP */}
-                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-indigo-200 transition-all">
                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Treasury Value</p>
                            <h4 className="text-2xl font-black text-slate-800">{currency.symbol}{(selectedStockDetail.stock * selectedStockDetail.price).toLocaleString()}</h4>
@@ -551,9 +540,9 @@ export const AllStock: React.FC = () => {
                   </div>
 
                   {/* Drawer Footer Actions */}
-                  <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4 shrink-0">
-                     <button onClick={() => { setEditingItem(selectedStockDetail); setSelectedStockDetail(null); }} className="flex-1 py-5 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-3 active:scale-95"><Edit2 size={16} /> Modify Registry Metadata</button>
-                     <button disabled={selectedStockDetail.stock <= 0} onClick={() => { setIsSelling(selectedStockDetail); setSelectedStockDetail(null); }} className="flex-1 py-5 bg-indigo-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"><ShoppingCart size={16} /> Liquidate From Node</button>
+                  <div className="p-6 sm:p-8 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-4 shrink-0">
+                     <button onClick={() => { setEditingItem(selectedStockDetail); setSelectedStockDetail(null); }} className="flex-1 py-4 sm:py-5 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-3 active:scale-95"><Edit2 size={16} /> Modify Registry Metadata</button>
+                     <button disabled={selectedStockDetail.stock <= 0} onClick={() => { setIsSelling(selectedStockDetail); setSelectedStockDetail(null); }} className="flex-1 py-4 sm:py-5 bg-indigo-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"><ShoppingCart size={16} /> Liquidate From Node</button>
                   </div>
                </div>
             </div>

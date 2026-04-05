@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Cloud, Sun, Wind, Droplets, MapPin, ChevronLeft, Loader2, Thermometer, CloudSun, Sunrise, Sunset, Radio, Zap, ShieldCheck, Timer, Waves, AlertTriangle, Calendar, Navigation, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { BackButton } from '../../../components/common/BackButton';
 import { useAuth } from '../../../context/AuthContext.tsx';
 import { callBackendAPI } from '../../../api/apiClient.ts';
 
@@ -141,26 +142,26 @@ export const WeatherPage: React.FC = () => {
    }, []);
 
    return (
-      <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-         <div className="flex items-center justify-between">
+      <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 px-4 sm:px-0">
+         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-4">
             <div className="flex items-center gap-4">
-               <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 shadow-sm transition-all"><ChevronLeft /></button>
-               <div>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Atmospheric Analytics</h2>
-                  <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Satellite Meteorological Node</p>
+               <BackButton />
+               <div className="min-w-0">
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase leading-none truncate">Atmospheric Analytics</h2>
+                  <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-2 truncate">Satellite Meteorological Node</p>
                </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                {isOffline && (
-                  <div className="px-4 py-2 bg-amber-50 text-amber-600 rounded-xl border border-amber-100 flex items-center gap-2">
+                  <div className="px-4 py-2 bg-amber-50 text-amber-600 rounded-xl border border-amber-100 flex items-center justify-center gap-2">
                      <History size={14} />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Offline Cache Mode</span>
+                     <span className="text-[9px] font-black uppercase tracking-widest leading-none">Offline Cache Mode</span>
                   </div>
                )}
                {lastSync && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+                  <div className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
                      <Timer size={14} />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Last Sync: {lastSync}</span>
+                     <span className="text-[9px] font-black uppercase tracking-widest leading-none whitespace-nowrap">Last Sync: {lastSync}</span>
                   </div>
                )}
             </div>
@@ -170,11 +171,11 @@ export const WeatherPage: React.FC = () => {
          {alerts.length > 0 && (
             <div className="space-y-3">
                {alerts.map((alert, i) => (
-                  <div key={i} className="bg-rose-50 border-2 border-rose-100 p-6 rounded-[2.5rem] flex items-center gap-5 animate-pulse">
-                     <div className="w-12 h-12 bg-rose-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><AlertTriangle size={24} /></div>
-                     <div>
-                        <h4 className="text-sm font-black text-rose-900 uppercase">Atmospheric Alert: {alert.type}</h4>
-                        <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest mt-1">{alert.msg}</p>
+                  <div key={i} className="bg-rose-50 border-2 border-rose-100 p-5 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] flex items-center gap-4 sm:gap-5 animate-pulse">
+                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0"><AlertTriangle size={20} sm:size={24} /></div>
+                     <div className="min-w-0">
+                        <h4 className="text-[11px] sm:text-sm font-black text-rose-900 uppercase leading-none mb-1">Atmospheric Alert: {alert.type}</h4>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-rose-600 uppercase tracking-widest leading-tight">{alert.msg}</p>
                      </div>
                   </div>
                ))}
@@ -186,70 +187,69 @@ export const WeatherPage: React.FC = () => {
                <Loader2 className="animate-spin mb-4" size={48} />
                <p className="text-xs font-black uppercase tracking-[0.3em]">Interrogating Satellites...</p>
             </div>
-         ) : (
-            <>
-               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-2 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 rounded-[4rem] p-12 text-white relative overflow-hidden shadow-2xl">
-                     <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12"><Cloud size={350} /></div>
-                     <div className="relative z-10 space-y-12">
+         ) : (            <>
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+                  <div className="lg:col-span-2 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 rounded-[2.5rem] sm:rounded-[4rem] p-8 sm:p-12 text-white relative overflow-hidden shadow-2xl">
+                     <div className="absolute -top-10 -right-10 p-12 opacity-10 rotate-12 hidden sm:block"><Cloud size={350} /></div>
+                     <div className="relative z-10 space-y-8 sm:space-y-12">
                         <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full border border-white/10 backdrop-blur-md">
-                              <MapPin size={18} className="text-blue-300" />
-                              <span className="text-sm font-black uppercase tracking-widest">{weather.location}</span>
+                           <div className="flex items-center gap-3 bg-white/10 px-4 sm:px-6 py-2 rounded-full border border-white/10 backdrop-blur-md">
+                              <MapPin size={16} sm:size={18} className="text-blue-300" />
+                              <span className="text-xs sm:text-sm font-black uppercase tracking-widest truncate max-w-[150px] sm:max-w-none">{weather.location}</span>
                            </div>
-                           <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Status: Operational</div>
+                           <div className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] opacity-60">Status: Operational</div>
                         </div>
 
-                        <div className="flex flex-col md:flex-row items-baseline gap-8">
-                           <h1 className="text-[10rem] font-black tracking-tighter leading-none">{weather.temp}°</h1>
-                           <div className="space-y-4">
-                              <p className="text-4xl font-black uppercase tracking-tight">{weather.condition}</p>
-                              <div className="flex gap-4">
-                                 <span className="bg-white/10 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase border border-white/10">Pressure: {weather.pressure}</span>
-                                 <span className="bg-white/10 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase border border-white/10">Visibility: {weather.visibility}</span>
+                        <div className="flex flex-col md:flex-row items-center md:items-baseline gap-4 sm:gap-8 text-center md:text-left">
+                           <h1 className="text-8xl sm:text-[10rem] font-black tracking-tighter leading-none">{weather.temp}°</h1>
+                           <div className="space-y-3 sm:space-y-4">
+                              <p className="text-3xl sm:text-4xl font-black uppercase tracking-tight leading-none">{weather.condition}</p>
+                              <div className="flex flex-wrap justify-center md:justify-start gap-2 sm:gap-4">
+                                 <span className="bg-white/10 px-3 sm:px-4 py-1.5 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase border border-white/10 whitespace-nowrap">{weather.pressure}</span>
+                                 <span className="bg-white/10 px-3 sm:px-4 py-1.5 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase border border-white/10 whitespace-nowrap">Dist: {weather.visibility}</span>
                               </div>
                            </div>
                         </div>
                      </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6">
-                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex items-center gap-6 shadow-sm hover:shadow-xl transition-all">
-                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[1.5rem] flex items-center justify-center shadow-inner"><Wind size={32} /></div>
-                        <div>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Velocity</p>
-                           <h3 className="text-2xl font-black text-slate-900">{weather.wind} km/h</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4 sm:gap-6">
+                     <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 flex items-center gap-5 sm:gap-6 shadow-sm hover:shadow-xl transition-all">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-50 text-blue-600 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center shadow-inner shrink-0"><Wind size={24} sm:size={32} /></div>
+                        <div className="min-w-0">
+                           <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Velocity</p>
+                           <h3 className="text-xl sm:text-2xl font-black text-slate-900 truncate">{weather.wind} km/h</h3>
                         </div>
                      </div>
-                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex items-center gap-6 shadow-sm hover:shadow-xl transition-all">
-                        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-[1.5rem] flex items-center justify-center shadow-inner"><Droplets size={32} /></div>
-                        <div>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Humidity</p>
-                           <h3 className="text-2xl font-black text-slate-900">{weather.humidity}%</h3>
+                     <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 flex items-center gap-5 sm:gap-6 shadow-sm hover:shadow-xl transition-all">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center shadow-inner shrink-0"><Droplets size={24} sm:size={32} /></div>
+                        <div className="min-w-0">
+                           <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Humidity</p>
+                           <h3 className="text-xl sm:text-2xl font-black text-slate-900 truncate">{weather.humidity}%</h3>
                         </div>
                      </div>
-                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex items-center gap-6 shadow-sm hover:shadow-xl transition-all">
-                        <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-[1.5rem] flex items-center justify-center shadow-inner"><Thermometer size={32} /></div>
-                        <div>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Thermal Node</p>
-                           <h3 className="text-2xl font-black text-slate-900">{weather.temp + 2}°C Feels</h3>
+                     <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 flex items-center gap-5 sm:gap-6 shadow-sm hover:shadow-xl transition-all sm:col-span-1 lg:col-span-1">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-rose-50 text-rose-600 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center shadow-inner shrink-0"><Thermometer size={24} sm:size={32} /></div>
+                        <div className="min-w-0">
+                           <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Feels Like</p>
+                           <h3 className="text-xl sm:text-2xl font-black text-slate-900 truncate">{weather.temp + 2}°C</h3>
                         </div>
                      </div>
                   </div>
                </div>
 
                {/* --- ADDITIVE: HOURLY SLIDER SECTION --- */}
-               <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
+               <div className="bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm space-y-6 sm:space-y-8">
                   <div className="flex items-center gap-4">
-                     <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center"><Navigation size={20} /></div>
-                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">Hourly Atmospheric Flux</h4>
+                     <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0"><Navigation size={20} /></div>
+                     <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-800">Hourly Atmospheric Flux</h4>
                   </div>
-                  <div className="flex gap-6 overflow-x-auto pb-4 custom-scrollbar">
+                  <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 custom-scrollbar -mx-2 px-2">
                      {hourlyData.map((h, i) => (
-                        <div key={i} className="min-w-[100px] p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex flex-col items-center gap-4 group hover:bg-indigo-600 hover:text-white transition-all">
-                           <p className="text-[10px] font-black uppercase tracking-tighter opacity-50 group-hover:text-white">{h.time}</p>
-                           <div className="group-hover:scale-110 transition-transform"><Cloud size={24} /></div>
-                           <p className="text-2xl font-black">{h.temp}°</p>
+                        <div key={i} className="min-w-[90px] sm:min-w-[100px] p-5 sm:p-6 bg-slate-50 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 flex flex-col items-center gap-3 sm:gap-4 group hover:bg-indigo-600 hover:text-white transition-all cursor-pointer">
+                           <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-tighter opacity-50 group-hover:text-white">{h.time}</p>
+                           <div className="group-hover:rotate-12 transition-transform"><CloudSun size={20} sm:size={24} className="text-indigo-400 group-hover:text-white" /></div>
+                           <p className="text-xl sm:text-2xl font-black leading-none">{h.temp}°</p>
                            <span className="text-[8px] font-bold uppercase group-hover:text-indigo-200">{h.prob}% Precip</span>
                         </div>
                      ))}
@@ -257,50 +257,50 @@ export const WeatherPage: React.FC = () => {
                </div>
 
                {/* --- ADDITIVE: 7-DAY FORECAST ANALYTICS --- */}
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                  <div className="bg-white p-6 sm:p-10 rounded-[2.2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm space-y-6 sm:space-y-8">
                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center"><Calendar size={20} /></div>
-                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">Extended Forecast Ledger</h4>
+                        <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0"><Calendar size={20} /></div>
+                        <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-800">Extended Forecast Ledger</h4>
                      </div>
-                     <div className="space-y-4">
+                     <div className="space-y-3 sm:space-y-4">
                         {dailyForecast.map((d, i) => (
-                           <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-400 transition-all">
-                              <div className="flex items-center gap-6">
-                                 <p className="text-[10px] font-black uppercase text-slate-400 min-w-[60px]">{d.date}</p>
-                                 <CloudSun size={18} className="text-indigo-600" />
-                                 <p className="text-[10px] font-black uppercase text-slate-800">{d.condition}</p>
+                           <div key={i} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-[1.5rem] border border-slate-100 group hover:bg-white hover:border-indigo-400 hover:shadow-lg transition-all">
+                              <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+                                 <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 min-w-[50px] sm:min-w-[60px]">{d.date}</p>
+                                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0"><CloudSun size={18} className="text-indigo-400" /></div>
+                                 <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-800 truncate">{d.condition}</p>
                               </div>
-                              <div className="flex items-center gap-4">
-                                 <span className="text-sm font-black text-slate-900">{d.max}°</span>
-                                 <span className="text-sm font-black text-slate-400">{d.min}°</span>
+                              <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                                 <span className="text-sm sm:text-base font-black text-slate-900">{d.max}°</span>
+                                 <span className="text-sm sm:text-base font-black text-slate-300">{d.min}°</span>
                               </div>
                            </div>
                         ))}
                      </div>
                   </div>
 
-                  <div className="space-y-8">
-                     <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-6 sm:space-y-8">
+                     <div className="bg-white p-6 sm:p-10 rounded-[2.2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
                         <div className="space-y-4">
                            <div className="flex items-center gap-3">
                               <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                              <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Dew Point Analysis</h5>
+                              <h5 className="text-[9px] sm:text-[11px] font-black text-slate-800 uppercase tracking-widest">Saturation Node</h5>
                            </div>
-                           <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Atmospheric Saturation</p>
-                              <p className="text-2xl font-black text-slate-700">{weather.dewPoint}</p>
+                           <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl sm:rounded-3xl border border-slate-100">
+                              <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase mb-2">Dew Point Analytics</p>
+                              <p className="text-xl sm:text-2xl font-black text-slate-700 leading-none">{weather.dewPoint}</p>
                            </div>
                         </div>
                         <div className="space-y-4">
                            <div className="flex items-center gap-3">
                               <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                              <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Cloud Coverage Node</h5>
+                              <h5 className="text-[9px] sm:text-[11px] font-black text-slate-800 uppercase tracking-widest">Clouds Coverage</h5>
                            </div>
-                           <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                              <div className="flex justify-between items-end mb-2">
-                                 <p className="text-[9px] font-bold text-slate-400 uppercase">Spatial Density</p>
-                                 <p className="text-xl font-black text-slate-700">{weather.cloudCover}%</p>
+                           <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl sm:rounded-3xl border border-slate-100">
+                              <div className="flex justify-between items-end mb-3">
+                                 <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase">Spatial Density</p>
+                                 <p className="text-lg sm:text-xl font-black text-slate-700 leading-none">{weather.cloudCover}%</p>
                               </div>
                               <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                                  <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${weather.cloudCover}%` }} />
@@ -309,29 +309,29 @@ export const WeatherPage: React.FC = () => {
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-6 group hover:border-amber-400 transition-all">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-5 sm:gap-6 group hover:border-amber-400 transition-all">
                            <div className="flex items-center justify-between">
-                              <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center"><Sunrise size={24} /></div>
-                              <span className="text-[10px] font-black text-slate-400 uppercase">Sunrise</span>
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-50 text-amber-600 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0"><Sunrise size={20} sm:size={24} /></div>
+                              <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Sunrise</span>
                            </div>
-                           <h4 className="text-3xl font-black text-slate-800 tracking-tighter">{weather.sunrise}</h4>
+                           <h4 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tighter leading-none">{weather.sunrise}</h4>
                         </div>
-                        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-6 group hover:border-indigo-400 transition-all">
+                        <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-5 sm:gap-6 group hover:border-indigo-400 transition-all">
                            <div className="flex items-center justify-between">
-                              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center"><Sunset size={24} /></div>
-                              <span className="text-[10px] font-black text-slate-400 uppercase">Sunset</span>
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0"><Sunset size={20} sm:size={24} /></div>
+                              <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Sunset</span>
                            </div>
-                           <h4 className="text-3xl font-black text-slate-800 tracking-tighter">{weather.sunset}</h4>
+                           <h4 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tighter leading-none">{weather.sunset}</h4>
                         </div>
                      </div>
                   </div>
                </div>
 
-               <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-[2rem] flex items-center justify-center gap-3 opacity-60">
-                  <Zap size={14} className="text-indigo-600" />
-                  <p className="text-[9px] font-bold text-indigo-700 uppercase tracking-widest leading-relaxed">
-                     {locationError ? 'Location Access Denied - Fallback protocol (Multan) initialized.' : 'Satellite Meteorological Node Active • Data synchronized with global atmospheric sensors.'}
+               <div className="p-5 sm:p-6 bg-indigo-50/50 border border-indigo-100 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center gap-3 opacity-80">
+                  <Zap size={14} className="text-indigo-600 shrink-0" />
+                  <p className="text-[9px] sm:text-[10px] font-black text-indigo-700 uppercase tracking-widest leading-relaxed text-center">
+                     {locationError ? 'Location Access Denied - Fallback protocol (Multan) initialized.' : 'Satellite Meteorological Node Active • Atmospheric Synchronization Complete.'}
                   </p>
                </div>
             </>

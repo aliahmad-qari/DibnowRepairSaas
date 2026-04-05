@@ -50,6 +50,7 @@ import {
 import { callBackendAPI, getBackendUserId } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { BackButton } from '../../components/common/BackButton';
 
 const GATEWAY_COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e'];
 
@@ -309,39 +310,43 @@ export const Wallet: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-24 max-w-[1400px] mx-auto">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-24 max-w-[1400px] mx-auto px-4">
+      <div className="pt-4">
+        <BackButton />
+      </div>
 
       {/* TASK 9: LOW BALANCE WARNING */}
       {financialIntel.availableBalance < 50 && (
-        <div className="bg-rose-50 border-2 border-rose-100 p-6 rounded-[2.5rem] flex items-center justify-between gap-6 animate-in slide-in-from-top-4 duration-700">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 bg-rose-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 animate-pulse"><AlertTriangle size={28} /></div>
+        <div className="bg-rose-50 border-2 border-rose-100 p-5 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] flex flex-col sm:flex-row items-center justify-between gap-6 animate-in slide-in-from-top-4 duration-700">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 text-center sm:text-left">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-rose-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 animate-pulse shrink-0"><AlertTriangle size={24} sm:size={28} /></div>
             <div>
-              <h4 className="text-base font-black text-rose-900 uppercase leading-none">⚠ Low Treasury Balance detected</h4>
-              <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest mt-2">Critical threshold reached. Infrastructure services may pause if balance reaches zero.</p>
+              <h4 className="text-sm sm:text-base font-black text-rose-900 uppercase leading-none">⚠ Low Treasury Balance</h4>
+              <p className="text-[9px] sm:text-[10px] font-bold text-rose-600 uppercase tracking-widest mt-2">Critical threshold reached. Infrastructure services may pause.</p>
             </div>
           </div>
-          <button onClick={() => setShowAddModal(true)} className="px-8 py-3 bg-rose-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-rose-700 transition-all shadow-xl">Top Up Protocol</button>
+          <button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto px-8 py-3 bg-rose-600 text-white rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest hover:bg-rose-700 transition-all shadow-xl">Top Up Protocol</button>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Virtual Treasury</h2>
-          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1 flex items-center gap-2">
-            <ShieldCheck size={14} className="text-indigo-600" />
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="text-center lg:text-left">
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight uppercase">Virtual Treasury</h2>
+          <p className="text-slate-500 font-bold text-[10px] sm:text-xs uppercase tracking-widest mt-2 flex items-center justify-center lg:justify-start gap-2">
+            <ShieldCheck size={14} className="text-indigo-600 shrink-0" />
             Authorized Financial Node • {currency.code} Context
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm">
-            <button onClick={handleExportCSV} className="p-3 text-slate-500 hover:text-indigo-600 transition-colors" title="Export CSV Ledger"><FileSpreadsheet size={20} /></button>
-            <button onClick={() => window.print()} className="p-3 text-slate-500 hover:text-indigo-600 transition-colors" title="Export PDF Statement"><FileText size={20} /></button>
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-3 w-full lg:w-auto">
+          <div className="flex bg-white border border-slate-200 p-1 rounded-xl sm:rounded-2xl shadow-sm w-full sm:w-auto justify-center">
+            <button onClick={handleExportCSV} className="p-3 text-slate-500 hover:text-indigo-600 transition-colors" title="Export CSV Ledger"><FileSpreadsheet size={18} sm:size={20} /></button>
+            <button onClick={() => window.print()} className="p-3 text-slate-500 hover:text-indigo-600 transition-colors" title="Export PDF Statement"><FileText size={18} sm:size={20} /></button>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-[#0052FF] text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-2xl shadow-blue-200 hover:scale-[1.03] active:scale-95 transition-all text-[11px] uppercase tracking-[0.2em]"
+            className="w-full sm:w-auto bg-[#0052FF] text-white px-8 py-4 rounded-xl sm:rounded-2xl font-black flex items-center justify-center gap-2 shadow-2xl shadow-blue-200 hover:scale-[1.03] active:scale-95 transition-all text-[10px] sm:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.2em]"
           >
             <Plus size={18} /> Deploy Capital
           </button>
@@ -349,7 +354,7 @@ export const Wallet: React.FC = () => {
       </div>
 
       {/* KPI STRIP */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           { label: 'Treasury Balance', val: financialIntel.availableBalance, icon: WalletIcon, color: 'text-indigo-600', bg: 'bg-indigo-50', isCurr: true },
           { label: 'Pending Inflow', val: financialIntel.pendingCredits, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', isCurr: true },
@@ -357,12 +362,12 @@ export const Wallet: React.FC = () => {
           { label: 'Last Top-Up', val: `${financialIntel.lastTopUpMethod} • ${financialIntel.lastTopUpDate}`, icon: Zap, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Last Deduction', val: financialIntel.lastDeductionReason, icon: ArrowDownRight, color: 'text-amber-600', bg: 'bg-amber-50' }
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-3 group hover:border-indigo-500 transition-all">
-            <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}><stat.icon size={18} /></div>
-            <div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
+          <div key={i} className="bg-white p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-3 group hover:border-indigo-500 transition-all">
+            <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform shrink-0`}><stat.icon size={18} /></div>
+            <div className="min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-black text-slate-400 upper tracking-widest leading-none mb-1 truncate">{stat.label}</p>
               <h4 className={`font-black text-slate-800 truncate ${stat.isCurr ? 'text-lg' : 'text-[10px]'}`}>
-                {stat.isCurr ? currency.symbol : ''}{stat.val.toLocaleString()}
+                {stat.isCurr ? currency.symbol : ''}{typeof stat.val === 'number' ? stat.val.toLocaleString() : stat.val}
               </h4>
             </div>
           </div>
@@ -370,18 +375,18 @@ export const Wallet: React.FC = () => {
       </div>
 
       {/* TASK 6: INSIGHTS MODULE */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Avg Monthly Spend', val: financialIntel.insights.avgMonthlySpend, icon: Flame, color: 'text-rose-600', bg: 'bg-rose-50', isCurr: true },
           { label: 'Avg Top-Up Size', val: financialIntel.insights.avgTopUpSize, icon: ArrowUpCircle, color: 'text-blue-600', bg: 'bg-blue-50', isCurr: true },
           { label: 'Daily Burn Rate', val: financialIntel.insights.dailyBurnRate, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50', isCurr: true },
           { label: 'Projected Exhaustion', val: financialIntel.insights.daysRemaining === 999 ? '∞' : `${financialIntel.insights.daysRemaining} Days`, icon: Timer, color: 'text-amber-600', bg: 'bg-amber-50' }
         ].map((insight, i) => (
-          <div key={i} className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex items-center gap-5 group hover:border-indigo-500 transition-all">
-            <div className={`w-12 h-12 rounded-2xl ${insight.bg} ${insight.color} flex items-center justify-center group-hover:scale-110 transition-transform`}><insight.icon size={22} /></div>
-            <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{insight.label}</p>
-              <h4 className="text-xl font-black text-white tracking-tighter">
+          <div key={i} className="bg-slate-900 border border-white/5 p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] flex items-center gap-4 sm:gap-5 group hover:border-indigo-500 transition-all">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-[0.8rem] sm:rounded-2xl ${insight.bg} ${insight.color} flex items-center justify-center group-hover:scale-110 transition-transform shrink-0`}><insight.icon size={20} sm:size={22} /></div>
+            <div className="min-w-0">
+              <p className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 truncate">{insight.label}</p>
+              <h4 className="text-lg sm:text-xl font-black text-white tracking-tighter truncate">
                 {insight.isCurr ? currency.symbol : ''}{typeof insight.val === 'number' ? Math.round(insight.val).toLocaleString() : insight.val}
               </h4>
             </div>
@@ -391,65 +396,65 @@ export const Wallet: React.FC = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* TASK 2: CHART */}
-        <div className="xl:col-span-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-          <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-slate-50/20">
+        <div className="xl:col-span-8 bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[400px] sm:min-h-[500px]">
+          <div className="p-6 sm:p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-slate-50/20">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><BarChart3 size={24} /></div>
-              <div><h3 className="text-xl font-black uppercase tracking-tight text-slate-800">Cash Flow breakdown</h3><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Liquidity Flux Analysis Node</p></div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0"><BarChart3 size={20} sm:size={24} /></div>
+              <div><h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">Cash Flow breakdown</h3><p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Liquidity Flux Analysis Node</p></div>
             </div>
-            <div className="flex bg-white border border-slate-200 p-1 rounded-xl shadow-sm">
+            <div className="flex bg-white border border-slate-200 p-1 rounded-lg sm:rounded-xl shadow-sm self-center sm:self-auto">
               {['Daily', 'Monthly'].map((v) => (
-                <button key={v} onClick={() => setChartView(v as any)} className={`px-6 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${chartView === v ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>{v}</button>
+                <button key={v} onClick={() => setChartView(v as any)} className={`px-4 sm:px-6 py-2 rounded-md sm:rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all ${chartView === v ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>{v}</button>
               ))}
             </div>
           </div>
-          <div className="flex-1 p-8">
-            <div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={financialIntel.chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} tickFormatter={(v) => `${currency.symbol}${v}`} /><Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }} /><Legend verticalAlign="top" align="right" height={36} /><Area name="Inflows" type="monotone" dataKey="inflow" stroke="#10b981" strokeWidth={4} fill="#10b98120" /><Area name="Outflows" type="monotone" dataKey="outflow" stroke="#f43f5e" strokeWidth={4} fill="#f43f5e20" /></AreaChart></ResponsiveContainer></div>
+          <div className="flex-1 p-4 sm:p-8">
+            <div className="h-64 sm:h-80 w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={financialIntel.chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} tickFormatter={(v) => `${currency.symbol}${v}`} /><Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }} /><Legend verticalAlign="top" align="right" height={36} iconSize={10} wrapperStyle={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase' }} /><Area name="Inflows" type="monotone" dataKey="inflow" stroke="#10b981" strokeWidth={3} fill="#10b98120" /><Area name="Outflows" type="monotone" dataKey="outflow" stroke="#f43f5e" strokeWidth={3} fill="#f43f5e20" /></AreaChart></ResponsiveContainer></div>
           </div>
         </div>
 
         {/* TASK 4: GATEWAY DISTRIBUTION */}
         <div className="xl:col-span-4 flex flex-col gap-8">
-          <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm flex flex-col justify-between group h-full">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><PieIcon size={24} /></div>
-              <div><h3 className="text-lg font-black uppercase tracking-tight text-slate-800">Gateway Preference</h3><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Method Distribution Audit</p></div>
+          <div className="bg-white rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-10 border border-slate-100 shadow-sm flex flex-col justify-between group h-full">
+            <div className="flex items-center gap-4 mb-6 sm:mb-8">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0"><PieIcon size={20} sm:size={24} /></div>
+              <div><h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">Gateway Preference</h3><p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Method Distribution Audit</p></div>
             </div>
-            <div className="h-64 w-full relative"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={financialIntel.distributionData} innerRadius={70} outerRadius={90} paddingAngle={8} dataKey="value" stroke="none">{financialIntel.distributionData.map((_, index) => (<Cell key={`cell-${index}`} fill={GATEWAY_COLORS[index % GATEWAY_COLORS.length]} />))}</Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="h-48 sm:h-64 w-full relative"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={financialIntel.distributionData} innerRadius={window.innerWidth < 640 ? 50 : 70} outerRadius={window.innerWidth < 640 ? 70 : 90} paddingAngle={8} dataKey="value" stroke="none">{financialIntel.distributionData.map((_, index) => (<Cell key={`cell-${index}`} fill={GATEWAY_COLORS[index % GATEWAY_COLORS.length]} />))}</Pie><Tooltip /></PieChart></ResponsiveContainer></div>
           </div>
 
           {/* TASK 5: RISK MONITOR */}
-          <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm flex flex-col h-fit border-b-8 border-b-rose-600">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-rose-600 text-white rounded-2xl flex items-center justify-center shadow-lg animate-pulse"><ShieldX size={24} /></div>
-              <div><h3 className="text-lg font-black uppercase tracking-tight text-slate-800">Risk Forensic Monitor</h3><p className="text-[9px] font-bold text-rose-500 uppercase tracking-widest mt-1">Failed & Reversed Flow Nodes</p></div>
+          <div className="bg-white rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-10 border border-slate-100 shadow-sm flex flex-col h-fit border-b-8 border-b-rose-600">
+            <div className="flex items-center gap-4 mb-6 sm:mb-8">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg animate-pulse shrink-0"><ShieldX size={20} sm:size={24} /></div>
+              <div><h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">Risk Forensic Monitor</h3><p className="text-[8px] sm:text-[9px] font-bold text-rose-500 uppercase tracking-widest mt-1">Failed & Reversed Flow Nodes</p></div>
             </div>
             <div className="space-y-4">
-              {financialIntel.failedTransactions.length === 0 ? <div className="py-12 flex flex-col items-center justify-center opacity-20"><CheckCircle2 size={48} /><p className="text-[9px] font-black uppercase mt-4">Protocol: All handshakes success</p></div> : financialIntel.failedTransactions.map((tx, idx) => (<div key={idx} className="p-5 bg-rose-50 border border-rose-100 rounded-3xl space-y-2"><div className="flex items-center justify-between"><span className="text-[10px] font-black text-rose-900 uppercase">⚠ Protocol Rejection</span><span className="text-[9px] font-mono font-bold text-rose-400">#{tx.id}</span></div><p className="text-[11px] font-black text-rose-800 leading-tight truncate uppercase">{tx.description}</p><div className="flex items-center justify-between pt-2 border-t border-rose-200/50"><span className="text-[9px] font-bold text-rose-600/70 uppercase">Reason: {tx.reason}</span><span className="text-xs font-black text-rose-700">{currency.symbol}{tx.amount}</span></div></div>))}
+              {financialIntel.failedTransactions.length === 0 ? <div className="py-8 sm:py-12 flex flex-col items-center justify-center opacity-20"><CheckCircle2 size={40} sm:size={48} /><p className="text-[8px] sm:text-[9px] font-black uppercase mt-4 text-center">Protocol: All handshakes success</p></div> : financialIntel.failedTransactions.map((tx, idx) => (<div key={idx} className="p-4 sm:p-5 bg-rose-50 border border-rose-100 rounded-2xl sm:rounded-3xl space-y-2"><div className="flex items-center justify-between gap-4"><span className="text-[9px] sm:text-[10px] font-black text-rose-900 uppercase">⚠ Rejection</span><span className="text-[8px] sm:text-[9px] font-mono font-bold text-rose-400 truncate">#{tx.id}</span></div><p className="text-[10px] sm:text-[11px] font-black text-rose-800 leading-tight truncate uppercase">{tx.description}</p><div className="flex items-center justify-between pt-2 border-t border-rose-200/50"><span className="text-[8px] sm:text-[9px] font-bold text-rose-600/70 uppercase truncate">Reason: {tx.reason}</span><span className="text-xs font-black text-rose-700 whitespace-nowrap">{currency.symbol}{tx.amount}</span></div></div>))}
             </div>
           </div>
         </div>
       </div>
 
       {/* TASK 8: LEDGER WITH FILTERS */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
-        <div className="p-8 border-b border-slate-50 flex flex-col gap-8 bg-slate-50/20">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm"><History size={24} /></div>
-              <div><h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Transaction Ledger</h3><p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Real-time Synchronized Digital Record</p></div>
+      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
+        <div className="p-6 sm:p-8 border-b border-slate-50 flex flex-col gap-6 sm:gap-8 bg-slate-50/20">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex items-center gap-4 text-center lg:text-left justify-center lg:justify-start">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0"><History size={20} sm:size={24} /></div>
+              <div><h3 className="text-lg sm:text-xl font-black text-slate-800 uppercase tracking-tight leading-tight">Transaction Ledger</h3><p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Real-time Digital Record</p></div>
             </div>
-            <div className="relative w-full max-w-sm group">
+            <div className="relative w-full lg:max-w-sm group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
-              <input type="text" placeholder="Query hash or reference..." className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all shadow-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <input type="text" placeholder="Query hash or reference..." className="w-full pl-12 pr-4 py-3 sm:py-3.5 bg-white border border-slate-200 rounded-xl sm:rounded-2xl text-sm font-bold focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all shadow-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
           </div>
 
           {/* TASK 8: FILTER BAR */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-slate-200">
-              <Calendar size={14} className="text-slate-400" />
-              <select value={dateFilter} onChange={e => setDateFilter(e.target.value as any)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <div className="flex flex-1 sm:flex-none items-center gap-2 bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl border border-slate-200">
+              <Calendar size={14} className="text-slate-400 shrink-0" />
+              <select value={dateFilter} onChange={e => setDateFilter(e.target.value as any)} className="w-full bg-transparent text-[9px] sm:text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer">
                 <option value="Today">Today</option>
                 <option value="7D">Last 7 Days</option>
                 <option value="30D">Last 30 Days</option>
@@ -457,15 +462,15 @@ export const Wallet: React.FC = () => {
               </select>
             </div>
             {dateFilter === 'Custom' && (
-              <div className="flex items-center gap-2 animate-in zoom-in-95">
-                <input type="date" value={customRange.from} onChange={e => setCustomRange({ ...customRange, from: e.target.value })} className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold" />
-                <span className="text-slate-300">to</span>
-                <input type="date" value={customRange.to} onChange={e => setCustomRange({ ...customRange, to: e.target.value })} className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold" />
+              <div className="flex items-center gap-2 animate-in zoom-in-95 w-full sm:w-auto">
+                <input type="date" value={customRange.from} onChange={e => setCustomRange({ ...customRange, from: e.target.value })} className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold w-full" />
+                <span className="text-slate-300 text-[10px] font-black">TO</span>
+                <input type="date" value={customRange.to} onChange={e => setCustomRange({ ...customRange, to: e.target.value })} className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold w-full" />
               </div>
             )}
-            <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-slate-200">
-              <Filter size={14} className="text-slate-400" />
-              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer">
+            <div className="flex flex-1 sm:flex-none items-center gap-2 bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl border border-slate-200">
+              <Filter size={14} className="text-slate-400 shrink-0" />
+              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="w-full bg-transparent text-[9px] sm:text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer">
                 <option value="all">All Types</option>
                 <option value="credit">Credits (Top-Ups)</option>
                 <option value="debit">Debits (Expenses)</option>
@@ -475,7 +480,7 @@ export const Wallet: React.FC = () => {
                 <option value="refund">Refunds</option>
               </select>
             </div>
-            <div className="ml-auto hidden lg:flex items-center gap-6 px-6 py-2.5 bg-slate-900 rounded-2xl text-white">
+            <div className="w-full lg:w-auto overflow-x-auto no-scrollbar lg:ml-auto flex items-center gap-6 px-4 sm:px-6 py-2 sm:py-2.5 bg-slate-900 rounded-xl sm:rounded-2xl text-white whitespace-nowrap">
               <div className="text-center">
                 <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Opening</p>
                 <p className="text-xs font-black">{currency.symbol}{financialIntel.openingBalance.toLocaleString()}</p>
@@ -498,16 +503,16 @@ export const Wallet: React.FC = () => {
 
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-50">
+            <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-50 whitespace-nowrap">
               <tr>
-                <th className="px-10 py-6">Protocol Node / Intelligence</th>
-                <th className="px-10 py-6 text-center">Settlement</th>
-                <th className="px-10 py-6 text-center">Node Status</th>
-                <th className="px-10 py-6 text-center">Audit Timestamp</th>
-                <th className="px-10 py-6 text-right">Reference</th>
+                <th className="px-6 sm:px-10 py-6">Protocol Node / Intelligence</th>
+                <th className="px-6 sm:px-10 py-6 text-center">Settlement</th>
+                <th className="px-6 sm:px-10 py-6 text-center">Node Status</th>
+                <th className="px-6 sm:px-10 py-6 text-center">Audit Timestamp</th>
+                <th className="px-6 sm:px-10 py-6 text-right">Reference</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 whitespace-nowrap">
               {financialIntel.filtered.length === 0 ? (
                 <tr><td colSpan={5} className="py-24 text-center opacity-30 uppercase font-black tracking-widest text-sm">No transaction nodes identified for current criteria</td></tr>
               ) : financialIntel.filtered.map((t) => {
@@ -515,31 +520,31 @@ export const Wallet: React.FC = () => {
                 const IconNode = intel.icon;
                 return (
                   <tr key={t.id} className="hover:bg-slate-50/80 transition-all group">
-                    <td className="px-10 py-7">
-                      <div className="flex items-center gap-5">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm border ${t.type === 'credit' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                          {t.type === 'credit' ? <Plus size={22} /> : <TrendingDown size={22} />}
+                    <td className="px-6 sm:px-10 py-7">
+                      <div className="flex items-center gap-4 sm:gap-5">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm border shrink-0 ${t.type === 'credit' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                          {t.type === 'credit' ? <Plus size={18} sm:size={22} /> : <TrendingDown size={18} sm:size={22} />}
                         </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-800 leading-tight tracking-tight uppercase">{t.description}</p>
-                          <div className={`mt-1.5 px-3 py-1 rounded-lg border text-[8px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 ${intel.color}`}>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-black text-slate-800 leading-tight tracking-tight uppercase truncate">{t.description}</p>
+                          <div className={`mt-1.5 px-2.5 sm:px-3 py-1 rounded-lg border text-[7px] sm:text-[8px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 ${intel.color}`}>
                             <IconNode size={10} /> {intel.label}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className={`px-10 py-7 text-center font-black text-base ${t.status === 'failed' ? 'text-slate-300' : t.type === 'credit' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <td className={`px-6 sm:px-10 py-7 text-center font-black text-sm sm:text-base ${t.status === 'failed' ? 'text-slate-300' : t.type === 'credit' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {t.status === 'failed' ? '' : t.type === 'credit' ? '+' : '-'}{currency.symbol}{t.amount.toLocaleString()}
                     </td>
-                    <td className="px-10 py-7 text-center">
-                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase inline-flex items-center gap-2 border ${t.status === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : t.status === 'failed' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                    <td className="px-6 sm:px-10 py-7 text-center">
+                      <span className={`px-3 sm:px-4 py-1.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase inline-flex items-center gap-2 border ${t.status === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : t.status === 'failed' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${t.status === 'success' ? 'bg-emerald-500' : t.status === 'failed' ? 'bg-rose-500' : 'bg-amber-500'}`} />
                         {t.status}
                       </span>
                     </td>
-                    <td className="px-10 py-7 text-center text-[10px] text-slate-400 font-black uppercase tracking-widest">{t.date}</td>
-                    <td className="px-10 py-7 text-right">
-                      <span className="font-mono text-[10px] font-black text-slate-300 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100">#{t.id}</span>
+                    <td className="px-6 sm:px-10 py-7 text-center text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest">{t.date}</td>
+                    <td className="px-6 sm:px-10 py-7 text-right">
+                      <span className="font-mono text-[8px] sm:text-[10px] font-black text-slate-300 bg-slate-50 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-slate-100">#{t.id}</span>
                     </td>
                   </tr>
                 );

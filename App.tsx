@@ -112,7 +112,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; role?: UserRole; per
     );
   }
   
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   // ROLE VALIDATION
   if (role && user?.role !== role && user?.role !== UserRole.SUPER_ADMIN) {
@@ -134,11 +134,11 @@ const App: React.FC = () => {
       <CurrencyProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/auth/register" element={<Register />} />
-            <Route path="/auth/verify-otp" element={<VerifyOTP />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
+             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/team/login" element={<TeamPortal />} />
 
             {/* Super Admin Routes */}

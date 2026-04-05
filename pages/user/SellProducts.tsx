@@ -20,6 +20,7 @@ import { callBackendAPI } from '../../api/apiClient';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { useAuth } from '../../context/AuthContext';
+import { BackButton } from '../../components/common/BackButton';
 
 const DONUT_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6'];
 
@@ -312,7 +313,9 @@ export const SellProducts: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 h-full min-h-[calc(100vh-180px)] animate-in fade-in duration-500 pb-10">
+    <div className="flex flex-col space-y-6">
+      <BackButton />
+      <div className="flex flex-col lg:flex-row gap-8 h-full min-h-[calc(100vh-180px)] animate-in fade-in duration-500 pb-10">
       
       {/* Product Catalog - Left Side */}
       <div className="flex-1 flex flex-col space-y-6 min-w-0">
@@ -770,6 +773,7 @@ export const SellProducts: React.FC = () => {
            </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

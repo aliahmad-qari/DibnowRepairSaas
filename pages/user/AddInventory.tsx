@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { callBackendAPI } from '../../api/apiClient.ts';
@@ -10,6 +10,7 @@ import {
   Save, AlertOctagon, ArrowUpCircle, Palette, FileText, Image as ImageIcon,
   Info, ShoppingCart, Box, ClipboardList, Loader2
 } from 'lucide-react';
+import { BackButton } from '../../components/common/BackButton';
 
 export const AddInventory: React.FC = () => {
   const navigate = useNavigate();
@@ -180,17 +181,15 @@ export const AddInventory: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 transition-all shadow-sm">
-          <ChevronLeft />
-        </button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <BackButton />
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Catalog Enrollment</h2>
-          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Register new components or gadgets to your central stock ledger.</p>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Catalog Enrollment</h2>
+          <p className="text-slate-500 font-bold text-[10px] sm:text-xs uppercase tracking-widest mt-1">Register new components or gadgets to your central stock ledger.</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 md:p-12 rounded-[3rem] border border-slate-100 shadow-2xl space-y-12">
+      <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-2xl space-y-10 sm:space-y-12">
 
         {/* Section: Basic Identification */}
         <div className="space-y-8">
@@ -280,7 +279,7 @@ export const AddInventory: React.FC = () => {
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Quantity *</label>
               <div className="relative">
                 <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input required type="number" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm transition-all" placeholder="Units count" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
+                <input required type="number" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-sm transition-all" placeholder="Units" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
               </div>
             </div>
           </div>
@@ -317,12 +316,12 @@ export const AddInventory: React.FC = () => {
           </div>
         </div>
 
-        <div className="pt-12 border-t border-slate-50 flex flex-col sm:flex-row gap-4">
-          <button type="submit" disabled={isSubmitting} className="flex-1 bg-[#0052FF] text-white font-black py-6 rounded-3xl shadow-2xl shadow-blue-200 hover:bg-blue-600 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-[0.3em] text-[11px] flex items-center justify-center gap-3 disabled:opacity-50">
-            {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+        <div className="pt-10 sm:pt-12 border-t border-slate-50 flex flex-col sm:flex-row gap-4">
+          <button type="submit" disabled={isSubmitting} className="flex-[2] bg-[#0052FF] text-white font-black py-5 sm:py-6 rounded-2xl sm:rounded-3xl shadow-2xl shadow-blue-200 hover:bg-blue-600 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[10px] sm:text-[11px] flex items-center justify-center gap-3 disabled:opacity-50">
+            {isSubmitting ? <Loader2 className="animate-spin" size={18} sm:size={20} /> : <Save size={18} sm:size={20} />}
             {isSubmitting ? 'Processing...' : 'Authorize Stock Enrollment'}
           </button>
-          <button type="button" onClick={() => navigate(-1)} className="px-12 py-6 bg-slate-100 text-slate-600 font-black rounded-3xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[11px]">
+          <button type="button" onClick={() => navigate(-1)} className="flex-1 py-5 sm:py-6 bg-slate-100 text-slate-600 font-black rounded-2xl sm:rounded-3xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px] sm:text-[11px]">
             Discard
           </button>
         </div>

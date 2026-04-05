@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { BackButton } from '../../components/common/BackButton';
+
 import { UserRole } from '../../types';
 import { 
   ShieldCheck, Mail, Lock, User as UserIcon, 
@@ -69,17 +71,20 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-50">
+        <BackButton />
+      </div>
       {/* Background Mesh Gradient */}
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#0052FF] blur-[150px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#00D1FF] blur-[150px] rounded-full" />
       </div>
 
-      <div className="w-full max-w-[1000px] flex flex-col md:flex-row bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+      <div className="w-full max-w-[1000px] flex flex-col md:flex-row bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] sm:rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
         
         {/* Left Side: Branding & Welcome */}
-        <div className="w-full md:w-5/12 p-12 md:p-16 flex flex-col justify-center bg-gradient-to-br from-[#0052FF] to-[#00A3FF] text-white">
+        <div className="w-full md:w-5/12 p-8 sm:p-12 md:p-16 flex flex-col justify-center bg-gradient-to-br from-[#0052FF] to-[#00A3FF] text-white">
            <div className="mb-10">
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-6">
                  <div className="w-10 h-10 bg-[#0052FF] rounded-lg flex items-center justify-center text-white font-black text-sm italic">Dib</div>
@@ -104,7 +109,7 @@ export const Login: React.FC = () => {
         </div>
 
         {/* Right Side: Form */}
-        <div className="w-full md:w-7/12 p-12 md:p-16 bg-white flex flex-col justify-center">
+        <div className="w-full md:w-7/12 p-8 sm:p-12 md:p-16 bg-white flex flex-col justify-center">
           <div className="mb-8">
             <h2 className="text-2xl font-black text-slate-800">Secure Sign In</h2>
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Enterprise Access Portal</p>
@@ -189,7 +194,7 @@ export const Login: React.FC = () => {
             {/* Forgot Password Link */}
             <div className="flex justify-end">
               <Link 
-                to="/auth/forgot-password" 
+                to="/forgot-password" 
                 className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-widest"
               >
                 Forgot Password?
@@ -237,7 +242,7 @@ export const Login: React.FC = () => {
           <div className="mt-6 text-center">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
               Don't have an account?{' '}
-              <Link to="/auth/register" className="text-indigo-600 hover:text-indigo-800 font-black">
+               <Link to="/register" className="text-indigo-600 hover:text-indigo-800 font-black">
                 Sign Up
               </Link>
             </p>

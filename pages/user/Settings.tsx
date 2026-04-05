@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Settings as SettingsIcon, Store, User, CreditCard, Shield, Bell, Languages, Coins, ChevronDown, Globe } from 'lucide-react';
+import { BackButton } from '../../components/common/BackButton';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 
 export const UserSettings: React.FC = () => {
@@ -8,6 +9,7 @@ export const UserSettings: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <BackButton />
       <div>
         <h2 className="text-3xl font-black text-slate-900 tracking-tight">Shop Infrastructure</h2>
         <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Configure your business profile and global preferences.</p>

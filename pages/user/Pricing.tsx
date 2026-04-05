@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useNavigate } from 'react-router-dom';
 import { SubscriptionPlan } from '../../types';
+import { BackButton } from '../../components/common/BackButton';
 
 const EXCHANGE_RATES: Record<string, number> = {
   'GBP_USD': 1.27, 'GBP_EUR': 1.17, 'GBP_PKR': 354.0, 'GBP_INR': 105.4, 'GBP_AED': 4.66, 'GBP_AUD': 1.94, 'GBP_CAD': 1.72,
@@ -451,51 +452,54 @@ export const UserPricing: React.FC = () => {
   }, [usageStats, currentPlan]);
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700 pb-32 max-w-[1400px] mx-auto px-4">
+    <div className="space-y-8 sm:space-y-12 animate-in fade-in duration-700 pb-32 max-w-[1400px] mx-auto px-4">
+      <div className="pt-4">
+        <BackButton />
+      </div>
 
       {/* 0. EXPIRY WARNING */}
       {user?.status === 'expired' && (
-        <div className="bg-rose-50 border-2 border-rose-100 p-6 rounded-[2.5rem] flex items-center gap-5 animate-bounce-short">
-          <div className="w-12 h-12 bg-rose-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200">
-            <AlertTriangle size={24} />
+        <div className="bg-rose-50 border-2 border-rose-100 p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 animate-bounce-short">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 shrink-0">
+            <AlertTriangle size={20} sm:size={24} />
           </div>
           <div className="flex-1">
-            <h4 className="text-rose-900 font-black uppercase text-sm tracking-tight">System Access Expired</h4>
-            <p className="text-rose-700 text-[10px] font-bold uppercase tracking-widest mt-1">Authorized cycle ended. Deploy a payment to restore node connectivity.</p>
+            <h4 className="text-rose-900 font-black uppercase text-xs sm:text-sm tracking-tight">System Access Expired</h4>
+            <p className="text-rose-700 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mt-1">Authorized cycle ended. Deploy a payment to restore node connectivity.</p>
           </div>
         </div>
       )}
 
       {/* 1. CURRENT PLAN STATUS PANEL */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-10 group relative overflow-hidden">
+      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm p-6 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-10 group relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-5">
           <Shield size={120} />
         </div>
 
-        <div className="flex items-center gap-8 relative z-10 w-full lg:w-auto">
-          <div className="w-24 h-24 bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-[2.5rem] flex items-center justify-center shadow-2xl transition-transform group-hover:scale-105 duration-500 shrink-0">
-            <Rocket size={40} fill="white" />
+        <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 relative z-10 w-full lg:w-auto text-center sm:text-left">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center shadow-2xl transition-transform group-hover:scale-105 duration-500 shrink-0">
+            <Rocket size={32} sm:size={40} fill="white" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">✅ Current Active Plan</p>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase mt-1"> {user?.currentPlan || currentPlan?.name || 'Free Trial'}</h2>
-            <div className="flex items-center gap-3 mt-3">
-              <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-1.5">
+            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">✅ Current Active Plan</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight uppercase mt-1"> {user?.currentPlan || currentPlan?.name || 'Free Trial'}</h2>
+            <div className="flex items-center justify-center sm:justify-start gap-3 mt-3">
+              <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Protocol Active
+                Active Node
               </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">v2.4 Node</span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">v2.4 Tier</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 w-full lg:flex-1 lg:max-w-3xl relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 w-full lg:flex-1 lg:max-w-3xl relative z-10 text-center sm:text-left">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
               <Calendar size={14} className="text-indigo-600" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">📅 Expiry / Renewal Date</p>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">📅 Expiry / Renewal Date</p>
             </div>
-            <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">
+            <p className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-tighter">
               {user?.planExpireDate 
                 ? new Date(user.planExpireDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                 : (() => {
@@ -515,11 +519,11 @@ export const UserPricing: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
               <RefreshCw size={14} className="text-emerald-600" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">🔁 Auto-Renew Status</p>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">🔁 Auto-Renew Status</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center sm:justify-start gap-3">
               <button
                 onClick={() => setAutoRenew(!autoRenew)}
                 className="transition-transform active:scale-90"
@@ -536,12 +540,12 @@ export const UserPricing: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
+          <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
               <ReceiptText size={14} className="text-blue-600" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">🧾 Last Invoice Amount</p>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">🧾 Last Invoice Amount</p>
             </div>
-            <p className="text-2xl font-black text-slate-900 tracking-tighter">
+            <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">
               {currency.symbol}{getLocalizedPrice(currentPlan).toLocaleString()}
             </p>
             {/* ✅ FIXED: Button now functional */}
@@ -556,14 +560,14 @@ export const UserPricing: React.FC = () => {
       </div>
 
       {/* 2. OPERATIONAL QUOTA MONITOR (REFINED WITH ALL STATS) */}
-      <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+      <div className="bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-10 opacity-5 transition-transform duration-700 group-hover:scale-110">
           <Activity size={200} />
         </div>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 mb-10">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10 mb-8 sm:mb-10">
           <div>
-            <h3 className="text-xl font-black uppercase tracking-widest leading-none">Operational Quota Monitor</h3>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">Real-time resource allocation audit</p>
+            <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest leading-none">Operational Quota Monitor</h3>
+            <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">Real-time resource allocation audit</p>
           </div>
           {highUsageDetected && (
             <div className="px-6 py-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 animate-pulse">
@@ -615,31 +619,31 @@ export const UserPricing: React.FC = () => {
       </div>
 
       {/* 3. PLAN FEATURE COMPARISON TABLE */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 md:p-10 border-b border-slate-50 flex items-center gap-4 bg-slate-50/20">
-          <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
-            <Layers size={24} />
+      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-6 sm:p-10 border-b border-slate-50 flex items-center gap-4 bg-slate-50/20">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0">
+            <Layers size={20} sm:size={24} />
           </div>
           <div>
-            <h3 className="text-xl font-black uppercase tracking-tight text-slate-800">Plan Feature Comparison</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Side-by-side tier capability matrix</p>
+            <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800">Plan Feature Comparison</h3>
+            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Side-by-side tier capability matrix</p>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left">
-            <thead>
+            <thead className="whitespace-nowrap">
               <tr className="bg-slate-50/50">
-                <th className="px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Protocol Capability</th>
+                <th className="px-6 sm:px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Protocol Capability</th>
                 {plans.map(p => (
-                  <th key={p.id} className="px-10 py-6 text-center">
+                  <th key={p.id} className="px-6 sm:px-10 py-6 text-center">
                     <p className={`text-[10px] font-black uppercase tracking-widest ${p.id === user?.planId ? 'text-indigo-600' : 'text-slate-400'}`}>{p.name}</p>
                     {p.id === user?.planId && <span className="text-[8px] bg-indigo-600 text-white px-2 py-0.5 rounded-full uppercase mt-1 inline-block">Active Node</span>}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 whitespace-nowrap">
               {[
                 { label: 'Authorized Repairs (Monthly)', keys: 'repairsPerMonth' },
                 { label: 'Stock Items Catalog', keys: 'inventoryItems' },
@@ -648,9 +652,9 @@ export const UserPricing: React.FC = () => {
                 { label: 'Classification Categories', keys: 'categories' }
               ].map((feature, idx) => (
                 <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-10 py-5 text-xs font-black text-slate-700 uppercase tracking-tight">{feature.label}</td>
+                  <td className="px-6 sm:px-10 py-5 text-xs font-black text-slate-700 uppercase tracking-tight">{feature.label}</td>
                   {plans.map(p => (
-                    <td key={p.id} className="px-10 py-5 text-center font-black text-slate-600 text-sm">
+                    <td key={p.id} className="px-6 sm:px-10 py-5 text-center font-black text-slate-600 text-sm">
                       {(p.limits as any)[feature.keys] >= 999 ? 'Unlimited' : (p.limits as any)[feature.keys]}
                     </td>
                   ))}
@@ -662,13 +666,13 @@ export const UserPricing: React.FC = () => {
                 { label: 'Enterprise Vault Security', keys: 'vault', icon: Vault, forceNo: ['starter', 'basic', 'premium'] }
               ].map((feature, idx) => (
                 <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-10 py-5 flex items-center gap-3 text-xs font-black text-slate-700 uppercase tracking-tight">
+                  <td className="px-6 sm:px-10 py-5 flex items-center gap-3 text-xs font-black text-slate-700 uppercase tracking-tight">
                     <feature.icon size={16} className="text-indigo-400" /> {feature.label}
                   </td>
                   {plans.map(p => {
                     const isAvailable = feature.forceNo ? !feature.forceNo.includes(p.id) : (p.limits as any)[feature.keys];
                     return (
-                      <td key={p.id} className="px-10 py-5 text-center">
+                      <td key={p.id} className="px-6 sm:px-10 py-5 text-center">
                         {isAvailable ? (
                           <CheckCircle2 size={18} className="text-emerald-500 mx-auto" />
                         ) : (
@@ -686,7 +690,7 @@ export const UserPricing: React.FC = () => {
 
       {/* 4. AI DIAGNOSTICS EXPLANATION PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[3rem] p-10 text-white relative overflow-hidden group shadow-2xl">
+        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 text-white relative overflow-hidden group shadow-2xl">
           <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-110 transition-transform duration-1000">
             <BrainCircuit size={200} />
           </div>
@@ -716,8 +720,8 @@ export const UserPricing: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-200 p-10 flex flex-col justify-center items-center text-center space-y-6">
-          <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center">
+        <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border-2 border-dashed border-slate-200 p-6 sm:p-10 flex flex-col justify-center items-center text-center space-y-6">
+          <div className="w-16 h-16 sm:w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center shrink-0">
             <ShieldPlus size={40} />
           </div>
           <div>
@@ -736,8 +740,8 @@ export const UserPricing: React.FC = () => {
       </div>
 
       <div className="text-center space-y-4 pt-10">
-        <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none uppercase">Infrastructure <span className="text-indigo-600">Expansion</span></h2>
-        <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Select an infrastructure tier matching your shop's transactional volume.</p>
+        <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter leading-none uppercase">Infrastructure <span className="text-indigo-600">Expansion</span></h2>
+        <p className="text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em]">Select an infrastructure tier matching your shop's transactional volume.</p>
       </div>
 
       {/* 5. PRICING GRIDS - REDESIGNED PER USER REQUEST */}
@@ -752,23 +756,23 @@ export const UserPricing: React.FC = () => {
           <p className="mt-2 text-slate-400 font-bold uppercase tracking-widest max-w-md mx-auto text-xs leading-relaxed">Infrastructure tiers have not been seeded. Please contact system administration to initialize the billing node.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {plans.map((plan) => {
             const isActive = plan.id === user?.planId;
             return (
-              <div key={plan.id} className={`p-10 rounded-[3.5rem] flex flex-col border-2 transition-all duration-500 hover:-translate-y-2 group ${isActive ? 'bg-indigo-600 text-white shadow-2xl scale-105 border-indigo-500 ring-4 ring-indigo-200' : 'bg-white border-slate-100 shadow-xl text-slate-900 hover:border-indigo-400'}`}>
-                <div className="mb-10">
+              <div key={plan.id} className={`p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] flex flex-col border-2 transition-all duration-500 hover:-translate-y-2 group ${isActive ? 'bg-indigo-600 text-white shadow-2xl sm:scale-105 border-indigo-500 ring-4 ring-indigo-200' : 'bg-white border-slate-100 shadow-xl text-slate-900 hover:border-indigo-400'}`}>
+                <div className="mb-8 sm:mb-10">
                   {isActive && (
                     <div className="mb-4 px-4 py-2 bg-white/20 rounded-xl border border-white/30 backdrop-blur-sm inline-flex items-center gap-2">
                       <CheckCircle2 size={14} className="text-white" />
                       <span className="text-[9px] font-black uppercase tracking-widest text-white">Active Plan</span>
                     </div>
                   )}
-                  <h3 className={`text-2xl font-black uppercase tracking-tight ${isActive ? 'text-white' : 'text-slate-900'}`}>{plan.name}</h3>
-                  <div className="text-4xl font-black mt-2 tracking-tighter">
-                    <span className="text-xl font-bold">{currency.symbol}</span>
+                  <h3 className={`text-xl sm:text-2xl font-black uppercase tracking-tight ${isActive ? 'text-white' : 'text-slate-900'}`}>{plan.name}</h3>
+                  <div className="text-3xl sm:text-4xl font-black mt-2 tracking-tighter">
+                    <span className="text-lg sm:text-xl font-bold">{currency.symbol}</span>
                     {getLocalizedPrice(plan)}
-                    <span className="text-xs opacity-50 font-black uppercase">/mo</span>
+                    <span className="text-[10px] sm:text-xs opacity-50 font-black uppercase">/mo</span>
                   </div>
                 </div>
 

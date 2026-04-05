@@ -13,6 +13,7 @@ import {
   /* Fixed: Added Zap to the imports */
   Zap
 } from 'lucide-react';
+import { BackButton } from '../../components/common/BackButton';
 import { aiService } from '../../api/aiService';
 import { useQuotas } from '../../hooks/useQuotas';
 
@@ -236,19 +237,17 @@ export const AddRepair: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-100 rounded-2xl transition-all border border-slate-100 text-slate-400 shadow-sm">
-          <ChevronLeft />
-        </button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <BackButton />
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Repair Enrollment Node</h2>
-          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-1">Authorized Technical Intake Protocol</p>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight uppercase">Repair Enrollment Node</h2>
+          <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest mt-1">Authorized Technical Intake Protocol</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8">
-          <form onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-2xl space-y-12">
+          <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 md:p-10 rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-2xl space-y-10 sm:space-y-12">
 
             {/* 1. EXISTING: CLIENT DETAILS */}
             <div className="space-y-8">
@@ -310,9 +309,9 @@ export const AddRepair: React.FC = () => {
                   type="button"
                   onClick={runAIDiagnosis}
                   disabled={isAIAnalyzing || !formData.device}
-                  className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
                 >
-                  {isAIAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Run AI Audit
+                  {isAIAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} <span className="hidden sm:inline">Run</span> AI Audit
                 </button>
               </div>
 
@@ -335,10 +334,10 @@ export const AddRepair: React.FC = () => {
 
                 {/* AI ADVISORY OUTPUT */}
                 {aiAnalysis && (
-                  <div className="bg-indigo-50/50 p-6 rounded-[2rem] border border-indigo-100 animate-in zoom-in-95 duration-300">
+                  <div className="bg-indigo-50/50 p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-indigo-100 animate-in zoom-in-95 duration-300">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg"><Info size={16} /></div>
-                      <h5 className="text-[10px] font-black uppercase text-indigo-900 tracking-widest">Neural Diagnostic advisory</h5>
+                      <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg shrink-0"><Info size={16} /></div>
+                      <h5 className="text-[10px] font-black uppercase text-indigo-900 tracking-widest leading-tight">Neural Diagnostic advisory</h5>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
@@ -462,10 +461,10 @@ export const AddRepair: React.FC = () => {
             </div>
 
             <div className="pt-8 border-t border-slate-50 flex flex-col sm:flex-row gap-4">
-              <button type="submit" className="flex-1 bg-[#0052FF] text-white font-black py-6 rounded-[2rem] shadow-2xl shadow-blue-200 hover:bg-blue-600 flex items-center justify-center gap-3 transition-all uppercase tracking-[0.3em] text-[11px] group active:scale-95">
-                <Save size={20} className="group-hover:animate-pulse" /> Finalize Node Enrollment
+              <button type="submit" className="flex-[2] bg-[#0052FF] text-white font-black py-5 sm:py-6 rounded-2xl sm:rounded-[2rem] shadow-2xl shadow-blue-200 hover:bg-blue-600 flex items-center justify-center gap-3 transition-all uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[10px] sm:text-[11px] group active:scale-95">
+                <Save size={18} sm:size={20} className="group-hover:animate-pulse" /> Finalize Node Enrollment
               </button>
-              <button type="button" onClick={() => navigate(-1)} className="px-12 py-6 bg-slate-100 text-slate-600 font-black rounded-[2rem] hover:bg-slate-200 transition-all uppercase tracking-widest text-[11px]">
+              <button type="button" onClick={() => navigate(-1)} className="flex-1 py-5 sm:py-6 bg-slate-100 text-slate-600 font-black rounded-2xl sm:rounded-[2rem] hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px] sm:text-[11px]">
                 Discard
               </button>
             </div>
@@ -473,8 +472,8 @@ export const AddRepair: React.FC = () => {
         </div>
 
         {/* TASK 7: PRE-SUBMIT VALIDATION SUMMARY (SIDEBAR) */}
-        <div className="lg:col-span-4 space-y-8 sticky top-24">
-          <div className="bg-slate-900 rounded-[3rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+        <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24">
+          <div className="bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700"><ClipboardCheck size={200} /></div>
             <div className="relative z-10 space-y-8">
               <div className="flex items-center gap-4">
@@ -513,7 +512,7 @@ export const AddRepair: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-indigo-600 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+          <div className="bg-indigo-600 rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-10 text-white shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-1000"><Zap size={150} /></div>
             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 relative z-10 text-indigo-200">System Tip</h4>
             <p className="text-sm font-bold leading-relaxed uppercase tracking-tighter relative z-10">

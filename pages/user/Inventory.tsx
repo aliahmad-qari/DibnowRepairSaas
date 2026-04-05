@@ -21,6 +21,7 @@ import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { useQuotas } from '../../hooks/useQuotas';
+import { BackButton } from '../../components/common/BackButton';
 
 const COMP_COLORS = ['#6366f1', '#f43f5e'];
 
@@ -346,6 +347,7 @@ export const Inventory: React.FC = () => {
 
    return (
       <div className="space-y-8 pb-32 animate-in fade-in duration-500 relative">
+         <BackButton />
          {isLoading && (
             <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
                <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
@@ -399,11 +401,13 @@ export const Inventory: React.FC = () => {
          </div>
 
          {/* NAVIGATION TABS */}
-         <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit">
-            <button onClick={() => setActiveTab('inventory')} className={`px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'inventory' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Stock Manager</button>
-            <button onClick={() => setActiveTab('comparison')} className={`px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'comparison' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Sold vs Unsold</button>
-            <button onClick={() => setActiveTab('intelligence')} className={`px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'intelligence' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Intelligence Hub</button>
-            <button onClick={() => setActiveTab('ledger')} className={`px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'ledger' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Operational Ledger</button>
+         <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
+            <div className="flex shrink-0">
+               <button onClick={() => setActiveTab('inventory')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'inventory' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Stock Manager</button>
+               <button onClick={() => setActiveTab('comparison')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'comparison' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Sold vs Unsold</button>
+               <button onClick={() => setActiveTab('intelligence')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'intelligence' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Intelligence Hub</button>
+               <button onClick={() => setActiveTab('ledger')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'ledger' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Operational Ledger</button>
+            </div>
          </div>
 
          {activeTab === 'inventory' && (
@@ -422,16 +426,16 @@ export const Inventory: React.FC = () => {
                      />
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                     <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                     <div className="flex-1 sm:flex-none flex items-center gap-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl min-w-[140px]">
                         <Filter size={16} className="text-slate-400" />
-                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer">
-                           <option value="all">All Categories</option>
+                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer w-full">
+                           <option value="all">Categories</option>
                            {Array.from(new Set(items.map(i => i.category))).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                      </div>
                      <div className="flex bg-slate-100 p-1 rounded-xl">
-                        <button onClick={() => setViewMode('table')} className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><List size={18} /></button>
-                        <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={18} /></button>
+                        <button onClick={() => setViewMode('table')} className={`p-2 sm:p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><List size={18} /></button>
+                        <button onClick={() => setViewMode('grid')} className={`p-2 sm:p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={18} /></button>
                      </div>
                   </div>
                </div>
@@ -441,26 +445,26 @@ export const Inventory: React.FC = () => {
                   <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
                      <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left">
-                           <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+                           <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
                               <tr className="h-16">
-                                 <th className="px-10">Asset Identification</th>
+                                 <th className="px-6 sm:px-10">Asset Identification</th>
                                  <th className="px-6 text-center">Stock Level</th>
                                  <th className="px-6 text-right">Unit Price</th>
                                  <th className="px-6 text-center">Status</th>
-                                 <th className="px-10 text-right">Actions</th>
+                                 <th className="px-6 sm:px-10 text-right">Actions</th>
                               </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-50">
                               {filteredItems.map(item => (
-                                 <tr key={item._id} className="hover:bg-indigo-50/30 transition-all group">
-                                    <td className="px-10 py-7">
+                                 <tr key={item._id} className="hover:bg-indigo-50/30 transition-all group whitespace-nowrap">
+                                    <td className="px-6 sm:px-10 py-7">
                                        <div className="flex items-center gap-5">
-                                          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
-                                             {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <Package size={24} className="text-slate-300" />}
+                                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-xl sm:rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
+                                             {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <Package size={20} className="text-slate-300" />}
                                           </div>
                                           <div className="min-w-0">
-                                             <p className="text-sm font-black text-slate-800 tracking-tight uppercase truncate">{item.name}</p>
-                                             <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">SKU: {item.sku || 'N/A'}</p>
+                                             <p className="text-xs sm:text-sm font-black text-slate-800 tracking-tight uppercase truncate max-w-[120px] sm:max-w-none">{item.name}</p>
+                                             <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">SKU: {item.sku || 'N/A'}</p>
                                           </div>
                                        </div>
                                     </td>
@@ -482,11 +486,11 @@ export const Inventory: React.FC = () => {
                                           <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-xl text-[8px] font-black uppercase border border-emerald-100">HEALTHY</div>
                                        )}
                                     </td>
-                                    <td className="px-10 py-7 text-right">
+                                    <td className="px-6 sm:px-10 py-7 text-right">
                                        <div className="flex items-center justify-end gap-2">
-                                          <button onClick={() => handleOpenSell(item)} disabled={item.stock === 0} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-emerald-100"><ShoppingCart size={16} /></button>
-                                          <button onClick={() => handleOpenEdit(item)} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100"><Edit size={16} /></button>
-                                          <button onClick={() => handleDeleteItem(item._id)} className="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-rose-100"><Trash2 size={16} /></button>
+                                          <button onClick={() => handleOpenSell(item)} disabled={item.stock === 0} className="p-2 sm:p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-emerald-100"><ShoppingCart size={16} /></button>
+                                          <button onClick={() => handleOpenEdit(item)} className="p-2 sm:p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100"><Edit size={16} /></button>
+                                          <button onClick={() => handleDeleteItem(item._id)} className="p-2 sm:p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-rose-100"><Trash2 size={16} /></button>
                                        </div>
                                     </td>
                                  </tr>
@@ -496,7 +500,7 @@ export const Inventory: React.FC = () => {
                      </div>
                   </div>
                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
                      {filteredItems.map(item => (
                         <div key={item._id} className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all group flex flex-col h-full border-b-4 border-b-indigo-500">
                            <div className="relative aspect-square bg-slate-50 overflow-hidden">
@@ -530,7 +534,7 @@ export const Inventory: React.FC = () => {
          {/* RESTORED: Sold vs Unsold Section */}
          {activeTab === 'comparison' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4">
                      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center"><Boxes size={24} /></div>
                      <div>
@@ -555,7 +559,7 @@ export const Inventory: React.FC = () => {
                </div>
 
                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col items-center">
+                  <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm flex flex-col items-center">
                      <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-10">Capital Distribution Node</h4>
                      <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -581,11 +585,11 @@ export const Inventory: React.FC = () => {
                      </div>
                   </div>
 
-                  <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
-                     <div className="p-8 bg-slate-50/50 border-b border-slate-100">
+                  <div className="bg-white rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
+                     <div className="p-6 sm:p-8 bg-slate-50/50 border-b border-slate-100">
                         <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">Category Liquidity Scan</h4>
                      </div>
-                     <div className="overflow-x-auto">
+                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left text-xs">
                            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 border-b border-slate-100">
                               <tr className="h-12">
@@ -620,22 +624,22 @@ export const Inventory: React.FC = () => {
          {/* RESTORED: Intelligence Hub Section */}
          {activeTab === 'intelligence' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-emerald-200 transition-all">
+               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-emerald-200 transition-all">
                      <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><CheckCircle2 size={32} /></div>
                      <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Healthy Nodes</p>
                         <h4 className="text-3xl font-black text-slate-800">{intel.inStock.length} SKU</h4>
                      </div>
                   </div>
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-amber-200 transition-all">
+                  <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-amber-200 transition-all">
                      <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><AlertTriangle size={32} /></div>
                      <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Depletion Risk</p>
                         <h4 className="text-3xl font-black text-amber-600">{intel.lowStock.length} SKU</h4>
                      </div>
                   </div>
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-rose-200 transition-all">
+                  <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-rose-200 transition-all">
                      <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><XCircle size={32} /></div>
                      <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dead Nodes</p>
@@ -691,7 +695,7 @@ export const Inventory: React.FC = () => {
                   </div>
                </div>
 
-               <div className="bg-indigo-600 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+               <div className="bg-indigo-600 rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-110 transition-transform duration-1000"><RefreshCcw size={200} /></div>
                   <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
                      <div className="max-w-xl space-y-4">
@@ -718,34 +722,34 @@ export const Inventory: React.FC = () => {
          {/* RESTORED: Operational Ledger Section */}
          {activeTab === 'ledger' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
-                  <div className="p-8 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
+               <div className="bg-white rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
+                  <div className="p-6 sm:p-8 border-b border-slate-50 bg-slate-50/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg"><History size={24} /></div>
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0"><History size={20} /></div>
                         <div>
-                           <h4 className="text-xl font-black uppercase tracking-tight text-slate-800">Warehouse Event Stream</h4>
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Immutable Transactional Nodes</p>
+                           <h4 className="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800">Warehouse Event Stream</h4>
+                           <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Immutable Transactional Nodes</p>
                         </div>
                      </div>
-                     <div className="bg-white px-5 py-2.5 rounded-xl border border-slate-200 shadow-sm">
-                        <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">{movementLedger.length} Total Logs</span>
+                     <div className="bg-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border border-slate-200 shadow-sm w-fit">
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase text-indigo-600 tracking-widest">{movementLedger.length} Total Logs</span>
                      </div>
                   </div>
                   <div className="overflow-x-auto custom-scrollbar">
                      <table className="w-full text-left">
-                        <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+                        <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
                            <tr className="h-16">
-                              <th className="px-10">Event Protocol</th>
+                              <th className="px-6 sm:px-10">Event Protocol</th>
                               <th className="px-6">Asset Reference</th>
                               <th className="px-6 text-center">Unit Flux</th>
                               <th className="px-6 text-center">Authorized Actor</th>
-                              <th className="px-10 text-right">Sync Timestamp</th>
+                              <th className="px-6 sm:px-10 text-right">Sync Timestamp</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                            {movementLedger.map((log, i) => (
-                              <tr key={i} className="hover:bg-slate-50/80 transition-all group">
-                                 <td className="px-10 py-7">
+                              <tr key={i} className="hover:bg-slate-50/80 transition-all group whitespace-nowrap">
+                                 <td className="px-6 sm:px-10 py-7">
                                     <div className="flex items-center gap-4">
                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${log.color}`}>
                                           <log.icon size={18} />

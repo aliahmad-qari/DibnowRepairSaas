@@ -1,10 +1,12 @@
 
 import React from 'react';
 import { LifeBuoy, Search, Book, Video, MessageCircle, ArrowRight } from 'lucide-react';
+import { BackButton } from '../../components/common/BackButton';
 
 export const HelpCenter: React.FC = () => {
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
+      <BackButton />
       <div className="text-center space-y-4">
         <h2 className="text-4xl font-extrabold text-slate-900">How can we help?</h2>
         <p className="text-slate-500 text-lg">Search our knowledge base or browse categories below.</p>

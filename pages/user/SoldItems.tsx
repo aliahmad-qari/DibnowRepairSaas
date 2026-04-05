@@ -18,6 +18,7 @@ import { callBackendAPI } from '../../api/apiClient.ts';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
 import { useNavigate } from 'react-router-dom';
 import { aiService } from '../../api/aiService';
+import { BackButton } from '../../components/common/BackButton';
 
 const COMP_COLORS = ['#6366f1', '#f43f5e'];
 
@@ -204,6 +205,7 @@ export const SoldItems: React.FC = () => {
 
    return (
       <div className="space-y-8 pb-24 animate-in fade-in duration-500 relative">
+         <BackButton />
          {isLoading && (
             <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
                <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
@@ -212,21 +214,21 @@ export const SoldItems: React.FC = () => {
          {/* Header */}
          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-               <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Stock Intelligence Hub</h1>
+               <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight uppercase">Stock Intelligence Hub</h1>
                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-2 flex items-center gap-2">
                   <Activity size={14} className="text-indigo-600" />
                   Node-Level Supply Chain Scrutiny
                </p>
             </div>
-            <div className="flex bg-slate-100 p-1.5 rounded-2xl">
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl overflow-x-auto no-scrollbar">
                {['Today', 'Last 7 Days', 'Last 30 Days'].map(f => (
-                  <button key={f} onClick={() => setDateFilter(f)} className={`px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${dateFilter === f ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-50'}`}>{f}</button>
+                  <button key={f} onClick={() => setDateFilter(f)} className={`px-4 sm:px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${dateFilter === f ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>{f}</button>
                ))}
             </div>
          </div>
 
          {/* Analysis Module Selector */}
-         <div className="flex flex-wrap gap-4 border-b border-slate-100 pb-4">
+         <div className="flex overflow-x-auto no-scrollbar gap-3 border-b border-slate-100 pb-4">
             {[
                { id: 'comparison', label: 'Liquidity Matrix', icon: Scale },
                { id: 'deadstock', label: 'Risk Monitor', icon: AlertOctagon },
@@ -236,7 +238,7 @@ export const SoldItems: React.FC = () => {
                <button
                   key={tab.id}
                   onClick={() => setActiveAnalysisTab(tab.id as any)}
-                  className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAnalysisTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                  className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap shrink-0 ${activeAnalysisTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
                >
                   <tab.icon size={16} /> {tab.label}
                </button>
@@ -353,7 +355,8 @@ export const SoldItems: React.FC = () => {
                </div>
 
                <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
-                  <table className="w-full text-left">
+                  <div className="overflow-x-auto">
+                     <table className="w-full text-left min-w-[700px]">
                      <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
                         <tr className="h-14"><th className="px-10">Asset node</th><th className="px-6 text-center">In-Stock</th><th className="px-6 text-right">Value</th><th className="px-6 text-center">Last Active</th><th className="px-10 text-right">Risk Severity</th></tr>
                      </thead>
@@ -377,6 +380,7 @@ export const SoldItems: React.FC = () => {
                         ))}
                      </tbody>
                   </table>
+                  </div>
                </div>
             </div>
          )}
@@ -503,19 +507,19 @@ export const SoldItems: React.FC = () => {
 
          {/* Main Ledger Table (Read-Only) */}
          <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden border-b-8 border-b-indigo-600">
-            <div className="p-8 border-b border-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50/20">
-               <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <div className="p-5 sm:p-8 border-b border-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50/20">
+               <div className="relative flex-1">
+                  <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                   <input
                      type="text"
                      placeholder="Trace Audit ID (Item, Client, Ref)..."
-                     className="w-full pl-14 pr-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none shadow-sm transition-all"
+                     className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none shadow-sm transition-all"
                      value={searchTerm}
                      onChange={(e) => setSearchTerm(e.target.value)}
                   />
                </div>
-               <div className="flex items-center gap-3">
-                  <button onClick={handleExportPDF} className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-black transition-all shadow-xl">
+               <div className="flex items-center gap-3 shrink-0">
+                  <button onClick={handleExportPDF} className="w-full sm:w-auto bg-slate-900 text-white px-5 sm:px-6 py-3 sm:py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-black transition-all shadow-xl">
                      <FileDown size={18} /> Export PDF Audit
                   </button>
                </div>

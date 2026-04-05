@@ -147,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (payload.userId === currentUser.id) {
           logout();
           alert("Your account has been disabled by Super Admin. Session Terminated.");
-          window.location.href = '/#/login';
+          window.location.replace('/#/login');
         }
       }
       if (e.key === 'fixit_user') {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Moon, MapPin, Clock, Loader2, ChevronLeft, Bell, BellOff, Info, ShieldCheck, Settings, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { BackButton } from '../../../components/common/BackButton';
 import { callBackendAPI } from '../../../api/apiClient.ts';
 import { useAuth } from '../../../context/AuthContext.tsx';
 
@@ -167,13 +168,13 @@ export const PrayerPage: React.FC = () => {
   }, [timings, notificationsEnabled, scheduleNextCheck]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 px-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 shadow-sm transition-all"><ChevronLeft /></button>
-          <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase leading-none">Prayer Command</h2>
-            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">Regional Spiritual Node Localisation</p>
+          <BackButton />
+          <div className="min-w-0">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight uppercase leading-none truncate">Prayer Command</h2>
+            <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-2 truncate">Regional Spiritual Node Localisation</p>
           </div>
         </div>
 
@@ -186,21 +187,21 @@ export const PrayerPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           {loading ? (
-            <div className="col-span-full h-96 flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100 text-slate-300">
-              <Loader2 className="animate-spin mb-4" size={40} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Handshaking with Aladhan Nodes...</span>
+            <div className="col-span-full h-64 sm:h-96 flex flex-col items-center justify-center bg-white rounded-[2rem] sm:rounded-[3rem] border-2 border-dashed border-slate-100 text-slate-300">
+              <Loader2 className="animate-spin mb-4" size={32} sm:size={40} />
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center px-6">Handshaking with Aladhan Nodes...</span>
             </div>
           ) : timings && Object.entries(timings).filter(([k]) => !['Imsak', 'Midnight', 'Sunset'].includes(k)).map(([name, time]) => (
-            <div key={name} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative border-b-4 hover:border-b-indigo-600">
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700 text-indigo-600"><Moon size={100} /></div>
+            <div key={name} className="bg-white p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative border-b-4 hover:border-b-indigo-600">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700 text-indigo-600 hidden sm:block"><Moon size={100} /></div>
               <div className="relative z-10">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{name}</p>
-                <h3 className="text-5xl font-black text-slate-900 tracking-tighter">{time as string}</h3>
-                <div className="mt-4 flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full ${notificationsEnabled ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Verified Timing Node</span>
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:mb-2">{name}</p>
+                <h3 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tighter truncate">{time as string}</h3>
+                <div className="mt-3 sm:mt-4 flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 rounded-full ${notificationsEnabled ? 'bg-emerald-500' : 'bg-slate-200'} shrink-0`} />
+                  <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">Verified Timing Node</span>
                 </div>
               </div>
             </div>
@@ -208,17 +209,17 @@ export const PrayerPage: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12"><MapPin size={150} /></div>
-            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400 mb-4">Current Coordinate Node</h4>
-            <h2 className="text-3xl font-black tracking-tight">{locationName}</h2>
-            <p className="text-slate-400 text-[10px] font-bold mt-4 leading-relaxed uppercase tracking-widest">Solar calculations provided by Karachi Method (Pakistan).</p>
-
-            <div className="mt-10 grid grid-cols-1 gap-3">
-              <button onClick={() => fetchTimings(undefined, undefined, 'Multan', 'Pakistan')} className="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+          <div className="bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-10 text-white relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 hidden sm:block"><MapPin size={150} /></div>
+            <h4 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-indigo-400 mb-3 sm:mb-4">Current Coordinate Node</h4>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">{locationName}</h2>
+            <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold mt-4 leading-relaxed uppercase tracking-widest">Solar calculations provided by Karachi Method (Pakistan).</p>
+ 
+            <div className="mt-8 sm:mt-10 grid grid-cols-1 gap-3">
+              <button onClick={() => fetchTimings(undefined, undefined, 'Multan', 'Pakistan')} className="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
                 <RefreshCw size={14} /> Force Multan Node
               </button>
-              <button onClick={() => fetchTimings(undefined, undefined, 'London', 'UK')} className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">London Node Switch</button>
+              <button onClick={() => fetchTimings(undefined, undefined, 'London', 'UK')} className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all">London Node Switch</button>
             </div>
           </div>
 
@@ -252,14 +253,14 @@ export const PrayerPage: React.FC = () => {
       </div>
 
       {/* --- NEW ADDITIVE SECTION: PRAYER NOTIFICATION CONTROLS --- */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-10 animate-in slide-in-from-bottom-4 duration-700">
+      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm p-6 sm:p-10 animate-in slide-in-from-bottom-4 duration-700">
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
-            <Settings size={24} />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0">
+            <Settings size={22} sm:size={24} />
           </div>
-          <div>
-            <h3 className="text-xl font-black uppercase tracking-tight text-slate-800 leading-none">Notification Control Matrix</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Manage browser reminders and alerts</p>
+          <div className="min-w-0">
+            <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">Notification Control Matrix</h3>
+            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5 sm:mt-2 truncate">Manage browser reminders and alerts</p>
           </div>
         </div>
 
@@ -298,13 +299,13 @@ export const PrayerPage: React.FC = () => {
           </div>
 
           <div className={`space-y-6 transition-opacity duration-300 ${!notificationsEnabled ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
-            <h5 className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Notify Before Node Entry</h5>
-            <div className="grid grid-cols-3 gap-3">
+            <h5 className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 text-center sm:text-left">Notify Before Node Entry</h5>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[15, 10, 5].map(mins => (
                 <button
                   key={mins}
                   onClick={() => handleLeadTimeChange(mins)}
-                  className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${notifyLeadTime === mins ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
+                  className={`py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all border ${notifyLeadTime === mins ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
                 >
                   {mins} Minutes
                 </button>

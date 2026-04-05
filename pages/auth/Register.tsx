@@ -7,6 +7,7 @@ import {
   ShieldCheck, Loader2, ArrowRight 
 } from 'lucide-react';
 import { callBackendAPI } from '../../api/apiClient';
+import { BackButton } from '../../components/common/BackButton';
 
 interface FormData {
   firstName: string;
@@ -170,7 +171,7 @@ export const Register: React.FC = () => {
       setSuccess(true);
 
       // Redirect to dashboard (no email verification needed)
-      navigate('/user/dashboard');
+      navigate('/login', { replace: true });
     } catch (error) {
       setGeneralError('Connection error. Please try again.');
       console.error('Registration error:', error);
@@ -180,17 +181,20 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 lg:p-6">
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-2 sm:p-4 lg:p-6 relative">
+      <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-50">
+        <BackButton />
+      </div>
       {/* Background */}
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#00D1FF] blur-[150px] rounded-full" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#0052FF] blur-[150px] rounded-full" />
       </div>
 
-      <div className="w-full max-w-[1100px] flex flex-col lg:flex-row bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden relative z-10">
+      <div className="w-full max-w-[1100px] flex flex-col lg:flex-row bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] sm:rounded-[3rem] shadow-2xl overflow-hidden relative z-10">
         
         {/* Left Side: Branding */}
-        <div className="w-full lg:w-5/12 p-8 lg:p-12 xl:p-16 flex flex-col justify-center bg-gradient-to-br from-[#00A3FF] to-[#00D1FF] text-white relative overflow-hidden">
+        <div className="w-full lg:w-5/12 p-6 sm:p-10 lg:p-12 xl:p-16 flex flex-col justify-center bg-gradient-to-br from-[#00A3FF] to-[#00D1FF] text-white relative overflow-hidden">
           {/* Decorative Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/4 -translate-x-1/4" />
@@ -240,7 +244,7 @@ export const Register: React.FC = () => {
         </div>
 
         {/* Right Side: Form */}
-        <div className="w-full lg:w-7/12 p-8 lg:p-12 xl:p-16 bg-white flex flex-col justify-center">
+        <div className="w-full lg:w-7/12 p-6 sm:p-10 lg:p-12 xl:p-16 bg-white flex flex-col justify-center">
           <div className="mb-8">
             <h2 className="text-2xl lg:text-3xl font-black text-slate-800">Create Your Account</h2>
             <p className="text-slate-500 text-xs lg:text-sm font-bold uppercase tracking-widest mt-1">Start Your Enterprise Journey</p>

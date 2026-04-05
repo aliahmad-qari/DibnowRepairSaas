@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Store, User, Shield, Bell, Coins, ChevronDown, Globe, Save, Loader2 } from 'lucide-react';
 import { useCurrency } from '../../context/CurrencyContext.tsx';
+import { BackButton } from '../../components/common/BackButton';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { callBackendAPI } from '../../api/apiClient.ts';
 
@@ -55,6 +56,7 @@ export const UserSettings: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 relative">
+      <BackButton />
       {isLoading && (
         <div className="absolute inset-0 z-[100] bg-white/60 backdrop-blur-[2px] flex items-center justify-center rounded-[3rem]">
           <Loader2 className="w-16 h-16 text-indigo-600 animate-spin" />

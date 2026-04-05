@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useQuotas } from '../../hooks/useQuotas';
+import { BackButton } from '../../components/common/BackButton';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#06b6d4'];
 import Swal from 'sweetalert2';
@@ -234,15 +235,13 @@ export const Brands: React.FC = () => {
         </div>
       )}
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-3 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 transition-all shadow-sm">
-            <ChevronLeft size={20} />
-          </button>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <BackButton />
           <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Brand intelligence</h2>
-            <div className="flex items-center gap-3 mt-1">
-              <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Manufacturer Ecosystem</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight uppercase">Brand intelligence</h2>
+            <div className="flex flex-wrap items-center gap-3 mt-1">
+              <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest">Manufacturer Ecosystem</p>
               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${isAtLimit ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
                 {quotas?.limits.brands.used || 0} / {quotas?.limits.brands.limit || 0} Quota
               </span>
@@ -263,7 +262,7 @@ export const Brands: React.FC = () => {
             if (isAtLimit) navigate('/user/pricing');
             else setShowForm(!showForm);
           }}
-          className={`${isAtLimit ? 'bg-slate-800' : 'bg-indigo-600'} text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest w-full md:w-auto`}
+          className={`${isAtLimit ? 'bg-slate-800' : 'bg-indigo-600'} text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest w-full lg:w-auto`}
         >
           {isAtLimit ? <Lock size={18} /> : <Plus size={18} />}
           {isAtLimit ? 'Upgrade tier' : 'Enroll manufacturer'}
@@ -271,18 +270,18 @@ export const Brands: React.FC = () => {
       </div>
 
       {/* TASK 1: BRAND OVERVIEW SUMMARY */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Brands', val: intel.totalBrandsCount, icon: Tag, color: 'text-indigo-600', bg: 'bg-indigo-50' },
           { label: 'With Inventory', val: intel.withStock, icon: Boxes, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Revenue Nodes', val: intel.withSales, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Inactive Nodes', val: intel.inactiveCount, icon: Info, color: 'text-rose-600', bg: 'bg-rose-50' }
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4 group hover:shadow-xl transition-all">
-            <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}><stat.icon size={22} /></div>
+          <div key={i} className="bg-white p-5 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4 group hover:shadow-xl transition-all">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}><stat.icon size={20} sm:size={22} /></div>
             <div>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
-              <h4 className="text-2xl font-black text-slate-800 tracking-tighter">{stat.val}</h4>
+              <h4 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tighter">{stat.val}</h4>
             </div>
           </div>
         ))}
@@ -290,17 +289,17 @@ export const Brands: React.FC = () => {
 
       {/* TASK 4: DEAD BRAND DETECTION */}
       {intel.deadBrands.length > 0 && brands.length > 0 && (
-        <div className="bg-rose-50 border-2 border-rose-100 p-6 rounded-[2.5rem] flex items-center justify-between gap-4 animate-in slide-in-from-top-2">
+        <div className="bg-rose-50 border-2 border-rose-100 p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-top-2">
           <div className="flex items-center gap-5">
-            <div className="w-12 h-12 bg-rose-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
-              <ShieldAlert size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0">
+              <ShieldAlert size={20} sm:size={24} />
             </div>
             <div>
-              <h4 className="text-sm font-black text-rose-900 uppercase">Underperforming manufacturers</h4>
-              <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest mt-1">⚠ {intel.deadBrands.length} brands have no stock or sales activity detected in this cycle.</p>
+              <h4 className="text-xs sm:text-sm font-black text-rose-900 uppercase">Underperforming brands</h4>
+              <p className="text-[9px] sm:text-[10px] font-bold text-rose-600 uppercase tracking-widest mt-1">⚠ {intel.deadBrands.length} brands have no activity detected.</p>
             </div>
           </div>
-          <button onClick={() => setActiveFilter('inactive')} className="px-6 py-3 bg-white border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase hover:bg-rose-100 transition-all">Review Dead Nodes</button>
+          <button onClick={() => setActiveFilter('inactive')} className="w-full sm:w-auto px-6 py-3 bg-white border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase hover:bg-rose-100 transition-all">Review</button>
         </div>
       )}
 
@@ -309,14 +308,14 @@ export const Brands: React.FC = () => {
         <div className="xl:col-span-8 space-y-8">
           {/* Add Form Section */}
           {showForm && !isAtLimit && (
-            <div className="bg-white p-8 rounded-[2.5rem] border border-indigo-100 shadow-2xl animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-indigo-100 shadow-2xl animate-in zoom-in-95 duration-200 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none rotate-12">
                 <Tag size={150} />
               </div>
               <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Brand architect</h3>
-                  <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={24} /></button>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg sm:text-xl font-black text-slate-800 uppercase tracking-tight">Brand architect</h3>
+                  <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={20} sm:size={24} /></button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -342,15 +341,15 @@ export const Brands: React.FC = () => {
                     />
                   </div>
                 </div>
-                <div className="pt-4 flex gap-3">
-                  <button type="submit" disabled={isSubmitting} className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-indigo-700 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 disabled:opacity-50">
+                <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                  <button type="submit" disabled={isSubmitting} className="flex-[2] bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-indigo-700 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 disabled:opacity-50">
                     {isSubmitting ? <Activity className="animate-spin" size={16} /> : <Save size={16} />}
                     {isSubmitting ? 'Deploying...' : 'Deploy node'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="px-8 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]"
+                    className="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]"
                   >
                     Discard
                   </button>
@@ -360,10 +359,10 @@ export const Brands: React.FC = () => {
           )}
 
           {/* TASK 2 & 7: BRAND PERFORMANCE TABLE WITH FILTERS */}
-          <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
+          <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
             {brands.length > 0 ? (
               <>
-                <div className="p-8 border-b border-slate-50 bg-slate-50/20 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="p-6 sm:p-8 border-b border-slate-50 bg-slate-50/20 flex flex-col md:flex-row justify-between items-center gap-6">
                   <div className="relative flex-1 max-w-sm group">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
@@ -401,17 +400,17 @@ export const Brands: React.FC = () => {
 
                 <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+                    <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
                       <tr>
-                        <th className="px-10 py-6">Manufacturer Node</th>
+                        <th className="px-6 sm:px-10 py-6">Manufacturer Node</th>
                         <th className="px-6 py-6 text-center">Items</th>
                         <th className="px-6 py-6 text-center text-indigo-600">Stock</th>
                         <th className="px-6 py-6 text-right">Asset Value</th>
                         <th className="px-6 py-6 text-center text-emerald-600">Sold</th>
                         <th className="px-6 py-6 text-right text-emerald-600">Revenue</th>
-                        <th className="px-10 py-6 text-right">Heat Index</th>
+                        <th className="px-6 sm:px-10 py-6 text-right">Heat Index</th>
                         <th className="px-6 py-6 text-center">Status</th>
-                        <th className="px-10 py-6 text-right">Actions</th>
+                        <th className="px-6 sm:px-10 py-6 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -424,10 +423,10 @@ export const Brands: React.FC = () => {
                         </tr>
                       ) : (
                         intel.filtered.map((brand) => (
-                          <tr key={brand._id} className="hover:bg-indigo-50/30 transition-all group">
-                            <td className="px-10 py-7">
+                          <tr key={brand._id} className="hover:bg-indigo-50/30 transition-all group whitespace-nowrap">
+                            <td className="px-6 sm:px-10 py-7">
                               <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-xl shadow-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl shadow-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                                   {brand.name.charAt(0)}
                                 </div>
                                 <div className="min-w-0">
@@ -457,7 +456,7 @@ export const Brands: React.FC = () => {
                               {currency.symbol}{brand.revenue.toLocaleString()}
                             </td>
                             {/* Task 5: Heat Map Indicators */}
-                            <td className="px-10 py-7 text-right">
+                            <td className="px-6 sm:px-10 py-7 text-right">
                               <div className="flex flex-col items-end gap-1.5">
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Inventory {brand.inventoryShare.toFixed(0)}%</span>
@@ -481,7 +480,7 @@ export const Brands: React.FC = () => {
                                 {brand.status}
                               </span>
                             </td>
-                            <td className="px-10 py-7 text-right">
+                            <td className="px-6 sm:px-10 py-7 text-right">
                               <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm">
                                   <Edit2 size={14} />
@@ -523,9 +522,9 @@ export const Brands: React.FC = () => {
         <div className="xl:col-span-4 space-y-8">
           {/* TASK 3: BRAND SALES CONTRIBUTION GRAPH */}
           {intel.chartData.length > 0 && (
-            <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm group hover:shadow-xl transition-all">
+            <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 p-6 sm:p-8 shadow-sm group hover:shadow-xl transition-all">
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm">
+                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm shrink-0">
                   <PieChart size={20} />
                 </div>
                 <div>
@@ -576,9 +575,9 @@ export const Brands: React.FC = () => {
 
           {/* Brand Performance Bar Chart (Units) */}
           {intel.chartData.length > 0 && (
-            <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm group hover:shadow-xl transition-all">
+            <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 p-6 sm:p-8 shadow-sm group hover:shadow-xl transition-all">
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shadow-sm shrink-0">
                   <BarChart3 size={20} />
                 </div>
                 <div>
@@ -601,7 +600,7 @@ export const Brands: React.FC = () => {
           )}
 
           {/* SMART ADVISORY BOX */}
-          <div className="bg-slate-900 rounded-[3rem] p-8 text-white relative overflow-hidden group shadow-2xl">
+          <div className="bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 text-white relative overflow-hidden group shadow-2xl">
             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
               <Activity size={150} />
             </div>

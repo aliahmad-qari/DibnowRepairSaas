@@ -10,6 +10,7 @@ import {
   History, UserPlus, LifeBuoy, Server, Database, ShieldCheck as ShieldIcon,
   HardDrive, Cpu, BadgeCheck, Lightbulb, Volume2, Pause
 } from 'lucide-react';
+import { BackButton } from '../../components/common/BackButton';
 import { useNavigate } from 'react-router-dom';
 import { callBackendAPI } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
@@ -167,6 +168,7 @@ export const Utilities: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto">
+      <BackButton />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Shop Utility Console</h2>

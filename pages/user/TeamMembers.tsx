@@ -11,6 +11,7 @@ import Swal from 'sweetalert2';
 import { callBackendAPI } from '../../api/apiClient.ts';
 import { useAuth } from '../../context/AuthContext';
 import { useQuotas } from '../../hooks/useQuotas';
+import { BackButton } from '../../components/common/BackButton';
 
 // Define the comprehensive list of user panel modules/files for access control
 const USER_PANEL_MODULES = [
@@ -175,6 +176,7 @@ export const TeamMembers: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 relative">
+      <BackButton />
       {isLoading && (
         <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
           <Users className="w-12 h-12 text-indigo-600 animate-spin" />

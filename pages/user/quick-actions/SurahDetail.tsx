@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { BackButton } from '../../../components/common/BackButton';
 import { ChevronLeft, Play, Pause, Loader2, Languages, Volume2, Info, BookOpen, Copy, Share2, MessageSquareText, Check, Search as SearchIcon, X as CloseIcon, Hash, Tag as TagIcon } from 'lucide-react';
 
 interface Ayah {
@@ -209,29 +210,29 @@ export const SurahDetail: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-4xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 max-w-4xl mx-auto px-4 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl text-slate-400 transition-all"><ChevronLeft /></button>
-          <div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">{surah?.englishName}</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{surah?.englishNameTranslation} • {surah?.revelationType}</p>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm pt-4 mt-4">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <BackButton />
+          <div className="min-w-0">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase leading-none truncate">{surah?.englishName}</h2>
+            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 truncate">{surah?.englishNameTranslation} • {surah?.revelationType}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden md:block">
-            <p className="text-2xl font-arabic text-indigo-600">{surah?.name}</p>
-            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Surah {surah?.number}</p>
+        <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto">
+          <div className="text-left md:text-right">
+            <p className="text-xl sm:text-2xl font-arabic text-indigo-600 leading-none">{surah?.name}</p>
+            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">Surah {surah?.number}</p>
           </div>
-          <div className="h-10 w-px bg-slate-100 mx-2" />
-          <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">
-            <Languages size={14} className="text-indigo-600" />
+          <div className="h-10 w-px bg-slate-100 mx-2 hidden sm:block" />
+          <div className="flex items-center gap-2 bg-indigo-50 px-3 sm:px-4 py-2 rounded-xl border border-indigo-100">
+            <Languages size={14} className="text-indigo-600 shrink-0" />
             <select 
               value={translationId}
               onChange={(e) => setTranslationId(e.target.value)}
-              className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer text-indigo-900"
+              className="bg-transparent text-[9px] sm:text-[10px] font-black uppercase outline-none cursor-pointer text-indigo-900"
             >
               {TRANSLATIONS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
@@ -240,40 +241,40 @@ export const SurahDetail: React.FC = () => {
       </div>
 
       {/* --- NEW ADDITIVE: SEARCH INTERFACE --- */}
-      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4 group">
-        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0 group-focus-within:bg-indigo-600 group-focus-within:text-white transition-all">
-          <SearchIcon size={20} />
+      <div className="bg-white p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-3 sm:gap-4 group">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 group-focus-within:bg-indigo-600 group-focus-within:text-white transition-all">
+          <SearchIcon size={18} sm:size={20} />
         </div>
         <div className="flex-1 relative">
            <input 
              type="text" 
-             placeholder="Search within this Surah (Text, Ayah #, Tags)..."
+             placeholder="Search Verse, Ayah #, Tags..."
              value={searchQuery}
              onChange={(e) => setSearchQuery(e.target.value)}
-             className="w-full bg-transparent border-none outline-none font-bold text-slate-700 text-sm placeholder:text-slate-300"
+             className="w-full bg-transparent border-none outline-none font-bold text-slate-700 text-xs sm:text-sm placeholder:text-slate-300"
            />
            {searchQuery && (
              <button 
                onClick={() => setSearchQuery('')}
                className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-lg transition-all"
              >
-               <CloseIcon size={14} />
+               <CloseIcon size={12} sm:size={14} />
              </button>
            )}
         </div>
         <div className="hidden sm:flex items-center gap-3">
            <div className="h-8 w-px bg-slate-100" />
-           <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
-             {filteredAyahs.length} / {ayahs.length} Results
+           <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">
+             {filteredAyahs.length} / {ayahs.length} Nodes
            </span>
         </div>
       </div>
 
       {/* Bismillah Header (Except Surah At-Tawbah) */}
       {!searchQuery && surah?.number !== 9 && (
-        <div className="text-center py-10 animate-in slide-in-from-top-4 duration-1000">
-          <p className="text-4xl font-arabic text-slate-800 mb-2">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">In the name of Allah, the Entirely Merciful, the Especially Merciful</p>
+        <div className="text-center py-6 sm:py-10 animate-in slide-in-from-top-4 duration-1000">
+          <p className="text-2xl sm:text-4xl font-arabic text-slate-800 mb-3 leading-relaxed">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
+          <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest px-6 leading-relaxed">In the name of Allah, the Entirely Merciful, the Especially Merciful</p>
         </div>
       )}
 
@@ -284,49 +285,51 @@ export const SurahDetail: React.FC = () => {
           const originalIdx = ayahs.findIndex(a => a.number === ayah.number);
           
           return (
-            <div key={idx} className={`bg-white p-8 rounded-[2.5rem] border transition-all duration-300 ${playingIndex === originalIdx ? 'border-indigo-500 shadow-xl ring-4 ring-indigo-50' : 'border-slate-50 shadow-sm hover:border-slate-200'}`}>
+            <div key={idx} className={`bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border transition-all duration-300 ${playingIndex === originalIdx ? 'border-indigo-500 shadow-xl ring-4 ring-indigo-50' : 'border-slate-50 shadow-sm hover:border-slate-200'}`}>
               {/* ADDITIVE: Ayah Actions (Copy, Share, Tafsir) */}
-              <AyahActions ayah={ayah} surahName={surah?.englishName || 'Surah'} />
+              <div className="flex justify-end overflow-hidden">
+                <AyahActions ayah={ayah} surahName={surah?.englishName || 'Surah'} />
+              </div>
 
-              <div className="flex flex-col md:flex-row gap-8 items-start">
+              <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-start">
                 {/* Ayah Meta & Audio */}
-                <div className="flex flex-row md:flex-col items-center gap-4 shrink-0">
-                  <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs">
+                <div className="flex flex-row md:flex-col items-center justify-between md:justify-start w-full md:w-auto gap-4 shrink-0">
+                  <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs shrink-0">
                     {ayah.number}
                   </div>
                   <button 
                     onClick={() => handlePlayAudio(originalIdx)}
                     disabled={isAudioLoading}
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${playingIndex === originalIdx ? 'bg-rose-500 text-white shadow-lg' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'}`}
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all shrink-0 ${playingIndex === originalIdx ? 'bg-rose-500 text-white shadow-lg' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'}`}
                   >
-                    {isAudioLoading && playingIndex === originalIdx ? <Loader2 className="animate-spin" size={20} /> : playingIndex === originalIdx ? <Pause size={20} /> : <Play size={20} />}
+                    {isAudioLoading && playingIndex === originalIdx ? <Loader2 className="animate-spin" size={18} sm:size={20} /> : playingIndex === originalIdx ? <Pause size={18} sm:size={20} /> : <Play size={18} sm:size={20} />}
                   </button>
                 </div>
 
                 {/* Text Content */}
                 <div className="flex-1 w-full space-y-6">
-                  <p className="text-3xl font-arabic text-right leading-[4.5rem] text-slate-800">
+                  <p className="text-2xl sm:text-3xl font-arabic text-right leading-relaxed sm:leading-[4.5rem] text-slate-800">
                     {ayah.text}
                   </p>
                   <div className="pt-6 border-t border-slate-50">
-                    <div className="flex items-center justify-between mb-4">
-                       <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                       <div className="flex items-center gap-2 shrink-0">
                           <BookOpen size={12} className="text-indigo-400" />
-                          <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Translation Node</span>
+                          <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Revelation Node</span>
                        </div>
                        
                        {/* --- NEW ADDITIVE: TAG DISPLAY --- */}
                        {ayah.tags && ayah.tags.length > 0 && (
-                         <div className="flex gap-2">
+                         <div className="flex flex-wrap justify-end gap-1.5 sm:gap-2">
                             {ayah.tags.map(tag => (
-                              <span key={tag} className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[7px] font-black uppercase tracking-widest flex items-center gap-1">
+                              <span key={tag} className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[7px] font-black uppercase tracking-widest flex items-center gap-1 shrink-0">
                                 <TagIcon size={8} /> {tag}
                               </span>
                             ))}
                          </div>
                        )}
                     </div>
-                    <p className="text-sm font-medium text-slate-600 leading-relaxed">
+                    <p className="text-xs sm:text-sm font-medium text-slate-600 leading-relaxed">
                       {ayah.translation}
                     </p>
                   </div>
@@ -355,22 +358,22 @@ export const SurahDetail: React.FC = () => {
       </div>
 
       {/* Bottom Info */}
-      <div className="bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden group shadow-2xl">
-        <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform duration-700"><Volume2 size={200} /></div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-           <div className="space-y-3">
-              <div className="flex items-center gap-3 text-indigo-400">
+      <div className="bg-slate-900 rounded-[2.5rem] sm:rounded-[3rem] p-8 sm:p-10 text-white relative overflow-hidden group shadow-2xl">
+        <div className="absolute -bottom-10 -right-10 p-10 opacity-5 group-hover:scale-110 transition-transform duration-700 hidden sm:block"><Volume2 size={200} /></div>
+        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8 text-center lg:text-left">
+           <div className="space-y-4">
+              <div className="flex items-center justify-center lg:justify-start gap-3 text-indigo-400">
                  <Info size={18} />
-                 <span className="text-[10px] font-black uppercase tracking-[0.3em]">Audio Protocol Node</span>
+                 <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em]">Audio Protocol Node</span>
               </div>
-              <h3 className="text-2xl font-black tracking-tight uppercase">Mishary Rashid Alafasy</h3>
-              <p className="text-slate-400 text-xs font-medium max-w-sm uppercase tracking-tighter leading-relaxed">
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight uppercase leading-none">Mishary Rashid Alafasy</h3>
+              <p className="text-slate-400 text-[11px] font-medium max-w-sm uppercase tracking-tighter leading-relaxed mx-auto lg:mx-0">
                  Stream high-fidelity recitations with automated node progression. Audio is cached for the current session lifecycle.
               </p>
            </div>
            <button 
             onClick={() => handlePlayAudio(0)}
-            className="px-10 py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-3"
+            className="w-full lg:w-auto px-10 py-5 bg-indigo-600 text-white rounded-[1.5rem] sm:rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-3"
            >
               <Play size={18} fill="currentColor" /> Recite full surah
            </button>
