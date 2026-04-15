@@ -63,7 +63,7 @@ export const UserComplaints: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1400px] mx-auto">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1400px] mx-auto px-4 sm:px-0">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <BackButton />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -301,82 +300,77 @@ export const Inventory: React.FC = () => {
       if (!itemToEdit || isUpdating) return;
       setIsUpdating(true);
       try {
-         const payload = {
-            ...editForm,
-            price: parseFloat(editForm.price.toString()),
-            stock: parseInt(editForm.stock.toString()),
-            actualCost: parseFloat(editForm.actualCost.toString())
-         };
-
-         const response = await callBackendAPI(`/api/inventory/${itemToEdit._id}`, payload, 'PUT');
+         const response = await callBackendAPI(`/api/inventory/${itemToEdit._id}`, editForm, 'PUT');
          if (response) {
-            await callBackendAPI('/api/activities', {
-               actionType: 'Stock Item Updated',
-               moduleName: 'Inventory',
-               refId: itemToEdit._id,
-               status: 'Success'
-            }, 'POST');
             setIsEditModalOpen(false);
             const invResp = await callBackendAPI('/api/inventory', null, 'GET');
             setItems(Array.isArray(invResp) ? invResp : []);
-            // Dispatch inventory update event
             window.dispatchEvent(new CustomEvent('inventoryUpdated'));
          }
       } catch (error) {
          console.error('Update failed:', error);
-         alert('Failed to update inventory item.');
+         alert('Failed to update asset.');
       } finally {
          setIsUpdating(false);
       }
    };
 
    const handleDeleteItem = async (id: string) => {
-      if (window.confirm("CRITICAL: Permanently remove this asset node from the ledger?")) {
+      const confirm = await Swal.fire({
+         title: 'Delete Asset?',
+         text: "This will permanently purge this item from the warehouse ledger.",
+         icon: 'warning',
+         showCancelButton: true,
+         confirmButtonColor: '#f43f5e',
+         cancelButtonColor: '#94a3b8',
+         confirmButtonText: 'Confirm Purge'
+      });
+
+      if (confirm.isConfirmed) {
          try {
             await callBackendAPI(`/api/inventory/${id}`, null, 'DELETE');
             const invResp = await callBackendAPI('/api/inventory', null, 'GET');
             setItems(Array.isArray(invResp) ? invResp : []);
-            // Dispatch inventory update event
             window.dispatchEvent(new CustomEvent('inventoryUpdated'));
          } catch (error) {
             console.error('Delete failed:', error);
-            alert('Failed to delete item.');
          }
       }
    };
 
-   return (
-      <div className="space-y-8 pb-32 animate-in fade-in duration-500 relative">
-         <BackButton />
-         {isLoading && (
-            <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
-               <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
-            </div>
-         )}
+   const handleLiquidateLedger = () => {
+      const headers = ['Ref', 'Asset Name', 'SKU', 'Price', 'Stock', 'Category'];
+      const rows = filteredItems.map(i => [i._id || i.id, i.name, i.sku || 'N/A', i.price, i.stock, i.category]);
+      const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", `warehouse_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+      link.click();
+   };
 
-         {/* PRIMARY ACTION BUTTONS & QUOTA */}
-         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 mb-12">
-            <div>
-               <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-none uppercase">Warehouse Protocol</h1>
-               <div className="flex items-center gap-4 mt-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Central Node Capacity: {items.length} Units</p>
-                  <div className="h-1 w-24 bg-slate-100 rounded-full overflow-hidden">
-                     <div 
-                        className={`h-full transition-all duration-1000 ${quotas?.limits.stock.percentage && quotas.limits.stock.percentage > 90 ? 'bg-rose-500' : 'bg-indigo-600'}`}
-                        style={{ width: `${quotas?.limits.stock.percentage || 0}%` }}
-                     />
+   return (
+      <div className="space-y-8 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto px-4 md:px-6">
+         <BackButton />
+         
+         {/* Header */}
+         <div className="flex flex-col md:flex-row md:items-start lg:items-center justify-between gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+               <div>
+                  <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-800 tracking-tight leading-tight uppercase">Warehouse Protocol</h2>
+                  <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                     <Boxes size={14} className="text-indigo-600" /> Inventory Node & Assets Ledger
+                  </p>
+               </div>
+               <div className="bg-white border border-slate-200 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl flex items-center gap-3 shadow-sm w-fit shrink-0">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${quotas?.limits.stock.used >= quotas?.limits.stock.limit ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+                  <div>
+                     <p className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Global Stock Capacity</p>
+                     <p className="text-xs sm:text-sm font-black text-slate-800 mt-1">{quotas?.limits.stock.used || 0} / {quotas?.limits.stock.limit || 0} <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold ml-1 uppercase">Units</span></p>
                   </div>
-                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{quotas?.limits.stock.used || 0} / {quotas?.limits.stock.limit || 0} Authorized</span>
                </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-4">
-               <button onClick={() => navigate('/user/pos')} className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group">
-                  <ShoppingCart size={18} className="group-hover:rotate-12 transition-transform" /> Direct Sell
-               </button>
-               <button onClick={() => navigate('/user/add-repair')} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group">
-                  <Wrench size={18} className="group-hover:rotate-12 transition-transform" /> Add Repair
-               </button>
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full md:w-auto">
+               <button onClick={() => navigate('/user/pos')} className="w-full sm:w-auto bg-white border border-slate-200 text-slate-600 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shadow-sm"><ShoppingCart size={18} /> Point of Sale</button>
                <button 
                   onClick={() => {
                      const isAtStockLimit = quotas?.limits.stock.used >= quotas?.limits.stock.limit;
@@ -393,7 +387,7 @@ export const Inventory: React.FC = () => {
                         navigate('/user/add-inventory');
                      }
                   }} 
-                  className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-indigo-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group border-2 border-indigo-500"
+                  className="w-full sm:w-auto bg-indigo-600 text-white px-8 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 group"
                >
                   <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> Deploy Asset
                </button>
@@ -401,35 +395,34 @@ export const Inventory: React.FC = () => {
          </div>
 
          {/* NAVIGATION TABS */}
-         <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
-            <div className="flex shrink-0">
-               <button onClick={() => setActiveTab('inventory')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'inventory' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Stock Manager</button>
-               <button onClick={() => setActiveTab('comparison')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'comparison' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Sold vs Unsold</button>
-               <button onClick={() => setActiveTab('intelligence')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'intelligence' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Intelligence Hub</button>
-               <button onClick={() => setActiveTab('ledger')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'ledger' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Operational Ledger</button>
+         <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth shrink-0">
+            <div className="flex shrink-0 w-full min-w-max">
+               <button onClick={() => setActiveTab('inventory')} className={`flex-1 px-6 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'inventory' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Stock Manager</button>
+               <button onClick={() => setActiveTab('comparison')} className={`flex-1 px-6 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'comparison' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Sold vs Unsold</button>
+               <button onClick={() => setActiveTab('intelligence')} className={`flex-1 px-6 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'intelligence' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Intelligence Hub</button>
+               <button onClick={() => setActiveTab('ledger')} className={`flex-1 px-6 sm:px-8 py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'ledger' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Operational Ledger</button>
             </div>
          </div>
 
          {activeTab === 'inventory' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
                {/* SMART FILTERS */}
-               <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                  <div className="flex-1 relative group">
-                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+               <div className="bg-white p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex-1 relative group w-full">
+                     <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} sm:size={20} />
                      <input
                         type="text"
                         placeholder="Query Warehouse Ledger (Title, SKU, Serial)..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 text-sm font-bold transition-all"
+                        className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-3.5 sm:py-4 bg-slate-50 border-2 border-slate-100 rounded-xl sm:rounded-2xl outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 text-xs sm:text-sm font-bold transition-all"
                      />
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                     <div className="flex-1 sm:flex-none flex items-center gap-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl min-w-[140px]">
+                  <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                     <div className="flex-1 sm:flex-none flex items-center gap-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl min-w-[140px]">
                         <Filter size={16} className="text-slate-400" />
-                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer w-full">
-                           <option value="all">Categories</option>
+                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-transparent text-[9px] sm:text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer w-full">
+                           <option value="all">Categories Matrix</option>
                            {Array.from(new Set(items.map(i => i.category))).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                      </div>
@@ -442,55 +435,51 @@ export const Inventory: React.FC = () => {
 
                {/* MAIN LIST */}
                {viewMode === 'table' ? (
-                  <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
+                  <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
                      <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full text-left">
-                           <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
-                              <tr className="h-16">
+                        <table className="w-full text-left min-w-[1000px]">
+                           <thead className="bg-slate-50/50 text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
+                              <tr className="h-16 h-20">
                                  <th className="px-6 sm:px-10">Asset Identification</th>
-                                 <th className="px-6 text-center">Stock Level</th>
-                                 <th className="px-6 text-right">Unit Price</th>
-                                 <th className="px-6 text-center">Status</th>
+                                 <th className="px-6 sm:px-10">SKU Node</th>
+                                 <th className="px-6 sm:px-10 text-right">Fiscal Unit</th>
+                                 <th className="px-6 sm:px-10 text-center">In-Ledger</th>
                                  <th className="px-6 sm:px-10 text-right">Actions</th>
                               </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-50">
-                              {filteredItems.map(item => (
-                                 <tr key={item._id} className="hover:bg-indigo-50/30 transition-all group whitespace-nowrap">
+                              {filteredItems.map((item) => (
+                                 <tr key={item._id} className="hover:bg-slate-50/50 transition-all group">
                                     <td className="px-6 sm:px-10 py-7">
                                        <div className="flex items-center gap-5">
-                                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-xl sm:rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
-                                             {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <Package size={20} className="text-slate-300" />}
+                                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-sm ${item.stock < 5 ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                             {item.name.charAt(0)}
                                           </div>
-                                          <div className="min-w-0">
-                                             <p className="text-xs sm:text-sm font-black text-slate-800 tracking-tight uppercase truncate max-w-[120px] sm:max-w-none">{item.name}</p>
-                                             <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">SKU: {item.sku || 'N/A'}</p>
-                                          </div>
-                                       </div>
-                                    </td>
-                                    <td className="px-6 py-7 text-center">
-                                       <div className="inline-flex flex-col items-center">
-                                          <span className={`text-base font-black ${item.stock === 0 ? 'text-rose-600' : item.stock < 5 ? 'text-amber-600' : 'text-slate-800'}`}>{item.stock}</span>
-                                          <div className="w-16 h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                                             <div className={`h-full rounded-full ${item.stock === 0 ? 'bg-rose-500 w-0' : item.stock < 5 ? 'bg-amber-500 w-1/3' : 'bg-emerald-500 w-full'}`} />
+                                          <div>
+                                             <p className="font-black text-slate-800 text-base tracking-tight uppercase leading-none">{item.name}</p>
+                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{item.category}</p>
                                           </div>
                                        </div>
                                     </td>
-                                    <td className="px-6 py-7 text-right font-black text-slate-900">{currency.symbol}{item.price.toLocaleString()}</td>
-                                    <td className="px-6 py-7 text-center">
-                                       {item.stock === 0 ? (
-                                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-rose-50 text-rose-600 rounded-xl text-[8px] font-black uppercase border border-rose-100">OUT</div>
-                                       ) : item.stock < 5 ? (
-                                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-xl text-[8px] font-black uppercase border border-amber-100">LOW</div>
-                                       ) : (
-                                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-xl text-[8px] font-black uppercase border border-emerald-100">HEALTHY</div>
-                                       )}
+                                    <td className="px-6 sm:px-10 py-7">
+                                       <span className="bg-slate-50 text-slate-500 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-slate-100">{item.sku || 'NO-SKU'}</span>
+                                    </td>
+                                    <td className="px-6 sm:px-10 py-7 text-right">
+                                       <p className="font-black text-slate-900 text-lg tracking-tighter">{currency.symbol}{item.price.toLocaleString()}</p>
+                                    </td>
+                                    <td className="px-6 sm:px-10 py-7 text-center">
+                                       <div className="flex flex-col items-center">
+                                          <span className={`text-sm font-black ${item.stock < 5 ? 'text-rose-600' : 'text-slate-800'}`}>{item.stock}</span>
+                                          {item.stock < 5 && (
+                                             <span className="text-[8px] font-black text-rose-500 uppercase flex items-center gap-1 mt-1"><AlertTriangle size={8} /> Restock Req</span>
+                                          )}
+                                       </div>
                                     </td>
                                     <td className="px-6 sm:px-10 py-7 text-right">
                                        <div className="flex items-center justify-end gap-2">
-                                          <button onClick={() => handleOpenSell(item)} disabled={item.stock === 0} className="p-2 sm:p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-emerald-100"><ShoppingCart size={16} /></button>
-                                          <button onClick={() => handleOpenEdit(item)} className="p-2 sm:p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100"><Edit size={16} /></button>
-                                          <button onClick={() => handleDeleteItem(item._id)} className="p-2 sm:p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-rose-100"><Trash2 size={16} /></button>
+                                          <button onClick={() => handleOpenSell(item)} className="p-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Quick Sell"><ShoppingCart size={16} /></button>
+                                          <button onClick={() => handleOpenEdit(item)} className="p-2.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Edit Data"><Edit size={16} /></button>
+                                          <button onClick={() => handleDeleteItem(item._id)} className="p-2.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="Purge"><Trash2 size={16} /></button>
                                        </div>
                                     </td>
                                  </tr>
@@ -500,29 +489,26 @@ export const Inventory: React.FC = () => {
                      </div>
                   </div>
                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-                     {filteredItems.map(item => (
-                        <div key={item._id} className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all group flex flex-col h-full border-b-4 border-b-indigo-500">
-                           <div className="relative aspect-square bg-slate-50 overflow-hidden">
-                              {item.image ? <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><Package size={48} /></div>}
-                              <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                                 <button onClick={() => handleOpenEdit(item)} className="p-3 bg-white/90 backdrop-blur text-blue-600 rounded-2xl shadow-xl hover:bg-blue-600 hover:text-white transition-all"><Edit size={16} /></button>
-                                 <button onClick={() => handleDeleteItem(item._id)} className="p-3 bg-white/90 backdrop-blur text-rose-600 rounded-2xl shadow-xl hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={16} /></button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                     {filteredItems.map((item) => (
+                        <div key={item._id} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 group hover:border-indigo-600 transition-all flex flex-col">
+                           <div className="flex items-start justify-between mb-6">
+                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg ${item.stock < 5 ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'}`}>{item.name.charAt(0)}</div>
+                              <div className="text-right">
+                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.category}</p>
+                                 <p className="text-xl font-black text-slate-800 tracking-tighter mt-1">{currency.symbol}{item.price.toLocaleString()}</p>
                               </div>
                            </div>
-                           <div className="p-6">
-                              <h3 className="font-black text-slate-800 text-sm truncate uppercase tracking-tight">{item.name}</h3>
-                              <div className="flex items-center justify-between mt-6">
-                                 <div><p className="text-[9px] font-black text-slate-400 uppercase">Stock</p><p className="text-base font-black text-slate-800">{item.stock}</p></div>
-                                 <div className="text-right"><p className="text-[9px] font-black text-slate-400 uppercase">Price</p><p className="text-base font-black text-indigo-600">{currency.symbol}{item.price}</p></div>
+                           <h4 className="font-black text-slate-800 text-lg uppercase tracking-tight mb-2 truncate">{item.name}</h4>
+                           <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-50">
+                              <div>
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Available</p>
+                                 <p className={`text-lg font-black ${item.stock < 5 ? 'text-rose-600' : 'text-slate-800'}`}>{item.stock} Units</p>
                               </div>
-                              <button
-                                 disabled={item.stock <= 0}
-                                 onClick={() => handleOpenSell(item)}
-                                 className={`w-full mt-4 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${item.stock > 0 ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg' : 'bg-slate-50 text-slate-300 cursor-not-allowed'}`}
-                              >
-                                 <ShoppingCart size={14} /> Quick Liquidate
-                              </button>
+                              <div className="flex gap-2">
+                                 <button onClick={() => handleOpenSell(item)} className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-100 active:scale-90 transition-all"><ShoppingCart size={16} /></button>
+                                 <button onClick={() => handleOpenEdit(item)} className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 active:scale-90 transition-all"><Edit size={16} /></button>
+                              </div>
                            </div>
                         </div>
                      ))}
@@ -531,251 +517,34 @@ export const Inventory: React.FC = () => {
             </div>
          )}
 
-         {/* RESTORED: Sold vs Unsold Section */}
-         {activeTab === 'comparison' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-                     <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center"><Boxes size={24} /></div>
-                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Inventory Value</p>
-                        <h4 className="text-3xl font-black text-slate-800">{currency.symbol}{comparisonData.totalInventoryValue.toLocaleString()}</h4>
-                     </div>
-                  </div>
-                  <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-                     <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center"><TrendingUp size={24} /></div>
-                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sold Liquidity</p>
-                        <h4 className="text-3xl font-black text-emerald-600">{currency.symbol}{comparisonData.soldStockValue.toLocaleString()}</h4>
-                     </div>
-                  </div>
-                  <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-                     <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center"><Landmark size={24} /></div>
-                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Blocked Capital (Unsold)</p>
-                        <h4 className="text-3xl font-black text-rose-600">{currency.symbol}{comparisonData.unsoldStockValue.toLocaleString()}</h4>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm flex flex-col items-center">
-                     <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-10">Capital Distribution Node</h4>
-                     <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                           <PieChart>
-                              <Pie data={comparisonData.pieData} innerRadius={80} outerRadius={100} paddingAngle={10} dataKey="value" stroke="none">
-                                 {comparisonData.pieData.map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={COMP_COLORS[index % COMP_COLORS.length]} />
-                                 ))}
-                              </Pie>
-                              <Tooltip />
-                           </PieChart>
-                        </ResponsiveContainer>
-                     </div>
-                     <div className="flex gap-8 mt-6">
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#6366f1]" />
-                           <span className="text-[10px] font-black uppercase text-slate-500">Liquid (Sold)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <div className="w-3 h-3 rounded-full bg-[#f43f5e]" />
-                           <span className="text-[10px] font-black uppercase text-slate-500">Blocked (Stock)</span>
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="bg-white rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
-                     <div className="p-6 sm:p-8 bg-slate-50/50 border-b border-slate-100">
-                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">Category Liquidity Scan</h4>
-                     </div>
-                     <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full text-left text-xs">
-                           <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 border-b border-slate-100">
-                              <tr className="h-12">
-                                 <th className="px-8">Classification</th>
-                                 <th className="px-6 text-center">Unsold %</th>
-                                 <th className="px-8 text-right">Inventory Value</th>
-                              </tr>
-                           </thead>
-                           <tbody className="divide-y divide-slate-50">
-                              {comparisonData.categoryStats.map((cat, i) => (
-                                 <tr key={i} className="h-14 hover:bg-slate-50 transition-all">
-                                    <td className="px-8 font-black text-slate-700 uppercase">{cat.category}</td>
-                                    <td className="px-6 text-center">
-                                       <div className="flex items-center justify-center gap-3">
-                                          <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                             <div className="h-full bg-indigo-600" style={{ width: `${cat.unsoldPercent}%` }} />
-                                          </div>
-                                          <span className="font-black text-slate-500">{cat.unsoldPercent.toFixed(0)}%</span>
-                                       </div>
-                                    </td>
-                                    <td className="px-8 text-right font-black text-slate-900">{currency.symbol}{cat.unsoldVal.toLocaleString()}</td>
-                                 </tr>
-                              ))}
-                           </tbody>
-                        </table>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         )}
-
-         {/* RESTORED: Intelligence Hub Section */}
          {activeTab === 'intelligence' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-emerald-200 transition-all">
-                     <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><CheckCircle2 size={32} /></div>
-                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Healthy Nodes</p>
-                        <h4 className="text-3xl font-black text-slate-800">{intel.inStock.length} SKU</h4>
-                     </div>
-                  </div>
-                  <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-amber-200 transition-all">
-                     <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><AlertTriangle size={32} /></div>
-                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Depletion Risk</p>
-                        <h4 className="text-3xl font-black text-amber-600">{intel.lowStock.length} SKU</h4>
-                     </div>
-                  </div>
-                  <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-rose-200 transition-all">
-                     <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><XCircle size={32} /></div>
-                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dead Nodes</p>
-                        <h4 className="text-3xl font-black text-rose-600">{intel.outOfStock.length} SKU</h4>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                  <div className="lg:col-span-4 bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
-                     <div className="absolute top-0 right-0 p-8 opacity-10"><Zap size={150} /></div>
-                     <h4 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-8 flex items-center gap-2"><TrendingUp size={16} /> High-Velocity Assets</h4>
-                     <div className="space-y-6 relative z-10">
-                        {intel.fastMoving.map((item, i) => (
-                           <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                              <div className="min-w-0">
-                                 <p className="text-xs font-black uppercase tracking-tight truncate">{item.name}</p>
-                                 <p className="text-[9px] font-bold text-indigo-300 uppercase mt-1">Moved: {item.salesCount} Units</p>
-                              </div>
-                              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">#{i + 1}</div>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-
-                  <div className="lg:col-span-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                     <div className="p-8 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
-                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">Margin Scrutiny Node</h4>
-                        <span className="text-[9px] font-black text-indigo-600 uppercase">Top Yield Generation</span>
-                     </div>
-                     <div className="flex-1 overflow-x-auto">
-                        <table className="w-full text-left text-xs">
-                           <thead className="text-[9px] font-black uppercase text-slate-400 border-b border-slate-100">
-                              <tr className="h-12">
-                                 <th className="px-10">Product Asset</th>
-                                 <th className="px-6 text-center">Margin %</th>
-                                 <th className="px-6 text-center">Units Sold</th>
-                                 <th className="px-10 text-right">Net Profit</th>
-                              </tr>
-                           </thead>
-                           <tbody className="divide-y divide-slate-50 font-bold">
-                              {intel.profitability.slice(0, 5).map((item, i) => (
-                                 <tr key={i} className="h-16 hover:bg-slate-50 transition-all">
-                                    <td className="px-10 font-black text-slate-800 uppercase truncate max-w-[200px]">{item.name}</td>
-                                    <td className="px-6 text-center"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-black uppercase border border-emerald-100">{item.marginPercent.toFixed(1)}%</span></td>
-                                    <td className="px-6 text-center text-slate-500">{item.totalSold}</td>
-                                    <td className="px-10 text-right font-black text-slate-900">{currency.symbol}{item.totalProfit.toLocaleString()}</td>
-                                 </tr>
-                              ))}
-                           </tbody>
-                        </table>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="bg-indigo-600 rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-110 transition-transform duration-1000"><RefreshCcw size={200} /></div>
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
-                     <div className="max-w-xl space-y-4">
-                        <div className="flex items-center gap-3">
-                           <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20"><Activity size={24} /></div>
-                           <h3 className="text-2xl font-black uppercase tracking-tight">Supply Forecasting node</h3>
-                        </div>
-                        <p className="text-blue-100 text-sm font-medium leading-relaxed uppercase tracking-tighter">Predictive algorithms identify items requiring immediate restock handshakes to prevent service interruption.</p>
-                     </div>
-                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 flex-1">
-                        {restockPredictions.slice(0, 3).map((item, i) => (
-                           <div key={i} className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-                              <p className="text-[9px] font-black uppercase tracking-widest opacity-60 truncate">{item.name}</p>
-                              <h5 className="text-xl font-black mt-2 leading-none">{item.daysLeft} <span className="text-[10px] opacity-60">DAYS</span></h5>
-                              <p className="text-[8px] font-bold uppercase mt-4 text-emerald-300">Order: {item.suggestedQty} Units</p>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-               </div>
-            </div>
-         )}
-
-         {/* RESTORED: Operational Ledger Section */}
-         {activeTab === 'ledger' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="bg-white rounded-[2.5rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
-                  <div className="p-6 sm:p-8 border-b border-slate-50 bg-slate-50/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0"><History size={20} /></div>
-                        <div>
-                           <h4 className="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800">Warehouse Event Stream</h4>
-                           <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Immutable Transactional Nodes</p>
-                        </div>
-                     </div>
-                     <div className="bg-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border border-slate-200 shadow-sm w-fit">
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase text-indigo-600 tracking-widest">{movementLedger.length} Total Logs</span>
-                     </div>
-                  </div>
-                  <div className="overflow-x-auto custom-scrollbar">
-                     <table className="w-full text-left">
-                        <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
-                           <tr className="h-16">
-                              <th className="px-6 sm:px-10">Event Protocol</th>
-                              <th className="px-6">Asset Reference</th>
-                              <th className="px-6 text-center">Unit Flux</th>
-                              <th className="px-6 text-center">Authorized Actor</th>
-                              <th className="px-6 sm:px-10 text-right">Sync Timestamp</th>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+               <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm col-span-full">
+                  <h3 className="text-xl font-black text-slate-800 uppercase tracking-widest mb-8 flex items-center gap-3"><Zap className="text-amber-500" /> Restock Predictions</h3>
+                  <div className="overflow-x-auto">
+                     <table className="w-full text-left min-w-[800px]">
+                        <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                           <tr>
+                              <th className="py-6">Critical Asset</th>
+                              <th className="py-6">Lifecycle Status</th>
+                              <th className="py-6">Burn Rate Est.</th>
+                              <th className="py-6 text-right">Restock Suggestion</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                           {movementLedger.map((log, i) => (
-                              <tr key={i} className="hover:bg-slate-50/80 transition-all group whitespace-nowrap">
-                                 <td className="px-6 sm:px-10 py-7">
-                                    <div className="flex items-center gap-4">
-                                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${log.color}`}>
-                                          <log.icon size={18} />
-                                       </div>
-                                       <span className="text-sm font-black text-slate-800 uppercase tracking-tight">{log.actionType}</span>
+                           {restockPredictions.map(p => (
+                              <tr key={p._id} className="group">
+                                 <td className="py-6 font-black text-slate-800 uppercase text-sm">{p.name}</td>
+                                 <td className="py-6">
+                                    <span className="bg-rose-50 text-rose-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">Critical: {p.stock} Units</span>
+                                 </td>
+                                 <td className="py-6">
+                                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase">
+                                       <Clock size={14} className="text-amber-500" /> Exhaustion in ~{p.daysLeft} Days
                                     </div>
                                  </td>
-                                 <td className="px-6 py-7">
-                                    <p className="text-xs font-bold text-slate-600 uppercase tracking-tighter truncate max-w-[180px]">{log.product}</p>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase mt-1">REF: {log.ref}</p>
-                                 </td>
-                                 <td className="px-6 py-7 text-center">
-                                    <span className={`px-3 py-1 rounded-lg text-xs font-black ${log.qty < 0 ? 'text-rose-600 bg-rose-50' : log.qty > 0 ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 bg-slate-50'}`}>
-                                       {log.qty > 0 ? `+${log.qty}` : log.qty}
-                                    </span>
-                                 </td>
-                                 <td className="px-6 py-7 text-center">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-lg text-[9px] font-black text-slate-600 uppercase border border-slate-200">
-                                       <User size={10} /> {log.user}
-                                    </div>
-                                 </td>
-                                 <td className="px-10 py-7 text-right">
-                                    <div className="flex flex-col items-end">
-                                       <span className="text-[10px] font-black text-slate-800 uppercase leading-none">{log.date}</span>
-                                       <span className="text-[9px] font-bold text-slate-400 uppercase mt-1.5">{log.timestamp?.includes('T') ? log.timestamp.split('T')[1].slice(0, 5) : '--:--'}</span>
-                                    </div>
+                                 <td className="py-6 text-right">
+                                    <button className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">Order +{p.suggestedQty} Units</button>
                                  </td>
                               </tr>
                            ))}
@@ -786,132 +555,134 @@ export const Inventory: React.FC = () => {
             </div>
          )}
 
-         {/* QUICK SELL MODAL (RESTORED) */}
-         {isSellModalOpen && productToSell && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
-               <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col border border-emerald-100">
-                  <div className="bg-emerald-600 p-8 text-white flex items-center justify-between shrink-0">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                           <ShoppingCart size={24} />
-                        </div>
-                        <div>
-                           <h3 className="text-xl font-black uppercase tracking-widest leading-none">Register Sale</h3>
-                           <p className="text-[10px] font-bold text-emerald-100 uppercase mt-2 tracking-widest opacity-80">Manual Liquidation Protocol</p>
-                        </div>
-                     </div>
-                     <button onClick={() => setIsSellModalOpen(false)} className="p-2 hover:bg-white/20 rounded-full transition-all"><X size={24} /></button>
+         {activeTab === 'ledger' && (
+            <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 border-b-8 border-b-emerald-600">
+               <div className="p-6 sm:p-10 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 bg-slate-50/30">
+                  <div>
+                     <h3 className="text-xl font-black text-slate-800 uppercase tracking-widest">Operational Ledger</h3>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Real-time Asset Movement Forensic Log</p>
                   </div>
+                  <button onClick={handleLiquidateLedger} className="w-full sm:w-auto bg-white border border-slate-200 text-slate-600 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 shadow-sm transition-all"><Download size={18} /> Liquidate LEDGER</button>
+               </div>
+               <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left min-w-[900px]">
+                     <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                        <tr>
+                           <th className="px-10 py-6">Timestamp Node</th>
+                           <th className="px-10 py-6">Operational Entity</th>
+                           <th className="px-10 py-6">Delta Magnitude</th>
+                           <th className="px-10 py-6">Uplink User</th>
+                           <th className="px-10 py-6 text-right">Protocol Ref</th>
+                        </tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-50">
+                        {movementLedger.map((log, idx) => (
+                           <tr key={idx} className="hover:bg-slate-50/50 transition-all group">
+                              <td className="px-10 py-7">
+                                 <p className="text-xs font-black text-slate-800 uppercase">{log.date}</p>
+                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">08:45 AM UTC</p>
+                              </td>
+                              <td className="px-10 py-7">
+                                 <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${log.color} bg-slate-50 shadow-sm border border-slate-100`}><log.icon size={18} /></div>
+                                    <span className="font-black text-slate-700 text-sm uppercase tracking-tight">{log.product}</span>
+                                 </div>
+                              </td>
+                              <td className="px-10 py-7">
+                                 <span className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${log.qty > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                                    {log.qty > 0 ? `+${log.qty}` : log.qty} Units
+                                 </span>
+                              </td>
+                              <td className="px-10 py-7">
+                                 <div className="flex items-center gap-3">
+                                    <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-500 uppercase">{log.user.charAt(0)}</div>
+                                    <span className="text-xs font-bold text-slate-500 uppercase">{log.user}</span>
+                                 </div>
+                              </td>
+                              <td className="px-10 py-7 text-right">
+                                 <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{log.ref}</span>
+                              </td>
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+         )}
 
-                  <div className="p-10 space-y-8">
-                     <form onSubmit={handleSellSubmit} className="space-y-6">
-                        <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
-                           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                              <Package size={20} className="text-emerald-600" />
-                           </div>
-                           <div>
-                              <p className="text-sm font-black text-slate-800 uppercase">{productToSell.name}</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase">Available Units: {productToSell.stock}</p>
-                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                           <div className="space-y-1.5">
-                              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Quantity</label>
-                              <input required type="number" min="1" max={productToSell.stock} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-emerald-500 font-black text-lg" value={sellForm.qty} onChange={e => setSellForm({ ...sellForm, qty: parseInt(e.target.value) || 1 })} />
-                           </div>
-                           <div className="space-y-1.5">
-                              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Price per Unit</label>
-                              <input required type="number" step="0.01" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-emerald-500 font-black text-lg" value={sellForm.price} onChange={e => setSellForm({ ...sellForm, price: parseFloat(e.target.value) || 0 })} />
-                           </div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                           <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Customer Identifier</label>
-                           <input type="text" placeholder="Walk-in Customer" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-emerald-500 font-bold text-sm" value={sellForm.customer} onChange={e => setSellForm({ ...sellForm, customer: e.target.value })} />
-                        </div>
-
-                        <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex items-center justify-between">
-                           <div>
-                              <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">Settlement Total</p>
-                              <p className="text-3xl font-black text-emerald-900 tracking-tighter">{currency.symbol}{(sellForm.qty * sellForm.price).toLocaleString()}</p>
-                           </div>
-                           <CheckCircle2 size={32} className="text-emerald-500 opacity-50" />
-                        </div>
-
-                        <button type="submit" disabled={isSelling} className="w-full bg-emerald-600 text-white font-black py-6 rounded-[1.8rem] shadow-2xl hover:bg-emerald-700 transition-all uppercase tracking-[0.3em] text-[11px] flex items-center justify-center gap-3 active:scale-95">
-                           {isSelling ? <Loader2 className="animate-spin" size={20} /> : <><CheckCircle2 size={20} /> Authorize Transaction</>}
-                        </button>
-                     </form>
+         {activeTab === 'comparison' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm col-span-full grid grid-cols-1 md:grid-cols-4 gap-8 mb-4">
+                  <div className="md:col-span-1">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Inventory Liquidity Ratio</p>
+                     <h4 className="text-4xl font-black text-slate-800 tracking-tighter">{comparisonData.unsoldRatio.toFixed(1)}% <span className="text-sm text-slate-400 uppercase">Unsold</span></h4>
+                     <p className="text-xs font-bold text-slate-500 mt-2">Optimal protocol recommends ratio below 40%.</p>
+                  </div>
+                  <div className="md:col-span-3 h-[300px]">
+                     <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                           <Pie data={comparisonData.pieData} innerRadius={80} outerRadius={110} paddingAngle={5} dataKey="value">
+                              {comparisonData.pieData.map((entry, index) => <Cell key={index} fill={COMP_COLORS[index % COMP_COLORS.length]} />)}
+                           </Pie>
+                           <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
+                           <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
+                        </PieChart>
+                     </ResponsiveContainer>
                   </div>
                </div>
             </div>
          )}
 
-         {/* EDIT ASSET MODAL */}
-         {isEditModalOpen && itemToEdit && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
-               <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col border border-white/20">
-                  <div className="bg-blue-600 p-8 text-white flex items-center justify-between shrink-0">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md">
-                           <Edit size={24} />
-                        </div>
+         {/* Edit Modal */}
+         {isEditModalOpen && (
+            <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-300">
+               <div className="bg-white w-full max-w-2xl rounded-3xl sm:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-in zoom-in-95 duration-300 border border-white/20">
+                  <div className="bg-slate-900 p-6 sm:p-10 text-white flex items-center justify-between shrink-0">
+                     <div className="flex items-center gap-4 sm:gap-6">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/10 rounded-2xl sm:rounded-3xl flex items-center justify-center border border-white/10 shrink-0"><Edit size={24} sm:size={28} /></div>
                         <div>
-                           <h3 className="text-xl font-black uppercase tracking-widest leading-none">Modify Asset</h3>
-                           <p className="text-[10px] font-bold text-blue-100 uppercase mt-2 tracking-widest opacity-80">Universal Ledger Update Protocol</p>
+                           <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest leading-none">Modify Asset</h3>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase mt-1.5 sm:mt-2 tracking-widest opacity-80">Synchronizing Vault Data</p>
                         </div>
                      </div>
-                     <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-white/20 rounded-full transition-all"><X size={24} /></button>
+                     <button onClick={() => setIsEditModalOpen(false)} className="p-3 hover:bg-rose-500 rounded-full transition-all"><X size={20} sm:size={24} /></button>
                   </div>
-
-                  <div className="p-10 overflow-y-auto max-h-[80vh] custom-scrollbar">
-                     <form onSubmit={handleEditSubmit} className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex-1 overflow-y-auto p-6 sm:p-10 md:p-12 custom-scrollbar">
+                     <form onSubmit={handleEditSubmit} className="space-y-6 sm:space-y-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
                            <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Asset Title</label>
-                              <input required type="text" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-sm" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Asset Nomenclature</label>
+                              <input type="text" className="w-full px-5 py-3.5 sm:py-4 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl outline-none font-bold text-sm" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
                            </div>
                            <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Universal SKU / ID</label>
-                              <input type="text" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-sm" value={editForm.sku} onChange={e => setEditForm({ ...editForm, sku: e.target.value })} />
+                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">ID Code (SKU)</label>
+                              <input type="text" className="w-full px-5 py-3.5 sm:py-4 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl outline-none font-bold text-sm" value={editForm.sku} onChange={e => setEditForm({...editForm, sku: e.target.value})} />
                            </div>
                            <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Stock Level</label>
-                              <input required type="number" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-blue-500 font-black text-lg" value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) || 0 })} />
+                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Listed Valuation</label>
+                              <div className="relative">
+                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">{currency.symbol}</span>
+                                 <input type="number" className="w-full pl-10 pr-5 py-3.5 sm:py-4 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl outline-none font-bold text-sm" value={editForm.price} onChange={e => setEditForm({...editForm, price: parseFloat(e.target.value)})} />
+                              </div>
                            </div>
                            <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Unit Sale Price ({currency.code})</label>
-                              <input required type="number" step="0.01" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 font-black text-base sm:text-lg" value={editForm.price} onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) || 0 })} />
-                           </div>
-                           <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Category Classification</label>
-                              <select className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-sm appearance-none cursor-pointer" value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}>
-                                 {Array.from(new Set(items.map(i => i.category))).map(c => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                           </div>
-                           <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Acquisition Cost ({currency.code})</label>
-                              <input type="number" step="0.01" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-sm" value={editForm.actualCost} onChange={e => setEditForm({ ...editForm, actualCost: parseFloat(e.target.value) || 0 })} />
+                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Acquisition Cost</label>
+                              <div className="relative">
+                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">{currency.symbol}</span>
+                                 <input type="number" className="w-full pl-10 pr-5 py-3.5 sm:py-4 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl outline-none font-bold text-sm font-bold text-emerald-600" value={editForm.actualCost} onChange={e => setEditForm({...editForm, actualCost: parseFloat(e.target.value)})} />
+                              </div>
                            </div>
                         </div>
-
-                        <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-start gap-4">
-                           <ShieldCheck size={24} className="text-blue-600 shrink-0 mt-1" />
-                           <p className="text-[10px] font-bold text-blue-700 uppercase leading-relaxed tracking-widest">
-                              Authorizing this mutation will update all historical analytics associated with this asset node. Permanent ledger synchronization required.
-                           </p>
+                        <div className="pt-6">
+                           <button type="submit" disabled={isUpdating} className="w-full bg-slate-900 text-white font-black py-4 sm:py-5 rounded-2xl uppercase tracking-[0.2em] text-[11px] shadow-xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-2">
+                              {isUpdating ? <RefreshCcw size={18} className="animate-spin" /> : <Save size={18} />} Commit Updates
+                           </button>
                         </div>
-
-                        <button type="submit" disabled={isUpdating} className="w-full bg-blue-600 text-white font-black py-6 rounded-[1.8rem] shadow-2xl hover:bg-blue-700 transition-all uppercase tracking-[0.3em] text-[11px] flex items-center justify-center gap-3 active:scale-95 group">
-                           {isUpdating ? <Loader2 className="animate-spin" size={20} /> : <><Save size={20} /> Commit Ledger Updates</>}
-                        </button>
                      </form>
                   </div>
                </div>
             </div>
          )}
-
       </div>
    );
 };

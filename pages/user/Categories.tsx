@@ -214,7 +214,7 @@ export const Categories: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20 relative">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20 relative px-4 sm:px-0 max-w-[1600px] mx-auto">
       {isLoading && (
         <div className="absolute inset-0 z-[300] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
           <Activity className="w-12 h-12 text-indigo-600 animate-spin" />

@@ -354,6 +354,24 @@ export const Repairs: React.FC = () => {
       setFormData({ customerName: '', mobile: '', email: '', brand: '', device: '', description: '', cost: '', status: 'pending', date: new Date().toISOString().split('T')[0], assignedTo: '', deviceImage: null, symptoms: [], internalNotes: '', estimatedTime: 'Same Day', estimatedPickupDate: new Date().toISOString().split('T')[0], paymentStatus: 'unpaid', paymentMethod: 'cash', attachments: [], partsCost: '0', technicianCost: '0', aiDiagnosis: null, aiConfidence: null, aiEstimatedCost: null, aiEstimatedTime: null, serialNumber: '', deviceColor: '', storageVariant: '', fileError: null });
     } catch (error) {
       console.error('Enrollment failed:', error);
+      if (error.message && error.message.includes('Resource limit reached')) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Repair Limit Reached',
+          text: 'The monthly repair enrollment limit for your current protocol has been reached.',
+          showCancelButton: true,
+          confirmButtonText: 'Upgrade Tier',
+          confirmButtonColor: '#6366f1'
+        }).then(r => r.isConfirmed && navigate('/user/pricing'));
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Enrollment Failed',
+          text: 'An error occurred while creating the repair. Please try again.',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -473,24 +491,24 @@ export const Repairs: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+    <div className="space-y-8 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto px-4 md:px-0">
       <BackButton />
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-6">
+      <div className="flex flex-col md:flex-row md:items-start lg:items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
           <div>
-            <h2 className="text-4xl font-black text-slate-800 tracking-tight leading-none uppercase">Repair Infrastructure</h2>
-            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2"><ShieldCheck size={14} className="text-indigo-600" /> Node Architecture & Fiscal Ledger</p>
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-800 tracking-tight leading-tight uppercase">Repair Infrastructure</h2>
+            <p className="text-slate-500 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2"><ShieldCheck size={14} className="text-indigo-600" /> Node Architecture & Fiscal Ledger</p>
           </div>
-          <div className="bg-white border border-slate-200 px-5 py-2.5 rounded-2xl flex items-center gap-3 shadow-sm">
-            <div className={`w-2 h-2 rounded-full ${quotas?.limits.repairs.used >= quotas?.limits.repairs.limit ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+          <div className="bg-white border border-slate-200 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl flex items-center gap-3 shadow-sm w-fit shrink-0">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${quotas?.limits.repairs.used >= quotas?.limits.repairs.limit ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
             <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Operational Quota</p>
-              <p className="text-sm font-black text-slate-800 mt-1">{quotas?.limits.repairs.used || 0} / {quotas?.limits.repairs.limit || 0} <span className="text-[10px] text-slate-400 font-bold ml-1 uppercase">Units</span></p>
+              <p className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Operational Quota</p>
+              <p className="text-xs sm:text-sm font-black text-slate-800 mt-1">{quotas?.limits.repairs.used || 0} / {quotas?.limits.repairs.limit || 0} <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold ml-1 uppercase">Units</span></p>
             </div>
           </div>
         </div>
-        <button onClick={() => setShowBookingForm(true)} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-2xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest"><Plus size={18} /> New Enrollment</button>
+        <button onClick={() => setShowBookingForm(true)} className="w-full md:w-auto bg-indigo-600 text-white px-8 py-4 sm:py-5 rounded-2xl font-black flex items-center justify-center gap-2 shadow-2xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest"><Plus size={18} /> New Enrollment</button>
       </div>
 
       {/* KPI STRIP */}
@@ -512,17 +530,17 @@ export const Repairs: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
-        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-50/20">
-          <div className="relative flex-1 max-w-xl group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={22} />
-            <input type="text" placeholder="Trace Audit Record (ID, Device, Customer)..." className="w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-3xl text-sm font-bold focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 shadow-sm transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+      <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden border-b-8 border-b-indigo-600">
+        <div className="p-4 sm:p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 bg-slate-50/20">
+          <div className="relative flex-1 w-full max-w-xl group">
+            <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} sm:size={22} />
+            <input type="text" placeholder="Trace Audit Record (ID, Device, Customer)..." className="w-full pl-11 sm:pl-14 pr-4 sm:pr-6 py-3.5 sm:py-5 bg-white border-2 border-slate-100 rounded-2xl sm:rounded-3xl text-sm font-bold focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 shadow-sm transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
-          <button onClick={() => { const headers = ['Ref', 'Customer', 'Device', 'Status', 'Cost']; const rows = filteredData.map(r => [r.trackingId || r.id, r.customerName, r.device, r.status, r.cost]); const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n"); const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `audit_repairs_${new Date().toISOString().split('T')[0]}.csv`); link.click(); }} className="bg-white border border-slate-200 text-slate-600 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 shadow-sm shrink-0 transition-all">
-            <Download size={20} /> Liquidate Ledger
+          <button onClick={() => { const headers = ['Ref', 'Customer', 'Device', 'Status', 'Cost']; const rows = filteredData.map(r => [r.trackingId || r.id, r.customerName, r.device, r.status, r.cost]); const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n"); const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `audit_repairs_${new Date().toISOString().split('T')[0]}.csv`); link.click(); }} className="w-full md:w-auto bg-white border border-slate-200 text-slate-600 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 shadow-sm shrink-0 transition-all">
+            <Download size={18} /> Liquidate Ledger
           </button>
         </div>
-        <div className="overflow-x-auto ">
+        <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left">
             <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">
               <tr>
@@ -698,18 +716,18 @@ export const Repairs: React.FC = () => {
       {/* NEW ENROLLMENT MODAL */}
       {showBookingForm && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col relative border border-white/20 max-h-[90vh]">
-            <div className="bg-indigo-600 p-5 sm:p-8 text-white flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center border border-white/20 backdrop-blur-md shrink-0"><Wrench size={22} /></div>
+          <div className="bg-white w-full max-w-5xl rounded-3xl sm:rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col relative border border-white/20 max-h-[95vh] sm:max-h-[90vh]">
+            <div className="bg-indigo-600 p-5 sm:p-8 md:p-10 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 sm:gap-5">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center border border-white/20 backdrop-blur-md shrink-0"><Wrench size={20} sm:size={24} /></div>
                 <div>
                   <h3 className="text-lg sm:text-2xl font-black uppercase tracking-widest leading-none">New Enrollment</h3>
-                  <p className="text-[10px] font-bold text-indigo-100 uppercase mt-2 tracking-widest opacity-80">Technical Intake Protocol</p>
+                  <p className="text-[8px] sm:text-[10px] font-bold text-indigo-100 uppercase mt-1.5 sm:mt-2 tracking-widest opacity-80">Technical Intake Protocol</p>
                 </div>
               </div>
               <button onClick={() => setShowBookingForm(false)} className="p-2 sm:p-3 bg-white/10 hover:bg-rose-500 rounded-full transition-all duration-300"><X size={20} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-10 md:p-12 custom-scrollbar">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 <form onSubmit={handleEnrollment} className="lg:col-span-8 space-y-12">
                   {/* Client Details */}

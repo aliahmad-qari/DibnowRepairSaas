@@ -236,7 +236,7 @@ export const AddRepair: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-6xl mx-auto space-y-8 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500 px-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <BackButton />
         <div>

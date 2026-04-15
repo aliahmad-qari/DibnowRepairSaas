@@ -313,7 +313,7 @@ export const SellProducts: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col space-y-6 px-4 sm:px-6">
       <BackButton />
       <div className="flex flex-col lg:flex-row gap-8 h-full min-h-[calc(100vh-180px)] animate-in fade-in duration-500 pb-10">
       

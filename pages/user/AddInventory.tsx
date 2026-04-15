@@ -22,7 +22,8 @@ export const AddInventory: React.FC = () => {
 
   const isLimitReached = useMemo(() => {
     if (!quotas) return false;
-    return quotas.limits.inventory.used >= quotas.limits.inventory.limit;
+    const inventoryQuota = quotas.limits.stock || { used: 0, limit: 0 };
+    return inventoryQuota.used >= inventoryQuota.limit;
   }, [quotas]);
 
   const [formData, setFormData] = useState({
@@ -166,7 +167,7 @@ export const AddInventory: React.FC = () => {
         </div>
         <h2 className="text-3xl font-black text-slate-800 tracking-tightest">Inventory Limit Reached</h2>
         <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Platform Restriction Policy</p>
-        <p className="text-slate-600 font-medium">Your current plan ({quotas?.planName || 'Evaluating...'}) allows for a maximum of <b>{quotas?.limits.inventory.limit || 0}</b> unique stock items.</p>
+        <p className="text-slate-600 font-medium">Your current plan ({quotas?.planName || 'Evaluating...'}) allows for a maximum of <b>{quotas?.limits.stock?.limit || 0}</b> unique stock items.</p>
         <div className="pt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <button onClick={() => navigate('/user/pricing')} className="bg-[#0052FF] text-white px-8 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 flex items-center justify-center gap-2 hover:scale-105 transition-all uppercase tracking-widest text-[10px]">
             <ArrowUpCircle size={18} /> Expand Inventory Limit
@@ -180,7 +181,7 @@ export const AddInventory: React.FC = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 px-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <BackButton />
         <div>
